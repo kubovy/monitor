@@ -1,4 +1,4 @@
-package com.poterion.monitor.control
+package com.poterion.monitor.api.lib
 
 import org.slf4j.LoggerFactory
 import java.awt.Desktop
@@ -9,22 +9,22 @@ private val LOGGER = LoggerFactory.getLogger("Utils")
 private val desktop = if (Desktop.isDesktopSupported()) Desktop.getDesktop() else null
 
 fun open(uri: URI) = desktop?.takeIf { it.isSupported(Desktop.Action.BROWSE) }
-        ?.also { it.browse(uri) } != null
+		?.also { it.browse(uri) } != null
 
 fun open(file: File) = desktop?.takeIf { it.isSupported(Desktop.Action.OPEN) }
-        ?.also { it.open(file) } != null
+		?.also { it.open(file) } != null
 
 fun open(path: String): Boolean {
-    try {
-        val uri = URI(path)
-        if (uri.scheme.startsWith("file")) {
-            open(File(uri))
-        } else {
-            open(uri)
-        }
-        return true
-    } catch (e: Exception) {
-        LOGGER.warn("Can't open ${path}!", e)
-        return false
-    }
+	try {
+		val uri = URI(path)
+		if (uri.scheme.startsWith("file")) {
+			open(File(uri))
+		} else {
+			open(uri)
+		}
+		return true
+	} catch (e: Exception) {
+		LOGGER.warn("Can't open ${path}!", e)
+		return false
+	}
 }

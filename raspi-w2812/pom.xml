@@ -18,6 +18,10 @@
             <artifactId>api</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.poterion.monitor</groupId>
+            <artifactId>ui</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.scream3r</groupId>
             <artifactId>jssc</artifactId>
         </dependency>

@@ -13,24 +13,24 @@ import javafx.stage.Stage
  * @author Jan Kubovy <jan@kubovy.eu>
  */
 class Main : Application() {
-    companion object {
-        @JvmStatic
-        fun main(args: Array<String>) {
-            launch(Main::class.java, *args)
-        }
-    }
+	companion object {
+		@JvmStatic
+		fun main(args: Array<String>) {
+			launch(Main::class.java, *args)
+		}
+	}
 
-    override fun start(primaryStage: Stage) {
-        Platform.setImplicitExit(false)
+	override fun start(primaryStage: Stage) {
+		Platform.setImplicitExit(false)
 
-        val controller = Controller().apply {
-            registerModule(JenkinsModule)
-            registerModule(SonarModule)
-            registerModule(RaspiW2812Module)
-        }
-        controller.start()
-        TrayObject.initialize(controller)
-    }
+		val controller = Controller(primaryStage).apply {
+			registerModule(JenkinsModule)
+			registerModule(SonarModule)
+			registerModule(RaspiW2812Module)
+		}
+		controller.start()
+		TrayObject.initialize(controller)
+	}
 }
 
 

@@ -1,5 +1,6 @@
 package com.poterion.monitor.sensors.jenkins
 
+import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.data.Config
 import com.poterion.monitor.data.services.JenkinsConfig
@@ -8,8 +9,8 @@ import kotlin.reflect.KClass
 
 object JenkinsModule : ServiceModule<JenkinsConfig, JenkinsServiceController> {
     override val configClass: KClass<JenkinsConfig> = JenkinsConfig::class
-    override fun createControllers(config: Config): Collection<JenkinsServiceController> = config.services
+    override fun createControllers(controller: ControllerInterface, config: Config): Collection<JenkinsServiceController> = config.services
             .filter { it is JenkinsConfig }
             .map { it as JenkinsConfig }
-            .map { JenkinsServiceController(it) }
+            .map { JenkinsServiceController(controller, it) }
 }

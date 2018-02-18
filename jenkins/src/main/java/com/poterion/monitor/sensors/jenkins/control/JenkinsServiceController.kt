@@ -1,5 +1,6 @@
 package com.poterion.monitor.sensors.jenkins.control
 
+import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ServiceController
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
@@ -16,7 +17,7 @@ import java.net.URI
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-class JenkinsServiceController(config: JenkinsConfig) : ServiceController<JenkinsConfig>(config) {
+class JenkinsServiceController(override val controller: ControllerInterface, config: JenkinsConfig) : ServiceController<JenkinsConfig>(config) {
     companion object {
         val LOGGER: Logger = LoggerFactory.getLogger(JenkinsServiceController::class.java)
     }

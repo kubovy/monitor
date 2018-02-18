@@ -9,21 +9,21 @@ import javax.swing.ImageIcon
  * @author Jan Kubovy <jan@kubovy.eu>
  */
 enum class Icon(file: String) {
-    INACTIVE("/icons/inactive.png"),
-    OK("/icons/ok.png"),
-    UNKNOWN("/icons/unknown.png"),
-    INFO("/icons/info.png"),
-    NOTIFICATION("/icons/notification.png"),
-    WARNING("/icons/warning.png"),
-    ERROR("/icons/error.png"),
-    FATAL("/icons/fatal.png");
+	INACTIVE("/icons/inactive.png"),
+	OK("/icons/ok.png"),
+	UNKNOWN("/icons/unknown.png"),
+	INFO("/icons/info.png"),
+	NOTIFICATION("/icons/notification.png"),
+	WARNING("/icons/warning.png"),
+	ERROR("/icons/error.png"),
+	FATAL("/icons/fatal.png");
 
-    val image: Image? = Icon::class.java.getResource(file)
-            ?.let { ImageIcon(it) }
-            ?.image
+	val image: Image? = Icon::class.java.getResource(file)
+			?.let { ImageIcon(it) }
+			?.image
 
-    val bytes: ByteArray? = Icon::class.java.getResourceAsStream(file)?.use { it.readBytes() }
+	val bytes: ByteArray? = Icon::class.java.getResourceAsStream(file)?.use { it.readBytes() }
 
-    val inputStream: InputStream?
-        get() = bytes?.let { ByteArrayInputStream(it) }
+	val inputStream: InputStream?
+		get() = bytes?.let { ByteArrayInputStream(it) }
 }

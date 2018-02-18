@@ -13,11 +13,11 @@
     <dependencies>
         <dependency>
             <groupId>com.poterion.monitor</groupId>
-            <artifactId>data</artifactId>
+            <artifactId>api</artifactId>
         </dependency>
         <dependency>
             <groupId>com.poterion.monitor</groupId>
-            <artifactId>control</artifactId>
+            <artifactId>data</artifactId>
         </dependency>
     </dependencies>
 </project>
