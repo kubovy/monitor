@@ -1,8 +1,9 @@
 package com.poterion.monitor
 
 import com.poterion.monitor.control.Controller
-import com.poterion.monitor.control.notifiers.Notifiers
-import com.poterion.monitor.control.services.Services
+import com.poterion.monitor.sensors.jenkins.JenkinsModule
+import com.poterion.monitor.sensors.sonar.SonarModule
+import com.poterion.monitor.notifiers.raspiw2812.RaspiW2812Module
 import com.poterion.monitor.ui.TrayObject
 import javafx.application.Application
 import javafx.application.Platform
@@ -21,7 +22,12 @@ class Main : Application() {
 
     override fun start(primaryStage: Stage) {
         Platform.setImplicitExit(false)
-        val controller = Controller()
+
+        val controller = Controller().apply {
+            registerModule(JenkinsModule)
+            registerModule(SonarModule)
+            registerModule(RaspiW2812Module)
+        }
         controller.start()
         TrayObject.initialize(controller)
     }

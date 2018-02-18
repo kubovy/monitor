@@ -1,6 +1,7 @@
 package com.poterion.monitor.data
 
 import com.poterion.monitor.data.auth.AuthConfig
+import com.poterion.monitor.data.auth.BasicAuthConfig
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
@@ -8,5 +9,5 @@ import com.poterion.monitor.data.auth.AuthConfig
 interface HttpConfig {
     var url: String
     var trustCertificate: Boolean
-    var auth: AuthConfig?
+    var auth: BasicAuthConfig?
 }

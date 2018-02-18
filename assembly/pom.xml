@@ -49,5 +49,17 @@
             <groupId>com.poterion.monitor</groupId>
             <artifactId>ui</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.poterion.monitor</groupId>
+            <artifactId>jenkins</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.poterion.monitor</groupId>
+            <artifactId>sonar</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.poterion.monitor</groupId>
+            <artifactId>raspi-w2812</artifactId>
+        </dependency>
     </dependencies>
 </project>
