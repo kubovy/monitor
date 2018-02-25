@@ -17,5 +17,6 @@
             <groupId>com.poterion.monitor</groupId>
             <artifactId>api</artifactId>
         </dependency>
+        <!-- 3rd Parties -->
     </dependencies>
 </project>

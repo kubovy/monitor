@@ -17,10 +17,7 @@
             <groupId>com.poterion.monitor</groupId>
             <artifactId>api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.poterion.monitor</groupId>
-            <artifactId>ui</artifactId>
-        </dependency>
+        <!-- 3rd Parties -->
         <dependency>
             <groupId>org.scream3r</groupId>
             <artifactId>jssc</artifactId>

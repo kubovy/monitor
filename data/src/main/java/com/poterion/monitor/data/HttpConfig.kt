@@ -10,4 +10,7 @@ interface HttpConfig {
 	var url: String
 	var trustCertificate: Boolean
 	var auth: BasicAuthConfig?
+	var connectTimeout: Long?
+	var readTimeout: Long?
+	var writeTimeout: Long?
 }

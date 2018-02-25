@@ -12,7 +12,7 @@ class SerialPortCommunicator(portName: String) {
 	companion object {
 		private val LOGGER = LoggerFactory.getLogger("SerCOM")
 
-		fun findCommunicator(): SerialPortCommunicator? = SerialNativeInterface()
+		fun findPort(): String? = SerialNativeInterface()
 				.serialPortNames
 				.map { it to SerialPortCommunicator(it) }
 				.mapNotNull { (portName, communicator) ->
@@ -31,16 +31,12 @@ class SerialPortCommunicator(portName: String) {
 					} while (result == null && tries <= 3 && exception?.exceptionType == SerialPortException.TYPE_PORT_BUSY)
 					result
 				}
-				.mapNotNull { (portName, response) -> if (response.isNotEmpty()) SerialPortCommunicator(portName) else null }
+				.mapNotNull { (portName, response) -> if (response.isNotEmpty()) portName else null }
 				.firstOrNull()
-				.also { if (it == null) LOGGER.warn("No communicator found!") else LOGGER.info("Communicator at ${it.portName}") }
-	}
+				.also { if (it == null) LOGGER.warn("No communicator found!") else LOGGER.info("Communicator at ${it}") }
 
-	var portName: String
-		get() = serialPort.portName
-		set(value) {
-			serialPort = SerialPort(value)
-		}
+		fun findCommunicator(): SerialPortCommunicator? = findPort()?.let { SerialPortCommunicator(it) }
+	}
 
 	private var serialPort = SerialPort(portName)
 
@@ -50,7 +46,7 @@ class SerialPortCommunicator(portName: String) {
 
 	fun sendMessage(vararg message: String) = sendMessage(message.toList())
 
-	fun sendMessage(message: List<String>, rescue: Boolean = true): List<String> {
+	fun sendMessage(message: List<String>): List<String> {
 		serialPort.openPort()
 		serialPort.setParams(SerialPort.BAUDRATE_9600,
 				SerialPort.DATABITS_8,

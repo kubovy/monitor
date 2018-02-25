@@ -5,6 +5,7 @@
 <?import javafx.scene.control.ColorPicker?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.Slider?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TableColumn?>
@@ -17,23 +18,29 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-
-<SplitPane dividerPositions="0.3" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="600.0" minWidth="850.0" prefHeight="600.0" prefWidth="850.0" xmlns="http://javafx.com/javafx/8.0.152" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.poterion.monitor.notifiers.raspiw2812.ui.ConfigWindowController">
+<SplitPane dividerPositions="0.3" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" onKeyPressed="#onKeyPressed" xmlns="http://javafx.com/javafx/8.0.152" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.poterion.monitor.notifiers.raspiw2812.ui.ConfigWindowController">
    <items>
       <VBox>
          <children>
+            <ComboBox fx:id="comboPortName" maxWidth="1.7976931348623157E308" onAction="#onPortNameSelected" />
             <TreeView fx:id="treeConfigs" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" onKeyPressed="#onKeyPressedInTree" VBox.vgrow="ALWAYS" />
             <HBox alignment="CENTER_RIGHT" VBox.vgrow="NEVER">
                <children>
-                  <TextField fx:id="textConfigName" HBox.hgrow="ALWAYS" />
+                  <ComboBox fx:id="comboConfigName" editable="true" HBox.hgrow="ALWAYS" />
                   <Button fx:id="buttonAddConfig" minWidth="40.0" mnemonicParsing="false" onAction="#onAddConfig" text="Add" />
-                  <Button fx:id="buttonDeleteConfig" minWidth="60.0" mnemonicParsing="false" onAction="#onDeleteSelectedConfig" text="Delete" />
+                  <Button fx:id="buttonDeleteConfig" accessibleHelp="DEL" minWidth="60.0" mnemonicParsing="false" onAction="#onDeleteSelectedConfig" text="Delete" HBox.hgrow="ALWAYS" />
                </children>
             </HBox>
          </children>
       </VBox>
       <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
          <children>
+            <TextField fx:id="textServiceName" />
+            <Separator prefWidth="200.0">
+               <padding>
+                  <Insets top="5.0" />
+               </padding>
+            </Separator>
             <GridPane>
               <columnConstraints>
                 <ColumnConstraints hgrow="NEVER" minWidth="10.0" />
@@ -42,6 +49,7 @@
               <rowConstraints>
                   <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                 <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                  <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                 <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                 <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
                   <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
@@ -51,55 +59,85 @@
               </rowConstraints>
                <children>
                   <Label fx:id="labelColors" text="Colors" GridPane.rowIndex="1" />
-                  <HBox GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" GridPane.rowIndex="1">
+                  <HBox alignment="CENTER" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" GridPane.rowIndex="1">
                      <children>
                         <ColorPicker fx:id="comboBoxColor1" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS" />
                         <ColorPicker fx:id="comboBoxColor2" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS" />
+                        <ColorPicker fx:id="comboBoxColor3" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS" />
+                        <ColorPicker fx:id="comboBoxColor4" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS" />
                      </children>
                   </HBox>
-                  <Label fx:id="labelWait" text="Wait" GridPane.rowIndex="2" />
-                  <Label fx:id="labelWidth" text="Width" GridPane.rowIndex="3" />
-                  <Label fx:id="labelFade" text="Fade" GridPane.rowIndex="4" />
-                  <Label fx:id="labelMin" text="Minimum" GridPane.rowIndex="5" />
-                  <Label fx:id="labelMax" text="Maximum" GridPane.rowIndex="6" />
+                  <HBox alignment="CENTER_LEFT" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" GridPane.rowIndex="2">
+                     <children>
+                        <ColorPicker fx:id="comboBoxColor5" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS" />
+                        <ColorPicker fx:id="comboBoxColor6" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS" />
+                     </children>
+                  </HBox>
+                  <Label fx:id="labelWait" text="Wait" GridPane.rowIndex="3" />
+                  <Label fx:id="labelWidth" text="Width" GridPane.rowIndex="4" />
+                  <Label fx:id="labelFade" text="Fade" GridPane.rowIndex="5" />
+                  <Label fx:id="labelMin" text="Minimum" GridPane.rowIndex="6" />
+                  <Label fx:id="labelMax" text="Maximum" GridPane.rowIndex="7" />
                   <Label fx:id="labelPattern" text="Pattern" />
                   <ComboBox fx:id="comboBoxPattern" maxWidth="1.7976931348623157E308" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" />
-                  <HBox alignment="CENTER_LEFT" maxHeight="1.7976931348623157E308" GridPane.columnIndex="1" GridPane.rowIndex="2" GridPane.valignment="BOTTOM">
+                  <HBox alignment="CENTER_LEFT" maxHeight="1.7976931348623157E308" GridPane.columnIndex="1" GridPane.rowIndex="3" GridPane.valignment="BOTTOM">
                      <children>
                         <TextField fx:id="textWait" HBox.hgrow="ALWAYS" />
                         <Label text="ms" />
                      </children>
                   </HBox>
-                  <TextField fx:id="textWidth" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-                  <TextField fx:id="textFade" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-                  <Slider fx:id="sliderMin" minorTickCount="1" GridPane.columnIndex="1" GridPane.rowIndex="5" />
-                  <Slider fx:id="sliderMax" minorTickCount="1" value="100.0" GridPane.columnIndex="1" GridPane.rowIndex="6" />
-                  <HBox alignment="CENTER_RIGHT" spacing="5.0" GridPane.columnSpan="2147483647" GridPane.rowIndex="7">
+                  <TextField fx:id="textWidth" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                  <TextField fx:id="textFade" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+                  <HBox alignment="CENTER_LEFT" GridPane.columnIndex="1" GridPane.rowIndex="6">
                      <children>
-                        <Button fx:id="buttonTestLightSequence" mnemonicParsing="false" onAction="#onTestLightSequence" text="Test whole sequence" />
-                        <Button fx:id="buttonTestLight" mnemonicParsing="false" onAction="#onTestLight" text="Test single configuration" />
-                        <Button fx:id="buttonTurnOffLight" mnemonicParsing="false" onAction="#onTurnOffLight" text="Turn Off" />
-                        <Button fx:id="buttonMoveUpLight" mnemonicParsing="false" onAction="#onMoveUpLight" text="Up" />
-                        <Button fx:id="buttonMoveDownLight" mnemonicParsing="false" onAction="#onMoveDownLight" text="Down" />
-                        <Button fx:id="buttonSaveLight" mnemonicParsing="false" onAction="#onSaveLight" text="Save" />
-                        <Button fx:id="buttonClearLight" mnemonicParsing="false" onAction="#onClearLight" text="Clear" />
-                        <Button fx:id="buttonDeleteLight" mnemonicParsing="false" onAction="#onDeleteLight" text="Delete" />
+                        <Slider fx:id="sliderMin" majorTickUnit="10.0" minorTickCount="1" showTickMarks="true" snapToTicks="true" HBox.hgrow="ALWAYS" />
+                        <Label fx:id="labelMinValue" alignment="CENTER_RIGHT" maxWidth="35.0" minWidth="35.0" prefWidth="35.0" text="0%" />
+                     </children>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT" GridPane.columnIndex="1" GridPane.rowIndex="7">
+                     <children>
+                        <Slider fx:id="sliderMax" majorTickUnit="10.0" minorTickCount="1" showTickMarks="true" snapToTicks="true" value="100.0" HBox.hgrow="ALWAYS" />
+                        <Label fx:id="labelMaxValue" alignment="CENTER_RIGHT" maxWidth="35.0" minWidth="35.0" prefWidth="35.0" text="100%" />
+                     </children>
+                  </HBox>
+                  <HBox alignment="CENTER_RIGHT" spacing="5.0" GridPane.columnSpan="2147483647" GridPane.rowIndex="8">
+                     <children>
+                        <Button fx:id="buttonTestLight" mnemonicParsing="false" onAction="#onTestLight" text="Test [F3]" />
+                        <Button fx:id="buttonSaveLight" defaultButton="true" mnemonicParsing="false" onAction="#onSaveLight" text="Save [Ctrl+S]" />
+                        <Button fx:id="buttonClearLight" cancelButton="true" mnemonicParsing="false" onAction="#onClearLight" text="Clear [ESC]" />
                      </children>
                   </HBox>
                </children>
             </GridPane>
             <TableView fx:id="tableLightConfigs" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" onKeyPressed="#onKeyPressedInTable" VBox.vgrow="ALWAYS">
               <columns>
-                <TableColumn fx:id="columnLightPattern" maxWidth="1.7976931348623157E308" minWidth="100.0" prefWidth="-1.0" text="Pattern" />
-                  <TableColumn fx:id="columnLightColor1" maxWidth="-Infinity" minWidth="60.0" prefWidth="60.0" resizable="false" text="Color 1" />
-                  <TableColumn fx:id="columnLightColor2" maxWidth="-Infinity" minWidth="60.0" prefWidth="60.0" resizable="false" text="Color 2" />
-                  <TableColumn fx:id="columnLightWait" maxWidth="-Infinity" minWidth="70.0" prefWidth="70.0" resizable="false" text="Wait [ms]" />
-                  <TableColumn fx:id="columnLightWidth" maxWidth="-Infinity" minWidth="60.0" prefWidth="60.0" resizable="false" text="Width" />
-                  <TableColumn fx:id="columnLightFading" maxWidth="-Infinity" minWidth="60.0" prefWidth="60.0" resizable="false" text="Fading" />
-                  <TableColumn fx:id="columnLightMinimum" maxWidth="-Infinity" minWidth="75.0" prefWidth="75.0" resizable="false" text="Minimum" />
-                <TableColumn fx:id="columnLightMaximum" maxWidth="-Infinity" minWidth="75.0" prefWidth="75.0" resizable="false" text="Maximum" />
+                <TableColumn fx:id="columnLightPattern" editable="false" maxWidth="1.7976931348623157E308" minWidth="100.0" prefWidth="-1.0" sortable="false" text="Pattern" />
+                  <TableColumn editable="false" maxWidth="-Infinity" minWidth="120.0" prefWidth="120.0" resizable="false" sortable="false" text="Colors">
+                     <columns>
+                        <TableColumn fx:id="columnLightColor1" editable="false" maxWidth="-Infinity" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" text="1" />
+                        <TableColumn fx:id="columnLightColor2" editable="false" maxWidth="-Infinity" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" text="2" />
+                        <TableColumn fx:id="columnLightColor3" editable="false" maxWidth="-Infinity" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" text="3" />
+                        <TableColumn fx:id="columnLightColor4" editable="false" maxWidth="-Infinity" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" text="4" />
+                        <TableColumn fx:id="columnLightColor5" editable="false" maxWidth="-Infinity" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" text="5" />
+                        <TableColumn fx:id="columnLightColor6" editable="false" maxWidth="-Infinity" minWidth="20.0" prefWidth="20.0" resizable="false" sortable="false" text="6" />
+                     </columns>
+                  </TableColumn>
+                  <TableColumn fx:id="columnLightWait" editable="false" maxWidth="-Infinity" minWidth="70.0" prefWidth="70.0" resizable="false" sortable="false" text="Wait [ms]" />
+                  <TableColumn fx:id="columnLightWidth" editable="false" maxWidth="-Infinity" minWidth="60.0" prefWidth="60.0" resizable="false" sortable="false" text="Width" />
+                  <TableColumn fx:id="columnLightFading" editable="false" maxWidth="-Infinity" minWidth="60.0" prefWidth="60.0" resizable="false" sortable="false" text="Fading" />
+                  <TableColumn fx:id="columnLightMinimum" editable="false" maxWidth="-Infinity" minWidth="75.0" prefWidth="75.0" resizable="false" sortable="false" text="Minimum" />
+                <TableColumn fx:id="columnLightMaximum" editable="false" maxWidth="-Infinity" minWidth="75.0" prefWidth="75.0" resizable="false" sortable="false" text="Maximum" />
               </columns>
             </TableView>
+            <HBox alignment="CENTER_RIGHT" spacing="5.0">
+               <children>
+                  <Button fx:id="buttonTestLightSequence" mnemonicParsing="false" onAction="#onTestLightSequence" text="Test whole sequence [F4]" />
+                  <Button fx:id="buttonTurnOffLight" mnemonicParsing="false" onAction="#onTurnOffLight" text="Turn Off [F12]" />
+                  <Button fx:id="buttonMoveUpLight" mnemonicParsing="false" onAction="#onMoveUpLight" text="Up [Ctrl+Up]" />
+                  <Button fx:id="buttonMoveDownLight" mnemonicParsing="false" onAction="#onMoveDownLight" text="Down [Ctrl+Down]" />
+                  <Button fx:id="buttonDeleteLight" mnemonicParsing="false" onAction="#onDeleteLight" text="Delete [DEL]" />
+               </children>
+            </HBox>
          </children>
          <padding>
             <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />

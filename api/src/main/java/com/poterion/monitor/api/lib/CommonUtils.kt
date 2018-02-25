@@ -14,17 +14,15 @@ fun open(uri: URI) = desktop?.takeIf { it.isSupported(Desktop.Action.BROWSE) }
 fun open(file: File) = desktop?.takeIf { it.isSupported(Desktop.Action.OPEN) }
 		?.also { it.open(file) } != null
 
-fun open(path: String): Boolean {
-	try {
-		val uri = URI(path)
-		if (uri.scheme.startsWith("file")) {
-			open(File(uri))
-		} else {
-			open(uri)
-		}
-		return true
-	} catch (e: Exception) {
-		LOGGER.warn("Can't open ${path}!", e)
-		return false
+fun open(path: String): Boolean = try {
+	val uri = URI(path)
+	if (uri.scheme.startsWith("file")) {
+		open(File(uri))
+	} else {
+		open(uri)
 	}
+	true
+} catch (e: Exception) {
+	LOGGER.warn("Can't open ${path}!", e)
+	false
 }

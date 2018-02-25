@@ -1,7 +1,10 @@
 package com.poterion.monitor.notifiers.raspiw2812.data
 
-import com.poterion.monitor.ui.Icon
+import com.poterion.monitor.api.ui.Icon
 
-data class StateConfig(val title: String,
+/**
+ * @author Jan Kubovy <jan@kubovy.eu>
+ */
+data class StateConfig(var title: String,
 					   val icon: Icon? = null,
-					   var lightConigs: List<String>? = null)
+					   var lightConfigs: List<LightConfig>? = null)

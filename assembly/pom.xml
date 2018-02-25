@@ -11,43 +11,40 @@
 
     <artifactId>assembly</artifactId>
 
-<build>
-    <plugins>
-        <plugin>
-            <artifactId>maven-assembly-plugin</artifactId>
-            <configuration>
-                <archive>
-                    <manifest>
-                        <mainClass>com.poterion.monitor.Main</mainClass>
-                    </manifest>
-                </archive>
-                <descriptors>
-                    <descriptor>../src/main/resources/assembly.xml</descriptor>
-                </descriptors>
-            </configuration>
-            <executions>
-                <execution>
-                    <id>distro-assembly</id> <!-- this is used for inheritance merges -->
-                    <phase>package</phase> <!-- bind to the packaging phase -->
-                    <goals>
-                        <goal>single</goal>
-                    </goals>
-                    <configuration>
-                        <finalName>monitor</finalName>
-                    </configuration>
-                </execution>
-            </executions>
-        </plugin>
-    </plugins>
-</build>
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.poterion.monitor.Main</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptors>
+                        <descriptor>src/main/resources/assembly.xml</descriptor>
+                    </descriptors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>distro-assembly</id> <!-- this is used for inheritance merges -->
+                        <phase>package</phase> <!-- bind to the packaging phase -->
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>monitor</finalName>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
         <dependency>
             <groupId>com.poterion.monitor</groupId>
             <artifactId>control</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.poterion.monitor</groupId>
-            <artifactId>ui</artifactId>
         </dependency>
         <dependency>
             <groupId>com.poterion.monitor</groupId>
@@ -61,5 +58,10 @@
             <groupId>com.poterion.monitor</groupId>
             <artifactId>raspi-w2812</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.poterion.monitor</groupId>
+            <artifactId>system-tray</artifactId>
+        </dependency>
+        <!-- 3rd Parties -->
     </dependencies>
 </project>

@@ -1,7 +1,9 @@
 package com.poterion.monitor.api.modules
 
-import com.poterion.monitor.api.controllers.ServiceController
+import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.data.services.ServiceConfig
 
-interface ServiceModule<out Conf : ServiceConfig, out Controller : ServiceController<Conf>> :
-		Module<Conf, Controller>
+/**
+ * @author Jan Kubovy <jan@kubovy.eu>
+ */
+interface ServiceModule<out Conf : ServiceConfig, out Ctrl : Service<Conf>> : Module<Conf, Ctrl>

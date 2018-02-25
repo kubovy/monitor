@@ -14,7 +14,4 @@ interface ServiceConfig : ModuleConfig, HttpConfig {
 	var order: Int
 	var priority: Priority
 	var checkInterval: Long
-	var connectTimeout: Long?
-	var readTimeout: Long?
-	var writeTimeout: Long?
 }

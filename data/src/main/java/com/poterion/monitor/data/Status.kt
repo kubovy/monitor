@@ -5,6 +5,7 @@ package com.poterion.monitor.data
  */
 enum class Status {
 	NONE,
+	OFF,
 	UNKNOWN,
 	OK,
 	INFO,

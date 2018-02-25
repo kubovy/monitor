@@ -7,11 +7,12 @@ import javafx.stage.Stage
 
 interface ControllerInterface {
 	val stage: Stage
-	val serviceControllers: List<ServiceController<ServiceConfig>>
-	val notifierControllers: List<NotifierController<NotifierConfig>>
+	val config: Config
+	val services: List<Service<ServiceConfig>>
+	val notifiers: List<Notifier<NotifierConfig>>
+
 	fun check(force: Boolean = false)
 	fun quit()
 	fun saveConfig()
 	fun registerForConfigUpdates(listener: (Config) -> Unit)
-	fun updateConfig()
 }
