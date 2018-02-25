@@ -1,8 +1,8 @@
 package com.poterion.monitor.notifiers.raspiw2812.control
 
-import jssc.SerialNativeInterface
 import jssc.SerialPort
 import jssc.SerialPortException
+import jssc.SerialPortList
 import org.slf4j.LoggerFactory
 
 /**
@@ -10,10 +10,9 @@ import org.slf4j.LoggerFactory
  */
 class SerialPortCommunicator(portName: String) {
 	companion object {
-		private val LOGGER = LoggerFactory.getLogger("SerCOM")
+		private val LOGGER = LoggerFactory.getLogger(SerialPortCommunicator::class.java)
 
-		fun findPort(): String? = SerialNativeInterface()
-				.serialPortNames
+		fun findPort(): String? = SerialPortList.getPortNames()
 				.map { it to SerialPortCommunicator(it) }
 				.mapNotNull { (portName, communicator) ->
 					var tries = 0
@@ -38,7 +37,8 @@ class SerialPortCommunicator(portName: String) {
 		fun findCommunicator(): SerialPortCommunicator? = findPort()?.let { SerialPortCommunicator(it) }
 	}
 
-	private var serialPort = SerialPort(portName)
+	private val logger = LoggerFactory.getLogger("${SerialPortCommunicator::class.java.name} [${portName}]")
+	private val serialPort = SerialPort(portName)
 
 	private var success = true
 	private var receivingConfirmation = false
@@ -83,10 +83,10 @@ class SerialPortCommunicator(portName: String) {
 		serialPort.closePort()
 
 		return if (success) {
-			LOGGER.info("SUCCESS after ${tries} retries")
+			logger.info("SUCCESS after ${tries} retries")
 			listOf(*confirmation.toTypedArray())
 		} else {
-			LOGGER.error("FAILURE with ${tries} retries!")
+			logger.error("FAILURE with ${tries} retries!")
 			emptyList()
 		}
 	}
@@ -107,7 +107,7 @@ class SerialPortCommunicator(portName: String) {
 		} while (!confirmed && !timedOut(sentTimestamp))
 
 		success = success && confirmed
-		if (success) LOGGER.info("Message send successfully") else LOGGER.warn("Message was not received correctly!")
+		if (success) logger.info("Message send successfully") else logger.warn("Message was not received correctly!")
 		return success
 	}
 
@@ -119,7 +119,7 @@ class SerialPortCommunicator(portName: String) {
 			sent.isEmpty()
 					|| sent.size == 1 && sent[0] == "ID" && received.size == 1 && received[0].startsWith("POTERION IOT:")
 					|| sent[0] != "ID" && sent.size == received.size && (0 until sent.size)
-					.map { it.also { LOGGER.info("Compare: ${sent[it]} - ${received[it]} > ${sent[it] == received[it]}") } }
+					.map { it.also { logger.info("Compare:\n\t${sent[it]}\n\t${received[it]}\n\t=> result: ${sent[it] == received[it]}") } }
 					.map { sent[it] == received[it] }.reduce { acc, b -> acc && b }
 
 }

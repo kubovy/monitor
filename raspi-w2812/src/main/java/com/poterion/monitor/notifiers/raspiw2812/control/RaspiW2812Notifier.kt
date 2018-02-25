@@ -72,9 +72,10 @@ class RaspiW2812Notifier(override val controller: ControllerInterface, config: R
 								.map { (item, lights) ->
 									item.apply {
 										action = {
-											val message = objectMapper.writeValueAsString(lights)
 											execute(NotifierAction.DISABLE)
-											execute(NotifierAction.NOTIFY, message)
+											changeLights(lights)
+											//val message = objectMapper.writeValueAsString(lights)
+											//execute(NotifierAction.NOTIFY, message)
 										}
 									}
 								}
@@ -87,27 +88,52 @@ class RaspiW2812Notifier(override val controller: ControllerInterface, config: R
 
 	override fun initialize() {
 		StatusCollector.status.subscribe { statusItems ->
-			val lights = statusItems
-					.filter { it.priority >= config.minPriority }
-					.maxBy { it.status }
-					.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
-					?.toLightConfig()
-					?: config.items.firstOrNull { it.id == "" }?.statusOk
+			val lights = if (config.combineMultipleServices) {
+				val maxStatus = statusItems
+						.filter { it.priority >= config.minPriority }
+						.maxBy { it.status }
+						?.status
+
+				statusItems
+						.filter { it.priority >= config.minPriority }
+						.filter { it.status == maxStatus }
+						.distinctBy { it.serviceName }
+						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
+						.mapNotNull { it.toLightConfig() }
+						.flatMap { it }
+						.takeIf { it.isNotEmpty() }
+						?: config.items.firstOrNull { it.id == "" }?.statusOk
+			} else {
+				statusItems
+						.filter { it.priority >= config.minPriority }
+						.maxBy { it.status }
+						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
+						?.toLightConfig()
+						?: config.items.firstOrNull { it.id == "" }?.statusOk
+			}
 
 			lights?.also { lastState = it }
 					?.takeIf { config.enabled }
-					?.let { objectMapper.writeValueAsString(it) }
 					?.also { changeLights(it) }
 		}
 	}
 
-	private fun changeLights(lightConfiguration: String?, rescue: Boolean = true) {
+	internal fun changeLights(lightConfiguration: List<LightConfig>?, rescue: Boolean = true) {
 		if (lightConfiguration != null) {
 			if (serialPortCommunicator == null) serialPortCommunicator = config.portName
 					?.let { SerialPortCommunicator(it) }
 					?: SerialPortCommunicator.findCommunicator()
 			try {
-				serialPortCommunicator?.sendMessage(lightConfiguration)
+				lightConfiguration
+						.map { objectMapper.writeValueAsString(it) }
+						.mapIndexed { index, string ->
+							var result = string
+							if (index == 0) result = "[${result}"
+							if (index == lightConfiguration.lastIndex) "${result}]" else "${result},"
+						}
+						.takeIf { it.isNotEmpty() }
+						?.also { serialPortCommunicator?.sendMessage(it) }
+				//serialPortCommunicator?.sendMessage(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString().lines())
 			} catch (e: SerialPortException) {
 				LOGGER.error(e.message, e)
 				if (config.portName == null) serialPortCommunicator = null
@@ -116,19 +142,22 @@ class RaspiW2812Notifier(override val controller: ControllerInterface, config: R
 		}
 	}
 
-	override fun execute(action: NotifierAction, vararg params: String): Unit = when (action) {
-		NotifierAction.NOTIFY -> changeLights(params.firstOrNull())
+	override fun execute(action: NotifierAction): Unit = when (action) {
 		NotifierAction.ENABLE -> {
 			config.enabled = true
-			changeLights(objectMapper.writeValueAsString(lastState))
+			changeLights(lastState)
 			controller.saveConfig()
 		}
 		NotifierAction.DISABLE -> {
 			config.enabled = false
 			controller.saveConfig()
 		}
-		NotifierAction.TOGGLE -> execute(if (config.enabled) NotifierAction.DISABLE else NotifierAction.ENABLE, *params)
-		NotifierAction.SHUTDOWN -> changeLights(listOf(LightConfig()).let { objectMapper.writeValueAsString(it) })
+		NotifierAction.TOGGLE -> execute(if (config.enabled) NotifierAction.DISABLE else NotifierAction.ENABLE)
+		NotifierAction.SHUTDOWN -> changeLights(listOf(LightConfig()))
+	}
+
+	internal fun reset() {
+		serialPortCommunicator = null
 	}
 
 	private fun StatusItem.key() = serviceName

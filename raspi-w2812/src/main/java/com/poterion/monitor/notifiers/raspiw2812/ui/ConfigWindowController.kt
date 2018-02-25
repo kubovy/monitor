@@ -1,6 +1,5 @@
 package com.poterion.monitor.notifiers.raspiw2812.ui
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.poterion.monitor.api.ui.CommonIcon
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.raspiw2812.RaspiW2812Icon
@@ -11,8 +10,6 @@ import com.poterion.monitor.notifiers.raspiw2812.services.DetectPortNameService
 import com.poterion.monitor.notifiers.raspiw2812.toColor
 import com.poterion.monitor.notifiers.raspiw2812.toLightColor
 import javafx.collections.FXCollections
-import javafx.collections.ListChangeListener
-import javafx.event.ActionEvent
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.geometry.Insets
@@ -33,7 +30,7 @@ import javafx.scene.layout.Pane
 import javafx.scene.paint.Color
 import javafx.stage.Stage
 import javafx.util.StringConverter
-import jssc.SerialNativeInterface
+import jssc.SerialPortList
 import kotlin.math.roundToInt
 
 
@@ -114,7 +111,6 @@ class ConfigWindowController {
 	@FXML private lateinit var columnLightMinimum: TableColumn<LightConfig, Int>
 	@FXML private lateinit var columnLightMaximum: TableColumn<LightConfig, Int>
 
-	private val objectMapper = ObjectMapper()
 	private var config: RaspiW2812Config? = null
 	private var controller: RaspiW2812Notifier? = null
 	private val clipboard = mutableListOf<LightConfig>()
@@ -356,22 +352,24 @@ class ConfigWindowController {
 	}
 
 	@FXML
-	fun onPortNameSelected(event: ActionEvent) {
+	fun onPortNameSelected() {
 		config?.portName = comboPortName.selectionModel.selectedItem.takeIf { it != AUTODETECT }?.first
+		controller?.reset()
+		if (config?.enabled == true) controller?.controller?.check(force = true)
 	}
 
 	@FXML
 	fun onKeyPressed(keyEvent: KeyEvent) = when (keyEvent.code) {
-		KeyCode.F3 -> onTestLight(null)
-		KeyCode.F4 -> onTestLightSequence(null)
-		KeyCode.F12 -> onTurnOffLight(null)
-		KeyCode.S -> if (keyEvent.isControlDown) onSaveLight(null) else null
-		KeyCode.ESCAPE -> onClearLight(null)
+		KeyCode.F3 -> onTestLight()
+		KeyCode.F4 -> onTestLightSequence()
+		KeyCode.F12 -> onTurnOffLight()
+		KeyCode.S -> if (keyEvent.isControlDown) onSaveLight() else null
+		KeyCode.ESCAPE -> onClearLight()
 		else -> null
 	}
 
 	@FXML
-	fun onAddConfig(event: ActionEvent?) = comboConfigName.value?.trim()
+	fun onAddConfig() = comboConfigName.value?.trim()
 			?.takeIf { it.isNotEmpty() }?.also { serviceName ->
 		treeConfigs.root.children.add(TreeItem(StateConfig(serviceName)).apply {
 			children.addAll(
@@ -395,7 +393,7 @@ class ConfigWindowController {
 	}
 
 	@FXML
-	fun onDeleteSelectedConfig(event: ActionEvent?) {
+	fun onDeleteSelectedConfig() {
 		Alert(AlertType.CONFIRMATION).apply {
 			title = "Delete confirmation"
 			//headerText = "Look, a Confirmation Dialog"
@@ -413,7 +411,7 @@ class ConfigWindowController {
 
 	@FXML
 	fun onKeyPressedInTree(keyEvent: KeyEvent) = when (keyEvent.code) {
-		KeyCode.DELETE -> onDeleteSelectedConfig(null)
+		KeyCode.DELETE -> onDeleteSelectedConfig()
 		KeyCode.C -> if (keyEvent.isControlDown) {
 			clipboard.clear()
 			clipboard.addAll(tableLightConfigs.items.deepCopy())
@@ -427,35 +425,38 @@ class ConfigWindowController {
 	}
 
 	@FXML
-	fun onTestLight(event: ActionEvent?) {
+	fun onTestLight() {
 		controller?.apply {
 			createLightConfig()?.also {
 				execute(NotifierAction.DISABLE)
-				execute(NotifierAction.NOTIFY, objectMapper.writeValueAsString(listOf(it)))
+				//execute(NotifierAction.NOTIFY, objectMapper.writeValueAsString(listOf(it)))
+				changeLights(listOf(it))
 			}
 		}
 	}
 
 	@FXML
-	fun onTestLightSequence(event: ActionEvent?) {
+	fun onTestLightSequence() {
 		controller?.apply {
 			tableLightConfigs.items.takeIf { it.isNotEmpty() }?.also {
 				execute(NotifierAction.DISABLE)
-				execute(NotifierAction.NOTIFY, objectMapper.writeValueAsString(it))
+				//execute(NotifierAction.NOTIFY, objectMapper.writeValueAsString(it))
+				changeLights(it)
 			}
 		}
 	}
 
 	@FXML
-	fun onTurnOffLight(event: ActionEvent?) {
+	fun onTurnOffLight() {
 		controller?.apply {
 			execute(NotifierAction.DISABLE)
-			execute(NotifierAction.NOTIFY, objectMapper.writeValueAsString(listOf(LightConfig())))
+			//execute(NotifierAction.NOTIFY, objectMapper.writeValueAsString(listOf(LightConfig())))
+			execute(NotifierAction.SHUTDOWN)
 		}
 	}
 
 	@FXML
-	fun onMoveUpLight(event: ActionEvent?) {
+	fun onMoveUpLight() {
 		val selectedLight = tableLightConfigs.selectionModel.selectedItem?.deepCopy()
 		tableLightConfigs.selectionModel.selectedIndex
 				.takeIf { it > 0 && it < tableLightConfigs.items.size }
@@ -468,7 +469,7 @@ class ConfigWindowController {
 	}
 
 	@FXML
-	fun onMoveDownLight(event: ActionEvent?) {
+	fun onMoveDownLight() {
 		val selectedLight = tableLightConfigs.selectionModel.selectedItem?.deepCopy()
 		tableLightConfigs.selectionModel.selectedIndex
 				.takeIf { it >= 0 && it < tableLightConfigs.items.size - 1 }
@@ -481,7 +482,7 @@ class ConfigWindowController {
 	}
 
 	@FXML
-	fun onSaveLight(event: ActionEvent?) {
+	fun onSaveLight() {
 		val selectedIndex = tableLightConfigs.selectionModel.selectedIndex
 		val configuredLight = createLightConfig()
 		if (selectedIndex < 0 && configuredLight != null) {
@@ -498,10 +499,10 @@ class ConfigWindowController {
 	}
 
 	@FXML
-	fun onClearLight(event: ActionEvent?) = tableLightConfigs.selectionModel.clearSelection()
+	fun onClearLight() = tableLightConfigs.selectionModel.clearSelection()
 
 	@FXML
-	fun onDeleteLight(event: ActionEvent?) {
+	fun onDeleteLight() {
 		tableLightConfigs.selectionModel.selectedIndex.takeIf { it >= 0 }?.also {
 			tableLightConfigs.items.removeAt(it)
 			saveConfig()
@@ -510,9 +511,9 @@ class ConfigWindowController {
 
 	@FXML
 	fun onKeyPressedInTable(keyEvent: KeyEvent) = when (keyEvent.code) {
-		KeyCode.DELETE -> onDeleteLight(null)
-		KeyCode.UP -> if (keyEvent.isAltDown) onMoveUpLight(null) else null
-		KeyCode.DOWN -> if (keyEvent.isAltDown) onMoveDownLight(null) else null
+		KeyCode.DELETE -> onDeleteLight()
+		KeyCode.UP -> if (keyEvent.isAltDown) onMoveUpLight() else null
+		KeyCode.DOWN -> if (keyEvent.isAltDown) onMoveDownLight() else null
 		KeyCode.C -> if (keyEvent.isControlDown) {
 			clipboard.clear()
 			tableLightConfigs.selectionModel.selectedItem?.deepCopy()?.also { clipboard.add(it) }
@@ -526,7 +527,7 @@ class ConfigWindowController {
 	}
 
 	private fun updateComboPortName(detected: String? = null) {
-		val ports = SerialNativeInterface().serialPortNames
+		val ports = SerialPortList.getPortNames()
 				.map { it to if (detected != null && it == detected) "${it} (Detected)" else it }
 				.toMutableList()
 		config?.portName

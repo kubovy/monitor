@@ -17,5 +17,5 @@ abstract class Notifier<out Config : NotifierConfig>(override val config: Config
 				})
 		))
 
-	abstract fun execute(action: NotifierAction, vararg params: String)
+	abstract fun execute(action: NotifierAction)
 }

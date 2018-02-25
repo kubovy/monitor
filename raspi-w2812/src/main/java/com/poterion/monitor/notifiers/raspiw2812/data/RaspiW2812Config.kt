@@ -12,4 +12,5 @@ data class RaspiW2812Config(override var type: String = RaspiW2812Config::class.
 							override var minPriority: Priority = Priority.LOW,
 							var deviceName: String = "",
 							var portName: String? = null,
+							var combineMultipleServices: Boolean = true,
 							var items: Collection<RaspiW2812ItemConfig> = emptyList()) : NotifierConfig

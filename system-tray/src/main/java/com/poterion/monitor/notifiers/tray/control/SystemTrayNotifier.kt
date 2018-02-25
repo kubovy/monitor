@@ -25,6 +25,7 @@ import javafx.stage.Modality
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.IOException
+import javax.imageio.ImageIO
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
@@ -40,20 +41,19 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 	private var lastStatusIcon: Icon? = null
 
 	override fun initialize() {
-		//SystemTray.SWING_UI = CustomSwingUI()
 		try {
-			CommonIcon.APPLICATION.inputStream.use { systemTray.setImage(it) }
+			LOGGER.info("Tray image size: ${systemTray.trayImageSize}")
+			CommonIcon.APPLICATION.inputStream.use { ImageIO.read(it) }.also { systemTray.setImage(it) }
+			//CommonIcon.APPLICATION.inputStream.use { systemTray.setImage(it) }
 			systemTray.status = "Monitor"
 			createMenu()
 		} catch (e: IOException) {
 			e.printStackTrace()
 		}
-		//StatusCollector.statuses.subscribe(::update)
-		//StatusCollector.subscribeToStatusUpdate(::update)
 		StatusCollector.status.subscribe(::update)
 	}
 
-	override fun execute(action: NotifierAction, vararg params: String): Unit = when (action) {
+	override fun execute(action: NotifierAction): Unit = when (action) {
 		NotifierAction.ENABLE -> {
 			config.enabled = true
 			lastStatusIcon?.inputStream.use { systemTray.setImage(it) }
@@ -64,7 +64,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 			CommonIcon.APPLICATION.inputStream.use { systemTray.setImage(it) }
 			controller.saveConfig()
 		}
-		NotifierAction.TOGGLE -> execute(if (config.enabled) NotifierAction.DISABLE else NotifierAction.ENABLE, *params)
+		NotifierAction.TOGGLE -> execute(if (config.enabled) NotifierAction.DISABLE else NotifierAction.ENABLE)
 		else -> LOGGER.debug("Executing action ${action}")
 	}
 
