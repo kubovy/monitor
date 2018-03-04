@@ -19,5 +19,5 @@ class JenkinsConfig(override var type: String = JenkinsConfig::class.java.simple
 					override var connectTimeout: Long? = null,
 					override var readTimeout: Long? = null,
 					override var writeTimeout: Long? = null,
-					var jobs: Collection<JenkinsJobConfig> = emptyList(),
+					var jobs: MutableCollection<JenkinsJobConfig> = mutableListOf(),
 					var filter: String? = null) : ServiceConfig

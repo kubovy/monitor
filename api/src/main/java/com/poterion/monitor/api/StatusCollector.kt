@@ -13,6 +13,7 @@ object StatusCollector {
 	private val statusItems = mutableMapOf<String, StatusItem>()
 	val status: PublishSubject<Collection<StatusItem>> = PublishSubject.create<Collection<StatusItem>>()
 
+	@Synchronized
 	fun update(items: Collection<StatusItem>) {
 		statusItems.putAll(items.map { it.key() to it })
 

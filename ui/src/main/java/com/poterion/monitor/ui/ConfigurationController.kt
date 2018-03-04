@@ -14,6 +14,7 @@ import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.geometry.HPos
 import javafx.geometry.Pos
+import javafx.geometry.VPos
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.scene.control.*
@@ -22,6 +23,7 @@ import javafx.scene.image.ImageView
 import javafx.scene.layout.GridPane
 import javafx.scene.layout.HBox
 import javafx.scene.layout.RowConstraints
+import javafx.scene.layout.VBox
 import java.util.*
 
 /**
@@ -52,6 +54,7 @@ class ConfigurationController {
 	@FXML private lateinit var tabPaneMain: TabPane
 	@FXML private lateinit var tabCommon: Tab
 	@FXML private lateinit var tree: TreeView<ModuleItem>
+	@FXML private lateinit var vboxContent: VBox
 	@FXML private lateinit var gridPane: GridPane
 
 	private var controller: ControllerInterface? = null
@@ -79,7 +82,7 @@ class ConfigurationController {
 
 	private fun load() {
 		controller?.let { it.services + it.notifiers }
-				?.mapNotNull { module -> module.configurationPane?.let { module.config.name to it } }
+				?.mapNotNull { module -> module.configurationTab?.let { module.config.name to it } }
 				?.sortedBy { (name, _) -> name }
 				?.map { (name, configuration) -> Tab(name, configuration) }
 				?.forEach { tab -> tabPaneMain.tabs.add(tab) }
@@ -99,12 +102,23 @@ class ConfigurationController {
 		}
 	}
 
-	private fun select(module: ModuleInterface<*>?) = gridPane.apply {
-		children.clear()
-		if (module != null) rowConstraints.apply {
-			val rows = initializeModule(module)
-			clear()
-			addAll((0 until rows).map { RowConstraints(10.0, 30.0, Double.MAX_VALUE) })
+	private fun select(module: ModuleInterface<*>?) {
+		vboxContent.children.clear()
+		vboxContent.children.add(gridPane)
+		gridPane.children.clear()
+		gridPane.rowConstraints.clear()
+
+		if (module != null) {
+			var rows = initializeModule(module)
+			gridPane.rowConstraints.addAll((0 until rows).map {
+				RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, javafx.scene.layout.Priority.ALWAYS, VPos.TOP, true)
+			})
+
+			module.configurationRows?.forEach { (label, content) ->
+				gridPane.addRow(rows++, label, content)
+				gridPane.rowConstraints.add(RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, javafx.scene.layout.Priority.ALWAYS, VPos.TOP, true))
+			}
+			module.configurationAddition?.forEach { vboxContent.children.add(it) }
 		}
 	}
 
@@ -124,10 +138,8 @@ class ConfigurationController {
 				})
 		addRow(row++, Label("Name").apply { GridPane.setHalignment(this, HPos.RIGHT) },
 				TextField(module.config.name).apply {
-					textProperty().addListener { _, _, value ->
-						module.config.name = value
-						controller?.saveConfig()
-					}
+					textProperty().addListener { _, _, value -> module.config.name = value }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				})
 		addRow(row++, Label("Enabled").apply { GridPane.setHalignment(this, HPos.RIGHT) },
 				CheckBox().apply {
@@ -138,8 +150,9 @@ class ConfigurationController {
 					}
 				})
 
-		if (module is Service) row += initializeServiceModule(row, module)
-		if (module is Notifier) row += initializeNotifierModule(row, module)
+		if (module is Service) row = initializeServiceModule(row, module)
+		if (module is Notifier) row = initializeNotifierModule(row, module)
+
 		return row
 	}
 
@@ -158,12 +171,8 @@ class ConfigurationController {
 		addRow(row + 1, Label("Check interval").apply { GridPane.setHalignment(this, HPos.RIGHT) },
 				HBox(TextField(module.config.checkInterval.toString()).apply {
 					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-					textProperty().addListener { _, _, value ->
-						value.toLongOrNull()?.also {
-							module.config.checkInterval = it
-							controller?.saveConfig()
-						}
-					}
+					textProperty().addListener { _, _, value -> value.toLongOrNull()?.also { module.config.checkInterval = it } }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
 
 		return initializeHttpService(row + 2, module.config)
@@ -172,10 +181,8 @@ class ConfigurationController {
 	private fun initializeHttpService(row: Int, config: HttpConfig): Int = gridPane.run {
 		addRow(row, Label("URL").apply { GridPane.setHalignment(this, HPos.RIGHT) },
 				TextField(config.url).apply {
-					textProperty().addListener { _, _, value ->
-						config.url = value
-						controller?.saveConfig()
-					}
+					textProperty().addListener { _, _, value -> config.url = value }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				})
 		addRow(row + 1, Label("Trust certificate").apply { GridPane.setHalignment(this, HPos.RIGHT) },
 				CheckBox().apply {
@@ -194,8 +201,8 @@ class ConfigurationController {
 								val pwd = value.takeIf { it.isNotEmpty() }
 								config.auth = if (usr == null && pwd == null)
 									null else (config.auth ?: BasicAuthConfig(usr ?: "", pwd ?: ""))
-								controller?.saveConfig()
 							}
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 						},
 						PasswordField().apply {
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
@@ -205,38 +212,26 @@ class ConfigurationController {
 								val pwd = config.auth?.password?.takeIf { it.isNotEmpty() }
 								config.auth = if (usr == null && pwd == null)
 									null else (config.auth ?: BasicAuthConfig(usr ?: "", pwd ?: ""))
-								controller?.saveConfig()
 							}
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 						}).apply { alignment = Pos.CENTER })
 		addRow(row + 3, Label("Connection timeout").apply { GridPane.setHalignment(this, HPos.RIGHT) },
-				HBox(TextField(config.readTimeout?.toString() ?: "").apply {
+				HBox(TextField(config.connectTimeout?.toString() ?: "").apply {
 					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-					textProperty().addListener { _, _, value ->
-						value.toLongOrNull()?.also {
-							config.connectTimeout = it
-							controller?.saveConfig()
-						}
-					}
+					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.connectTimeout = it } }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
 		addRow(row + 4, Label("Read timeout").apply { GridPane.setHalignment(this, HPos.RIGHT) },
-				HBox(TextField().apply {
+				HBox(TextField(config.readTimeout?.toString() ?: "").apply {
 					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-					textProperty().addListener { _, _, value ->
-						value.toLongOrNull()?.also {
-							config.readTimeout = it
-							controller?.saveConfig()
-						}
-					}
+					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.readTimeout = it } }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
 		addRow(row + 5, Label("Write timeout").apply { GridPane.setHalignment(this, HPos.RIGHT) },
-				HBox(TextField().apply {
+				HBox(TextField(config.writeTimeout?.toString() ?: "").apply {
 					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-					textProperty().addListener { _, _, value ->
-						value.toLongOrNull()?.also {
-							config.writeTimeout = it
-							controller?.saveConfig()
-						}
-					}
+					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.writeTimeout = it } }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
 		return row + 6
 	}

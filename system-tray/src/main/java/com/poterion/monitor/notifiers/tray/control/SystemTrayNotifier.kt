@@ -44,7 +44,6 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 		try {
 			LOGGER.info("Tray image size: ${systemTray.trayImageSize}")
 			CommonIcon.APPLICATION.inputStream.use { ImageIO.read(it) }.also { systemTray.setImage(it) }
-			//CommonIcon.APPLICATION.inputStream.use { systemTray.setImage(it) }
 			systemTray.status = "Monitor"
 			createMenu()
 		} catch (e: IOException) {

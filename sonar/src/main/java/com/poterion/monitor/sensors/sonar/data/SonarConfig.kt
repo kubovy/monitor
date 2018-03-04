@@ -19,5 +19,5 @@ class SonarConfig(override var type: String = SonarConfig::class.java.simpleName
 				  override var connectTimeout: Long? = null,
 				  override var readTimeout: Long? = null,
 				  override var writeTimeout: Long? = null,
-				  var projects: Collection<SonarProjectConfig> = emptyList(),
+				  var projects: MutableCollection<SonarProjectConfig> = mutableListOf(),
 				  var filter: String? = null) : ServiceConfig

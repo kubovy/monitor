@@ -396,7 +396,7 @@ class ConfigWindowController {
 	fun onDeleteSelectedConfig() {
 		Alert(AlertType.CONFIRMATION).apply {
 			title = "Delete confirmation"
-			//headerText = "Look, a Confirmation Dialog"
+			headerText = "Delete confirmation"
 			contentText = "Do you really want to delete this whole configuration?"
 			buttonTypes.setAll(ButtonType.YES, ButtonType.NO)
 		}.showAndWait().ifPresent {

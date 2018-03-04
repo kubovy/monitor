@@ -83,7 +83,7 @@ class RaspiW2812Notifier(override val controller: ControllerInterface, config: R
 			}
 		}
 
-	override val configurationPane: Parent?
+	override val configurationTab: Parent?
 		get() = ConfigWindowController.getRoot(config, this)
 
 	override fun initialize() {

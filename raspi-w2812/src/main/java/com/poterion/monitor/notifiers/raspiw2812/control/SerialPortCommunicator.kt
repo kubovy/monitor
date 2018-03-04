@@ -47,31 +47,35 @@ class SerialPortCommunicator(portName: String) {
 	fun sendMessage(vararg message: String) = sendMessage(message.toList())
 
 	fun sendMessage(message: List<String>): List<String> {
-		serialPort.openPort()
+		if (!serialPort.isOpened) serialPort.openPort()
 		serialPort.setParams(SerialPort.BAUDRATE_9600,
 				SerialPort.DATABITS_8,
 				SerialPort.STOPBITS_1,
 				SerialPort.PARITY_NONE)
 
-		serialPort.addEventListener({ event ->
-			if (event.isRXCHAR && event.eventValue > 0) try {
-				val receivedData = serialPort.readString(event.eventValue)
-				receivedData.split("[\\n\\r]+".toRegex()).filter { it.isNotEmpty() && it.isNotBlank() }.forEach {
-					//LOGGER.info(">> ${it}")
-					when (it) {
-						"CONFIRMATION_BEGIN" -> receivingConfirmation = true
-						"CONFIRMATION_END" -> receivingConfirmation = false
-						else -> if (receivingConfirmation) {
-							LOGGER.info("Received response: ${it}")
-							confirmation.add(it)
+		try {
+			serialPort.addEventListener({ event ->
+				if (event.isRXCHAR && event.eventValue > 0) try {
+					val receivedData = serialPort.readString(event.eventValue)
+					receivedData.split("[\\n\\r]+".toRegex()).filter { it.isNotEmpty() && it.isNotBlank() }.forEach {
+						//LOGGER.info(">> ${it}")
+						when (it) {
+							"CONFIRMATION_BEGIN" -> receivingConfirmation = true
+							"CONFIRMATION_END" -> receivingConfirmation = false
+							else -> if (receivingConfirmation) {
+								LOGGER.info("Received response: ${it}")
+								confirmation.add(it)
+							}
 						}
 					}
+				} catch (e: SerialPortException) {
+					LOGGER.error("Error in receiving string from COM-port: ${e.message}", e)
+					success = false
 				}
-			} catch (e: SerialPortException) {
-				LOGGER.error("Error in receiving string from COM-port: ${e.message}", e)
-				success = false
-			}
-		}, SerialPort.MASK_RXCHAR)
+			}, SerialPort.MASK_RXCHAR)
+		} catch (e: SerialPortException) {
+			if (e.exceptionType != SerialPortException.TYPE_LISTENER_ALREADY_ADDED) LOGGER.error(e.message, e)
+		}
 
 		var tries = 0
 		val maxTries = if (message.isCommand()) 2 else 5
@@ -80,7 +84,7 @@ class SerialPortCommunicator(portName: String) {
 			Thread.sleep(500L)
 			tries++
 		} while (!success && tries < maxTries)
-		serialPort.closePort()
+		if (serialPort.isOpened) serialPort.closePort()
 
 		return if (success) {
 			logger.info("SUCCESS after ${tries} retries")
