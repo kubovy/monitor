@@ -189,20 +189,6 @@ class ConfigWindowController : BluetoothListener {
 			setCellValueFactory(PropertyValueFactory<LightConfig, String>("pattern"))
 		}
 
-		fun TableColumn<LightConfig, LightColor>.init(propertyName: String) {
-			cellValueFactory = PropertyValueFactory<LightConfig, LightColor>(propertyName)
-			setCellFactory {
-				object : TableCell<LightConfig, LightColor>() {
-					override fun updateItem(item: LightColor?, empty: Boolean) {
-						super.updateItem(item, empty)
-						graphic = Pane().apply {
-							background = Background(BackgroundFill(item?.toColor() ?: Color.TRANSPARENT,
-									CornerRadii.EMPTY, Insets.EMPTY))
-						}
-					}
-				}
-			}
-		}
 		columnLightColor1.init("color1")
 		columnLightColor2.init("color2")
 		columnLightColor3.init("color3")
@@ -476,6 +462,11 @@ class ConfigWindowController : BluetoothListener {
 	}
 
 	@FXML
+	fun onReconnect() {
+		controller?.communicator?.connect()
+	}
+
+	@FXML
 	fun onKeyPressedInTable(keyEvent: KeyEvent) = when (keyEvent.code) {
 		KeyCode.DELETE -> onDeleteLight()
 		KeyCode.UP -> if (keyEvent.isAltDown) onMoveUpLight() else null
@@ -609,5 +600,20 @@ class ConfigWindowController : BluetoothListener {
 							statusFatal = children[9].lightConfigs ?: emptyList())
 				}
 		controller?.controller?.saveConfig()
+	}
+
+	private fun TableColumn<LightConfig, LightColor>.init(propertyName: String) {
+		cellValueFactory = PropertyValueFactory<LightConfig, LightColor>(propertyName)
+		setCellFactory {
+			object : TableCell<LightConfig, LightColor>() {
+				override fun updateItem(item: LightColor?, empty: Boolean) {
+					super.updateItem(item, empty)
+					graphic = Pane().apply {
+						background = Background(BackgroundFill(item?.toColor() ?: Color.TRANSPARENT,
+								CornerRadii.EMPTY, Insets.EMPTY))
+					}
+				}
+			}
+		}
 	}
 }

@@ -133,6 +133,7 @@
                   <Button fx:id="buttonMoveUpLight" mnemonicParsing="false" onAction="#onMoveUpLight" text="Up [Ctrl+Up]" />
                   <Button fx:id="buttonMoveDownLight" mnemonicParsing="false" onAction="#onMoveDownLight" text="Down [Ctrl+Down]" />
                   <Button fx:id="buttonDeleteLight" mnemonicParsing="false" onAction="#onDeleteLight" text="Delete [DEL]" />
+                   <Button mnemonicParsing="false" onAction="#onReconnect" text="Reconnect [F5]"/>
                </children>
             </HBox>
          </children>

@@ -9,7 +9,6 @@ import com.poterion.monitor.notifiers.deploymentcase.control.DeploymentCaseNotif
 import com.poterion.monitor.notifiers.deploymentcase.data.Configuration
 import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
 import com.poterion.monitor.notifiers.deploymentcase.data.Device
-import javafx.event.ActionEvent
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
@@ -161,7 +160,7 @@ class ConfigWindowController : BluetoothListener {
 	}
 
 	@FXML
-	fun onAddConfig(event: ActionEvent) {
+	fun onAddConfig() {
 		var index = 1
 		while (listConfigurations.items.map { it.name }.contains("${NEW_NAME} ${index}")) index++
 		listConfigurations.items.add(Configuration(name = "${NEW_NAME} ${index}"))
@@ -169,7 +168,7 @@ class ConfigWindowController : BluetoothListener {
 	}
 
 	@FXML
-	fun onDeleteSelectedConfig(event: ActionEvent) {
+	fun onDeleteSelectedConfig() {
 		if (listConfigurations.items.size > 1) {
 			var selectedIndex = listConfigurations.selectionModel.selectedIndex
 			if (selectedIndex >= 0) {
@@ -181,27 +180,27 @@ class ConfigWindowController : BluetoothListener {
 	}
 
 	@FXML
-	fun onPull(event: ActionEvent?) {
+	fun onPull() {
 		controller?.communicator?.send("PULL")
 	}
 
 	@FXML
-	fun onPush(event: ActionEvent?) {
+	fun onPush() {
 
 	}
 
 	@FXML
-	fun onClear(event: ActionEvent?) {
+	fun onClear() {
 		textLog.clear()
 	}
 
 	@FXML
-	fun onReconnect(event: ActionEvent?) {
+	fun onReconnect() {
 		controller?.communicator?.connect()
 	}
 
 	@FXML
-	fun onTest(event: ActionEvent?) {
+	fun onTest() {
 		val type = comboboxType.selectionModel.selectedItem?.toLowerCase()
 		val name = comboboxName.value
 		val value = comboboxValue.value
@@ -219,11 +218,11 @@ class ConfigWindowController : BluetoothListener {
 
 	@FXML
 	fun onKeyPressed(keyEvent: KeyEvent) = when (keyEvent.code) {
-		KeyCode.F2 -> onPull(null)
-		KeyCode.F3 -> onPush(null)
-		KeyCode.F4 -> onTest(null)
-		KeyCode.F5 -> onReconnect(null)
-		KeyCode.F8 -> onClear(null)
+		KeyCode.F2 -> onPull()
+		KeyCode.F3 -> onPush()
+		KeyCode.F4 -> onTest()
+		KeyCode.F5 -> onReconnect()
+		KeyCode.F8 -> onClear()
 		else -> null
 	}
 
