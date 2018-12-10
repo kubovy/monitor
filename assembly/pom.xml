@@ -60,8 +60,12 @@
         </dependency>
         <dependency>
             <groupId>com.poterion.monitor</groupId>
-            <artifactId>system-tray</artifactId>
-        </dependency>
+			<artifactId>deployment-case</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.poterion.monitor</groupId>
+			<artifactId>system-tray</artifactId>
+		</dependency>
         <!-- 3rd Parties -->
     </dependencies>
 </project>

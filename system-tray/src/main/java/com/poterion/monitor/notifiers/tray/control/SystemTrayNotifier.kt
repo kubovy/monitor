@@ -73,7 +73,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 				.map { it to serviceMenus[it] }
 				.forEach { (serviceName, serviceMenu) ->
 					serviceMenu
-							?.also { it.updateSubMenu(statusItems.filter { it.serviceName == serviceName }) }
+							?.also { it.updateSubMenu(statusItems.filter { item -> item.serviceName == serviceName }) }
 							?: LOGGER.error("Unknown service ${serviceName} - no menu for it")
 				}
 
@@ -124,10 +124,10 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 					text = "About"
 					shortcut = 'a'
 					SystemTrayIcon.ABOUT.inputStream.use { setImage(it) }
-					setCallback {
+					setCallback { _ ->
 						Platform.runLater {
 							Alert(Alert.AlertType.INFORMATION).apply {
-								CommonIcon.APPLICATION.image().let { ImageView(it) }.also { graphic = it }
+								ImageView(CommonIcon.APPLICATION.image()).also { graphic = it }
 								title = "About"
 								headerText = "${Props.APP_NAME}"
 								contentText = "Version: ${Props.VERSION}"
@@ -163,7 +163,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 					val menuItem = menuItems[statusItem.key()] ?: MenuItem().apply {
 						prioritised = separateNonePriorityItems(index, statusItem.priority, prioritised)
 						text = statusItem.label
-						setCallback { statusItem.link?.also { open(it) } }
+						setCallback { _ -> statusItem.link?.also { open(it) } }
 						//menuEntries[this@updateSubMenu]?.add(this)
 						menuItems[statusItem.key()] = this
 						this@updateSubMenu.add(this)
@@ -182,28 +182,18 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 	private fun NavigationItem.toMenu(controller: ControllerInterface, moduleConfig: ModuleConfig): Entry? {
 		return if (title != null && sub != null) { // Menu
 			Menu(title).also { menu ->
-				icon?.also { it.inputStream.use { menu.setImage(it) } }
+				icon?.also { icon -> icon.inputStream.use { menu.setImage(it) } }
 				sub?.forEach { subItem -> menu.add(subItem.toMenu(controller, moduleConfig)) }
 				update?.also { update ->
-					controller.registerForConfigUpdates {
-						update.invoke(it).also {
-							if (it is String) menu.text = it
-							(it as? Icon)?.inputStream?.use { menu.setImage(it) }
-						}
-					}
+					controller.registerForConfigUpdates { config -> update.invoke(menu, config) }
 				}
 			}
 		} else if (title != null && sub == null && checked == null) { // Menu Item
-			MenuItem(title, { Platform.runLater { action?.invoke() } }).also { menuItem ->
-				icon?.also { it.inputStream.use { menuItem.setImage(it) } }
+			MenuItem(title) { Platform.runLater { action?.invoke() } }.also { menuItem ->
+				icon?.also { icon -> icon.inputStream.use { menuItem.setImage(it) } }
 				menuItem.enabled = enabled
 				update?.also { update ->
-					controller.registerForConfigUpdates {
-						update.invoke(it).also {
-							if (it is String) menuItem.text = it
-							(it as? Icon)?.inputStream?.use { menuItem.setImage(it) }
-						}
-					}
+					controller.registerForConfigUpdates { config -> update.invoke(menuItem, config) }
 				}
 			}
 		} else if (title != null && sub == null && checked != null) { // Checkbox
@@ -212,12 +202,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 				checkbox.checked = checked ?: false
 				checkbox.setCallback { Platform.runLater { action?.invoke() } }
 				update?.also { update ->
-					controller.registerForConfigUpdates {
-						update.invoke(it).also {
-							if (it is String) checkbox.text = it
-							if (it is Boolean) checkbox.checked = it
-						}
-					}
+					controller.registerForConfigUpdates { config -> update.invoke(checkbox, config) }
 				}
 			}
 		} else if (title == null) { // Separator

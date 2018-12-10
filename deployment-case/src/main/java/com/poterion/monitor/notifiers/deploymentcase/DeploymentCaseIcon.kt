@@ -1,4 +1,4 @@
-package com.poterion.monitor.notifiers.raspiw2812
+package com.poterion.monitor.notifiers.deploymentcase
 
 import com.poterion.monitor.api.ui.Icon
 import javafx.scene.image.Image
@@ -8,20 +8,14 @@ import java.io.InputStream
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-enum class RaspiW2812Icon(private val file: String) : Icon {
-	CHIP("/icons/chip.png"),
-	RASPBERRY("/icons/raspberry.png"),
-	RASPBERRY_PI("/icons/raspberrypi.png"),
-	DEFAULT("/icons/item-default.png"),
-	NON_DEFAULT("/icons/item-non-default.png"),
-	DETECT("/icons/detect.png"),
-	USB("/icons/usb.png"),
+enum class DeploymentCaseIcon(private val file: String) : Icon {
+	NUCLEAR_FOOTBALL("/icons/nuclear-football.png"),
+	BLUETOOTH("/icons/bluetooth.png"),
 	CONNECTED("/icons/connected.png"),
 	DISCONNECTED("/icons/disconnected.png");
 
-
 	override val inputStream: InputStream
-		get() = RaspiW2812Icon::class.java.getResourceAsStream(file)
+		get() = DeploymentCaseIcon::class.java.getResourceAsStream(file)
 				.use { it.readBytes() }
 				.let { ByteArrayInputStream(it) }
 

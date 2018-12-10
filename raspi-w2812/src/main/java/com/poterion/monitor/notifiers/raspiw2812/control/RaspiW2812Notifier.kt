@@ -2,6 +2,7 @@ package com.poterion.monitor.notifiers.raspiw2812.control
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.poterion.monitor.api.StatusCollector
+import com.poterion.monitor.api.communication.BluetoothCommunicator
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.ui.CommonIcon
@@ -14,10 +15,11 @@ import com.poterion.monitor.notifiers.raspiw2812.RaspiW2812Icon
 import com.poterion.monitor.notifiers.raspiw2812.data.LightConfig
 import com.poterion.monitor.notifiers.raspiw2812.data.RaspiW2812Config
 import com.poterion.monitor.notifiers.raspiw2812.ui.ConfigWindowController
+import dorkbox.systemTray.MenuItem
 import javafx.scene.Parent
-import jssc.SerialPortException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.util.concurrent.TimeUnit
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
@@ -27,32 +29,20 @@ class RaspiW2812Notifier(override val controller: ControllerInterface, config: R
 		val LOGGER: Logger = LoggerFactory.getLogger(RaspiW2812Notifier::class.java)
 	}
 
-	private var serialPortCommunicator: SerialPortCommunicator? = null
+	var communicator: BluetoothCommunicator = BluetoothCommunicator("WS", config.deviceAddress, 5, 6)
 	private var lastState = emptyList<LightConfig>()
 	private val objectMapper = ObjectMapper()
 	override val icon: Icon = RaspiW2812Icon.RASPBERRY
 	override val navigationRoot: NavigationItem
 		get() = super.navigationRoot.apply {
-			/*sub?.add(NavigationItem(title = "Configure", icon = CommonIcon.SETTINGS, action = {
-				ConfigWindowController.create(controller.stage, config, this@RaspiW2812Notifier)
-			}))
-			sub?.add(NavigationItem(title = "Port", icon = RaspiW2812Icon.CHIP, sub = mutableListOf(
-					NavigationItem(title = "Autodetect", icon = RaspiW2812Icon.DETECT, action = {
-						config.portName = null
-						serialPortCommunicator = SerialPortCommunicator.findCommunicator()
-					}),
-					*SerialNativeInterface()
-							.serialPortNames
-							.sorted()
-							.map {
-								NavigationItem(title = it, icon = RaspiW2812Icon.USB, action = {
-									config.portName = it
-									serialPortCommunicator = SerialPortCommunicator(it)
-								})
-							}
-							.toTypedArray()
-			)))
-			sub?.add(NavigationItem()) // Separator */
+			sub?.add(NavigationItem(
+					title = "Reconnect",
+					icon = RaspiW2812Icon.DISCONNECTED,
+					action = { communicator.connect() },
+					update = { entry, _ -> (entry as? MenuItem)?.enabled = config.enabled }
+			))
+			sub?.add(NavigationItem(title = null))
+
 			config.items.sortedBy { it.id }.forEach { itemConfig ->
 				val title = itemConfig.id.takeIf { it.isNotEmpty() }
 				sub?.add(NavigationItem(
@@ -87,7 +77,7 @@ class RaspiW2812Notifier(override val controller: ControllerInterface, config: R
 		get() = ConfigWindowController.getRoot(config, this)
 
 	override fun initialize() {
-		StatusCollector.status.subscribe { statusItems ->
+		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe { statusItems ->
 			val lights = if (config.combineMultipleServices) {
 				val maxStatus = statusItems
 						.filter { it.priority >= config.minPriority }
@@ -100,7 +90,7 @@ class RaspiW2812Notifier(override val controller: ControllerInterface, config: R
 						.distinctBy { it.serviceName }
 						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
 						.mapNotNull { it.toLightConfig() }
-						.flatMap { it }
+						.flatten()
 						.takeIf { it.isNotEmpty() }
 						?: config.items.firstOrNull { it.id == "" }?.statusOk
 			} else {
@@ -118,27 +108,13 @@ class RaspiW2812Notifier(override val controller: ControllerInterface, config: R
 		}
 	}
 
-	internal fun changeLights(lightConfiguration: List<LightConfig>?, rescue: Boolean = true) {
+	internal fun changeLights(lightConfiguration: List<LightConfig>?) {
 		if (lightConfiguration != null) {
-			if (serialPortCommunicator == null) serialPortCommunicator = config.portName
-					?.let { SerialPortCommunicator(it) }
-					?: SerialPortCommunicator.findCommunicator()
-			try {
-				lightConfiguration
-						.map { objectMapper.writeValueAsString(it) }
-						.mapIndexed { index, string ->
-							var result = string
-							if (index == 0) result = "[${result}"
-							if (index == lightConfiguration.lastIndex) "${result}]" else "${result},"
-						}
-						.takeIf { it.isNotEmpty() }
-						?.also { serialPortCommunicator?.sendMessage(it) }
-				//serialPortCommunicator?.sendMessage(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString().lines())
-			} catch (e: SerialPortException) {
-				LOGGER.error(e.message, e)
-				if (config.portName == null) serialPortCommunicator = null
-				if (rescue) changeLights(lightConfiguration, rescue = false)
-			}
+			lightConfiguration
+					.takeIf { it.isNotEmpty() }
+					?.let { objectMapper.writeValueAsString(it) }
+					?.takeIf { it.isNotEmpty() }
+					?.also { communicator.send(it) }
 		}
 	}
 
@@ -157,7 +133,7 @@ class RaspiW2812Notifier(override val controller: ControllerInterface, config: R
 	}
 
 	internal fun reset() {
-		serialPortCommunicator = null
+//		serialPortCommunicator = null
 	}
 
 	private fun StatusItem.key() = serviceName

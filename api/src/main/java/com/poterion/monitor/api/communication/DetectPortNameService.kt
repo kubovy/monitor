@@ -1,6 +1,5 @@
-package com.poterion.monitor.notifiers.raspiw2812.services
+package com.poterion.monitor.api.communication
 
-import com.poterion.monitor.notifiers.raspiw2812.control.SerialPortCommunicator
 import javafx.concurrent.Service
 import javafx.concurrent.Task
 

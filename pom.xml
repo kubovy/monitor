@@ -20,18 +20,20 @@
         <module>jenkins</module>
         <module>sonar</module>
         <!-- Notifiers -->
+        <module>deployment-case</module>
         <module>raspi-w2812</module>
         <module>system-tray</module>
     </modules>
 
     <properties>
+        <bluecove.version>2.1.0</bluecove.version>
         <dorkbox.version>3.12</dorkbox.version>
         <jackson.version>2.9.4</jackson.version>
         <jssc.version>2.8.0</jssc.version>
-        <kotlin.version>1.2.21</kotlin.version>
+        <kotlin.version>1.3.11</kotlin.version>
         <retrofit.version>2.3.0</retrofit.version>
         <rxjava.version>2.1.6</rxjava.version>
-        <rxkotlin.version>2.2.0</rxkotlin.version>
+        <rxkotlin.version>2.3.0</rxkotlin.version>
         <slf4j.version>1.7.21</slf4j.version>
     </properties>
 
@@ -71,6 +73,11 @@
             <dependency>
                 <groupId>com.poterion.monitor</groupId>
                 <artifactId>raspi-w2812</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.poterion.monitor</groupId>
+                <artifactId>deployment-case</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -135,11 +142,39 @@
                 <groupId>io.reactivex.rxjava2</groupId>
                 <artifactId>rxkotlin</artifactId>
                 <version>${rxkotlin.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-stdlib</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-stdlib-common</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-stdlib-jdk8</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-reflect</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency><!-- https://mvnrepository.com/artifact/org.scream3r/jssc -->
                 <groupId>org.scream3r</groupId>
                 <artifactId>jssc</artifactId>
                 <version>${jssc.version}</version>
+            </dependency>
+            <dependency><!-- https://mvnrepository.com/artifact/net.sf.bluecove/bluecove -->
+                <groupId>net.sf.bluecove</groupId>
+                <artifactId>bluecove</artifactId>
+                <version>${bluecove.version}</version>
+            </dependency>
+            <dependency><!-- https://mvnrepository.com/artifact/net.sf.bluecove/bluecove-gpl -->
+                <groupId>net.sf.bluecove</groupId>
+                <artifactId>bluecove-gpl</artifactId>
+                <version>${bluecove.version}</version>
             </dependency>
             <!-- Logging -->
             <dependency>

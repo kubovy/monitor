@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.*?>
+<SplitPane centerShape="false" dividerPositions="0.2516297262059974" onKeyPressed="#onKeyPressed" prefHeight="580.0"
+		   prefWidth="801.0" scaleShape="false" xmlns="http://javafx.com/javafx/10.0.1"
+		   xmlns:fx="http://javafx.com/fxml/1"
+		   fx:controller="com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController">
+	<items>
+		<VBox maxWidth="1.7976931348623157E308">
+			<children>
+				<TextField fx:id="textBluetoothAddress" maxHeight="1.7976931348623157E308"
+						   promptText="00:00:00:00:00:00"/>
+				<ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS">
+					<content>
+						<ListView fx:id="listConfigurations" maxHeight="1.7976931348623157E308"
+								  maxWidth="1.7976931348623157E308"/>
+					</content>
+				</ScrollPane>
+				<HBox alignment="CENTER_RIGHT" maxWidth="1.7976931348623157E308" VBox.vgrow="NEVER">
+					<children>
+						<Button mnemonicParsing="false" onAction="#onAddConfig" text="Add"/>
+						<Button mnemonicParsing="false" onAction="#onDeleteSelectedConfig" text="Delete"/>
+					</children>
+				</HBox>
+			</children>
+		</VBox>
+		<VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
+			<children>
+				<TabPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" side="RIGHT"
+						 tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
+					<tabs>
+						<Tab text="Configuration">
+							<content>
+								<VBox>
+									<children>
+										<GridPane>
+											<columnConstraints>
+												<ColumnConstraints hgrow="NEVER"/>
+												<ColumnConstraints hgrow="SOMETIMES" maxWidth="1.7976931348623157E308"/>
+												<ColumnConstraints hgrow="ALWAYS" maxWidth="1.7976931348623157E308"/>
+											</columnConstraints>
+											<rowConstraints>
+												<RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+												<RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+												<RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+												<RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+											</rowConstraints>
+											<children>
+												<TextField fx:id="textURL" GridPane.columnIndex="2"
+														   GridPane.rowIndex="1"/>
+												<Label text="URL" GridPane.rowIndex="1">
+													<padding>
+														<Insets left="5.0" right="5.0"/>
+													</padding>
+												</Label>
+												<ComboBox fx:id="comboboxMethod" maxWidth="1.7976931348623157E308"
+														  GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+												<Label text="Username" GridPane.rowIndex="2">
+													<padding>
+														<Insets left="5.0" right="5.0"/>
+													</padding>
+												</Label>
+												<Label text="Password" GridPane.rowIndex="3">
+													<padding>
+														<Insets left="5.0" right="5.0"/>
+													</padding>
+												</Label>
+												<TextField fx:id="textUsername" GridPane.columnIndex="1"
+														   GridPane.columnSpan="2" GridPane.rowIndex="2"/>
+												<PasswordField fx:id="textPassword" GridPane.columnIndex="1"
+															   GridPane.columnSpan="2" GridPane.rowIndex="3"/>
+												<CheckBox fx:id="checkboxActive" mnemonicParsing="false" text="Active">
+													<padding>
+														<Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+													</padding>
+												</CheckBox>
+												<TextField fx:id="textName" GridPane.columnIndex="1"
+														   GridPane.columnSpan="2"/>
+											</children>
+										</GridPane>
+										<Separator prefWidth="200.0"/>
+										<Label text="Test">
+											<VBox.margin>
+												<Insets left="5.0" right="5.0" top="5.0"/>
+											</VBox.margin>
+										</Label>
+										<GridPane>
+											<columnConstraints>
+												<ColumnConstraints hgrow="SOMETIMES" minWidth="10.0"/>
+												<ColumnConstraints hgrow="ALWAYS" minWidth="10.0" prefWidth="100.0"/>
+												<ColumnConstraints hgrow="ALWAYS" minWidth="10.0"/>
+												<ColumnConstraints halignment="CENTER" hgrow="SOMETIMES"
+																   minWidth="10.0"/>
+											</columnConstraints>
+											<rowConstraints>
+												<RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+												<RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+											</rowConstraints>
+											<children>
+												<ComboBox fx:id="comboboxType" GridPane.rowIndex="1"/>
+												<Button mnemonicParsing="false" onAction="#onTest" text="Test [F4]"
+														GridPane.columnIndex="3" GridPane.rowIndex="1"/>
+												<Label text="Type" GridPane.valignment="BOTTOM">
+													<padding>
+														<Insets left="5.0" right="5.0"/>
+													</padding>
+												</Label>
+												<Label text="Name" GridPane.columnIndex="1"
+													   GridPane.valignment="BOTTOM">
+													<padding>
+														<Insets left="5.0" right="5.0"/>
+													</padding>
+												</Label>
+												<Label text="Value" GridPane.columnIndex="2"
+													   GridPane.valignment="BOTTOM">
+													<padding>
+														<Insets left="5.0" right="5.0"/>
+													</padding>
+												</Label>
+												<ComboBox fx:id="comboboxName" editable="true"
+														  maxWidth="1.7976931348623157E308" GridPane.columnIndex="1"
+														  GridPane.hgrow="ALWAYS" GridPane.rowIndex="1"/>
+												<ComboBox fx:id="comboboxValue" editable="true"
+														  maxWidth="1.7976931348623157E308" GridPane.columnIndex="2"
+														  GridPane.hgrow="ALWAYS" GridPane.rowIndex="1"/>
+											</children>
+										</GridPane>
+									</children>
+								</VBox>
+							</content>
+						</Tab>
+						<Tab text="Variables">
+							<content>
+								<AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+									<children>
+										<TableView fx:id="tableVariables" layoutY="7.0"
+												   maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+												   AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+												   AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+											<columns>
+												<TableColumn fx:id="columnVariableName" maxWidth="-1.0" minWidth="160.0"
+															 prefWidth="-1.0" text="Name"/>
+												<TableColumn fx:id="columnVariableValue"
+															 maxWidth="1.7976931348623157E308" minWidth="80.0"
+															 prefWidth="-1.0" text="Value"/>
+											</columns>
+											<columnResizePolicy>
+												<TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+											</columnResizePolicy>
+										</TableView>
+									</children>
+								</AnchorPane>
+							</content>
+						</Tab>
+						<Tab text="Devices">
+							<content>
+								<AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+									<children>
+										<TableView fx:id="tableDevices" maxHeight="1.7976931348623157E308"
+												   maxWidth="1.7976931348623157E308" AnchorPane.bottomAnchor="0.0"
+												   AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+												   AnchorPane.topAnchor="0.0">
+											<columns>
+												<TableColumn fx:id="columnDevicesName" maxWidth="-1.0" minWidth="160.0"
+															 prefWidth="-1.0" text="Name"/>
+												<TableColumn fx:id="columnDevicesKind" maxWidth="-1.0" minWidth="160.0"
+															 prefWidth="-1.0" text="Kind"/>
+												<TableColumn fx:id="columnDevicesKey" maxWidth="1.7976931348623157E308"
+															 minWidth="80.0" prefWidth="-1.0" text="Key"/>
+											</columns>
+											<columnResizePolicy>
+												<TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+											</columnResizePolicy>
+										</TableView>
+									</children>
+								</AnchorPane>
+							</content>
+						</Tab>
+						<Tab text="State Machine">
+							<content>
+								<AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+									<children>
+										<TextArea fx:id="textStateMachine" prefHeight="200.0" prefWidth="200.0"
+												  AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+												  AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
+									</children>
+								</AnchorPane>
+							</content>
+						</Tab>
+						<Tab text="Log">
+							<content>
+								<AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+									<children>
+										<TextArea fx:id="textLog" editable="false" maxHeight="1.7976931348623157E308"
+												  maxWidth="1.7976931348623157E308" AnchorPane.bottomAnchor="0.0"
+												  AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+												  AnchorPane.topAnchor="0.0"/>
+									</children>
+								</AnchorPane>
+							</content>
+						</Tab>
+					</tabs>
+				</TabPane>
+				<HBox alignment="CENTER_RIGHT" spacing="5.0">
+					<children>
+						<ImageView fx:id="iconInbound" fitHeight="32.0" fitWidth="32.0" pickOnBounds="true"
+								   preserveRatio="true"/>
+						<ImageView fx:id="iconOutbound" fitHeight="32.0" fitWidth="32.0" pickOnBounds="true"
+								   preserveRatio="true"/>
+						<Pane maxHeight="1.7976931348623157E308" HBox.hgrow="ALWAYS"/>
+						<Button mnemonicParsing="false" onAction="#onPull" text="Pull [F2]"/>
+						<Button mnemonicParsing="false" onAction="#onPush" text="Push [F3]"/>
+						<Button mnemonicParsing="false" onAction="#onClear" text="Clear [F8]"/>
+						<Button mnemonicParsing="false" onAction="#onReconnect" text="Reconnect [F5]"/>
+					</children>
+				</HBox>
+			</children>
+			<padding>
+				<Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+			</padding>
+		</VBox>
+	</items>
+</SplitPane>

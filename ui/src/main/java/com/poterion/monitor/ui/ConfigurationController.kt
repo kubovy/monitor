@@ -43,9 +43,9 @@ class ConfigurationController {
 				CommonIcon.SETTINGS.inputStream.use { icons.add(Image(it)) }
 				title = "Configuration"
 				//stage.isResizable = false
-				minWidth = 850.0
-				minHeight = 650.0
-				scene = Scene(root, 850.0, 650.0)
+				minWidth = 1200.0
+				minHeight = 800.0
+				scene = Scene(root, 1200.0, 800.0)
 				show()
 			}
 		}
@@ -64,12 +64,14 @@ class ConfigurationController {
 		tree.apply {
 			isShowRoot = false
 			selectionModel.selectionMode = SelectionMode.SINGLE
-			setCellFactory {
+			setCellFactory { _ ->
 				object : TreeCell<ModuleItem>() {
 					override fun updateItem(item: ModuleItem?, empty: Boolean) {
 						super.updateItem(item, empty)
 						text = item?.title ?: item?.module?.config?.name
-						graphic = item?.graphic ?: item?.module?.icon?.inputStream?.use { ImageView(Image(it, 16.0, 16.0, false, false)) }
+						graphic = item?.graphic ?: item?.module?.icon?.inputStream?.use {
+							ImageView(Image(it, 16.0, 16.0, false, false))
+						}
 					}
 				}
 			}

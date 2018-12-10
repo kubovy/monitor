@@ -1,12 +1,12 @@
 package com.poterion.monitor.notifiers.raspiw2812.ui
 
+import com.poterion.monitor.api.communication.BluetoothListener
 import com.poterion.monitor.api.ui.CommonIcon
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.raspiw2812.RaspiW2812Icon
 import com.poterion.monitor.notifiers.raspiw2812.control.RaspiW2812Notifier
 import com.poterion.monitor.notifiers.raspiw2812.data.*
 import com.poterion.monitor.notifiers.raspiw2812.deepCopy
-import com.poterion.monitor.notifiers.raspiw2812.services.DetectPortNameService
 import com.poterion.monitor.notifiers.raspiw2812.toColor
 import com.poterion.monitor.notifiers.raspiw2812.toLightColor
 import javafx.collections.FXCollections
@@ -14,7 +14,6 @@ import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.geometry.Insets
 import javafx.scene.Parent
-import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.control.Alert.AlertType
 import javafx.scene.control.ButtonType
@@ -28,29 +27,15 @@ import javafx.scene.layout.BackgroundFill
 import javafx.scene.layout.CornerRadii
 import javafx.scene.layout.Pane
 import javafx.scene.paint.Color
-import javafx.stage.Stage
 import javafx.util.StringConverter
-import jssc.SerialPortList
 import kotlin.math.roundToInt
 
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-class ConfigWindowController {
+class ConfigWindowController : BluetoothListener {
 	companion object {
-		private val AUTODETECT: Pair<String?, String> = null to "[Autodetect]"
-
-		fun create(stage: Stage, config: RaspiW2812Config, controller: RaspiW2812Notifier) {
-			val root = getRoot(config, controller)
-			val scene = Scene(root, 850.0, 600.0)
-			RaspiW2812Icon.RASPBERRY_PI.image().also { stage.icons.add(it) }
-			stage.title = "Raspi W2812 Controller Config"
-			stage.isResizable = false
-			stage.scene = scene
-			stage.show()
-		}
-
 		internal fun getRoot(config: RaspiW2812Config, controller: RaspiW2812Notifier): Parent =
 				FXMLLoader(ConfigWindowController::class.java.getResource("config-window.fxml"))
 						.let { it.load<Parent>() to it.getController<ConfigWindowController>() }
@@ -62,41 +47,33 @@ class ConfigWindowController {
 						}
 	}
 
-	@FXML private lateinit var comboPortName: ComboBox<Pair<String?, String>>
+	@FXML private lateinit var textBluetoothAddress: TextField
+
 	@FXML private lateinit var treeConfigs: TreeView<StateConfig>
 	@FXML private lateinit var comboConfigName: ComboBox<String>
 	@FXML private lateinit var buttonAddConfig: Button
 	@FXML private lateinit var buttonDeleteConfig: Button
-	@FXML private lateinit var labelColors: Label
+
+	@FXML private lateinit var textServiceName: TextField
+	@FXML private lateinit var comboBoxPattern: ComboBox<LightPattern>
 	@FXML private lateinit var comboBoxColor1: ColorPicker
 	@FXML private lateinit var comboBoxColor2: ColorPicker
 	@FXML private lateinit var comboBoxColor3: ColorPicker
 	@FXML private lateinit var comboBoxColor4: ColorPicker
 	@FXML private lateinit var comboBoxColor5: ColorPicker
 	@FXML private lateinit var comboBoxColor6: ColorPicker
-	@FXML private lateinit var labelWait: Label
-	@FXML private lateinit var labelWidth: Label
-	@FXML private lateinit var labelFade: Label
-	@FXML private lateinit var labelMin: Label
-	@FXML private lateinit var labelMax: Label
-	@FXML private lateinit var labelPattern: Label
-	@FXML private lateinit var textServiceName: TextField
-	@FXML private lateinit var comboBoxPattern: ComboBox<LightPattern>
 	@FXML private lateinit var textWait: TextField
 	@FXML private lateinit var textWidth: TextField
+	@FXML private lateinit var labelFade: Label
 	@FXML private lateinit var textFade: TextField
-	@FXML private lateinit var labelMinValue: Label
-	@FXML private lateinit var labelMaxValue: Label
 	@FXML private lateinit var sliderMin: Slider
 	@FXML private lateinit var sliderMax: Slider
+	@FXML private lateinit var labelMinValue: Label
+	@FXML private lateinit var labelMaxValue: Label
 	@FXML private lateinit var buttonTestLight: Button
-	@FXML private lateinit var buttonTestLightSequence: Button
-	@FXML private lateinit var buttonTurnOffLight: Button
-	@FXML private lateinit var buttonMoveUpLight: Button
-	@FXML private lateinit var buttonMoveDownLight: Button
 	@FXML private lateinit var buttonSaveLight: Button
 	@FXML private lateinit var buttonClearLight: Button
-	@FXML private lateinit var buttonDeleteLight: Button
+
 	@FXML private lateinit var tableLightConfigs: TableView<LightConfig>
 	@FXML private lateinit var columnLightPattern: TableColumn<LightConfig, String>
 	@FXML private lateinit var columnLightColor1: TableColumn<LightConfig, LightColor>
@@ -110,6 +87,15 @@ class ConfigWindowController {
 	@FXML private lateinit var columnLightFading: TableColumn<LightConfig, Int>
 	@FXML private lateinit var columnLightMinimum: TableColumn<LightConfig, Int>
 	@FXML private lateinit var columnLightMaximum: TableColumn<LightConfig, Int>
+
+	@FXML private lateinit var buttonTestLightSequence: Button
+	@FXML private lateinit var buttonTurnOffLight: Button
+	@FXML private lateinit var buttonMoveUpLight: Button
+	@FXML private lateinit var buttonMoveDownLight: Button
+	@FXML private lateinit var buttonDeleteLight: Button
+
+	@FXML private lateinit var iconInbound: ImageView
+	@FXML private lateinit var iconOutbound: ImageView
 
 	private var config: RaspiW2812Config? = null
 	private var controller: RaspiW2812Notifier? = null
@@ -133,35 +119,9 @@ class ConfigWindowController {
 
 	@FXML
 	fun initialize() {
-		comboPortName.apply {
-			converter = object : StringConverter<Pair<String?, String>>() {
-				override fun toString(obj: Pair<String?, String>?): String = obj?.second ?: ""
-
-				override fun fromString(string: String?): Pair<String?, String>? = string?.split(" ")
-						?.get(0)
-						?.let { it to string }
-			}
-			setCellFactory {
-				object : ListCell<Pair<String?, String>>() {
-					public override fun updateItem(item: Pair<String?, String>?, empty: Boolean) {
-						super.updateItem(item, empty)
-						text = item?.second
-					}
-				}
-			}
-		}
-
+		textBluetoothAddress.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 		textServiceName.isEditable = false
 		textServiceName.isDisable = true
-//		textServiceName.textProperty().addListener { _, _, value ->
-//			value?.takeIf { it.isNotEmpty() }?.also {
-//				val item = treeConfigs.selectionModel.selectedItem
-//						?.let { it.value.takeIf { it.lightConfigs == null } ?: it.parent.value }
-//				item?.title = it
-//				treeConfigs.refresh()
-//				saveConfig()
-//			}
-//		}
 
 		comboBoxPattern.apply {
 			items?.addAll(patterns)
@@ -199,7 +159,7 @@ class ConfigWindowController {
 		treeConfigs.apply {
 			isShowRoot = false
 			selectionModel.selectionMode = SelectionMode.SINGLE
-			setCellFactory {
+			setCellFactory { _ ->
 				object : TreeCell<StateConfig>() {
 					override fun updateItem(item: StateConfig?, empty: Boolean) {
 						super.updateItem(item, empty)
@@ -252,7 +212,7 @@ class ConfigWindowController {
 
 		columnLightWait.apply {
 			cellValueFactory = PropertyValueFactory<LightConfig, Long>("wait")
-			setCellFactory {
+			setCellFactory { _ ->
 				object : TableCell<LightConfig, Long>() {
 					override fun updateItem(item: Long?, empty: Boolean) {
 						super.updateItem(item, empty)
@@ -311,11 +271,7 @@ class ConfigWindowController {
 	}
 
 	private fun load() {
-		updateComboPortName()
-		DetectPortNameService().apply {
-			setOnSucceeded { it.source.value?.takeIf { it is String }?.also { updateComboPortName(it as String) } }
-		}.start()
-
+		textBluetoothAddress.text = config?.deviceAddress
 		treeConfigs.root = TreeItem(StateConfig("Configurations")).apply {
 			config?.items
 					?.sortedBy { it.id }
@@ -327,7 +283,7 @@ class ConfigWindowController {
 									TreeItem(StateConfig("OK", CommonIcon.OK, item.statusOk)),
 									TreeItem(StateConfig("Info", CommonIcon.INFO, item.statusInfo)),
 									TreeItem(StateConfig("Notification", CommonIcon.NOTIFICATION, item.statusNotification)),
-									TreeItem(StateConfig("Connectio Error", CommonIcon.INACTIVE, item.statusConnectionError)),
+									TreeItem(StateConfig("Connection Error", CommonIcon.INACTIVE, item.statusConnectionError)),
 									TreeItem(StateConfig("Service Error", CommonIcon.INACTIVE, item.statusServiceError)),
 									TreeItem(StateConfig("Warning", CommonIcon.WARNING, item.statusWarning)),
 									TreeItem(StateConfig("Error", CommonIcon.ERROR, item.statusError)),
@@ -341,7 +297,7 @@ class ConfigWindowController {
 					?.config
 					?.services
 					?.map { it.name }
-					?.filter { config?.items?.map { it.id }?.contains(it) == false }
+					?.filter { config?.items?.map { i -> i.id }?.contains(it) == false }
 					?.distinct()
 					?.sorted()
 					?.takeIf { it.isNotEmpty() }
@@ -349,11 +305,21 @@ class ConfigWindowController {
 			selectionModel.clearSelection()
 			this.value = ""
 		}
+
+		// Status
+		iconInbound.image = Image(
+				if (controller?.communicator?.isInboundConnected == true) RaspiW2812Icon.CONNECTED.inputStream
+				else RaspiW2812Icon.DISCONNECTED.inputStream)
+		iconOutbound.image = Image(
+				if (controller?.communicator?.isOutboundConnected == true) RaspiW2812Icon.CONNECTED.inputStream
+				else RaspiW2812Icon.DISCONNECTED.inputStream)
+
+		controller?.communicator?.register(this)
 	}
 
 	@FXML
 	fun onPortNameSelected() {
-		config?.portName = comboPortName.selectionModel.selectedItem.takeIf { it != AUTODETECT }?.first
+		//config?.portName = comboPortName.selectionModel.selectedItem.takeIf { it != AUTODETECT }?.first
 		controller?.reset()
 		if (config?.enabled == true) controller?.controller?.check(force = true)
 	}
@@ -371,26 +337,26 @@ class ConfigWindowController {
 	@FXML
 	fun onAddConfig() = comboConfigName.value?.trim()
 			?.takeIf { it.isNotEmpty() }?.also { serviceName ->
-		treeConfigs.root.children.add(TreeItem(StateConfig(serviceName)).apply {
-			children.addAll(
-					TreeItem(StateConfig("None", CommonIcon.NONE, emptyList())),
-					TreeItem(StateConfig("Unknown", CommonIcon.UNKNOWN, emptyList())),
-					TreeItem(StateConfig("OK", CommonIcon.OK, emptyList())),
-					TreeItem(StateConfig("Info", CommonIcon.INFO, emptyList())),
-					TreeItem(StateConfig("Notification", CommonIcon.NOTIFICATION, emptyList())),
-					TreeItem(StateConfig("Connection Error", CommonIcon.BROKEN_LINK, emptyList())),
-					TreeItem(StateConfig("Service Error", CommonIcon.UNAVAILABLE, emptyList())),
-					TreeItem(StateConfig("Warning", CommonIcon.WARNING, emptyList())),
-					TreeItem(StateConfig("Error", CommonIcon.ERROR, emptyList())),
-					TreeItem(StateConfig("Fatal", CommonIcon.FATAL, emptyList())))
-		})
-		comboConfigName.apply {
-			items.remove(serviceName)
-			selectionModel.clearSelection()
-			value = ""
-		}
-		saveConfig()
-	}
+				treeConfigs.root.children.add(TreeItem(StateConfig(serviceName)).apply {
+					children.addAll(
+							TreeItem(StateConfig("None", CommonIcon.NONE, emptyList())),
+							TreeItem(StateConfig("Unknown", CommonIcon.UNKNOWN, emptyList())),
+							TreeItem(StateConfig("OK", CommonIcon.OK, emptyList())),
+							TreeItem(StateConfig("Info", CommonIcon.INFO, emptyList())),
+							TreeItem(StateConfig("Notification", CommonIcon.NOTIFICATION, emptyList())),
+							TreeItem(StateConfig("Connection Error", CommonIcon.BROKEN_LINK, emptyList())),
+							TreeItem(StateConfig("Service Error", CommonIcon.UNAVAILABLE, emptyList())),
+							TreeItem(StateConfig("Warning", CommonIcon.WARNING, emptyList())),
+							TreeItem(StateConfig("Error", CommonIcon.ERROR, emptyList())),
+							TreeItem(StateConfig("Fatal", CommonIcon.FATAL, emptyList())))
+				})
+				comboConfigName.apply {
+					items.remove(serviceName)
+					selectionModel.clearSelection()
+					value = ""
+				}
+				saveConfig()
+			}
 
 	@FXML
 	fun onDeleteSelectedConfig() {
@@ -399,8 +365,8 @@ class ConfigWindowController {
 			headerText = "Delete confirmation"
 			contentText = "Do you really want to delete this whole configuration?"
 			buttonTypes.setAll(ButtonType.YES, ButtonType.NO)
-		}.showAndWait().ifPresent {
-			it.takeIf { it == ButtonType.YES }?.also {
+		}.showAndWait().ifPresent { btnType ->
+			btnType.takeIf { it == ButtonType.YES }?.also {
 				var selected = treeConfigs.selectionModel.selectedItem
 				while (selected != null && selected.value.lightConfigs != null) selected = selected.parent
 				if (selected != null && selected.value.title.isNotEmpty()) selected.parent?.children?.remove(selected)
@@ -526,23 +492,20 @@ class ConfigWindowController {
 		else -> null
 	}
 
-	private fun updateComboPortName(detected: String? = null) {
-		val ports = SerialPortList.getPortNames()
-				.map { it to if (detected != null && it == detected) "${it} (Detected)" else it }
-				.toMutableList()
-		config?.portName
-				?.takeIf { !ports.map { (port, _) -> port }.contains(it) }
-				?.also { ports.add(it to "${it} (Not Found)") }
-		comboPortName.apply {
-			val selected = config?.portName
-			items.apply {
-				clear()
-				add(AUTODETECT)
-				addAll(ports.sortedBy { it.first })
-			}
-			config?.portName = selected
-			selectionModel.select(ports.firstOrNull { (port, _) -> port == config?.portName } ?: AUTODETECT)
-		}
+	override fun onInboundConnect() {
+		iconInbound.image = Image(RaspiW2812Icon.CONNECTED.inputStream)
+	}
+
+	override fun onInboundDisconnect() {
+		iconInbound.image = Image(RaspiW2812Icon.DISCONNECTED.inputStream)
+	}
+
+	override fun onOutboundConnect() {
+		iconOutbound.image = Image(RaspiW2812Icon.CONNECTED.inputStream)
+	}
+
+	override fun onOutboundDisconnect() {
+		iconOutbound.image = Image(RaspiW2812Icon.DISCONNECTED.inputStream)
 	}
 
 	private fun selectStateConfig(stateConfig: StateConfig?) {
@@ -550,6 +513,7 @@ class ConfigWindowController {
 		buttonTestLightSequence.isDisable = stateConfig?.lightConfigs == null
 		tableLightConfigs.items.clear()
 		lightConfigs?.also { tableLightConfigs.items.addAll(it) }
+		if (tableLightConfigs.items.size > 0) tableLightConfigs.selectionModel.select(0)
 	}
 
 	private fun selectLightConfig(lightConfig: LightConfig?) {
@@ -625,9 +589,10 @@ class ConfigWindowController {
 	}
 
 	private fun saveConfig() {
+		config?.deviceAddress = textBluetoothAddress.text
 		treeConfigs.selectionModel.selectedItem?.value?.lightConfigs = tableLightConfigs.items.deepCopy()
 		config?.items = treeConfigs.root.children
-				.map { it.value to it.children.map { it.value } }
+				.map { it.value to it.children.map { c -> c.value } }
 				.filter { (_, children) -> children.size == 10 }
 				.filter { (_, children) -> children.all { it.lightConfigs != null } }
 				.map { (node, children) ->
