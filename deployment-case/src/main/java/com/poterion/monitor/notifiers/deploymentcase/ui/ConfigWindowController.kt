@@ -134,7 +134,7 @@ class ConfigWindowController : BluetoothListener {
 		textStateMachine.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 
 		// Test
-		comboboxType.items.addAll("State", "Action")
+		comboboxType.items.addAll("State", "Action", "Transit")
 		comboboxType.selectionModel.select(0)
 	}
 
@@ -192,6 +192,11 @@ class ConfigWindowController : BluetoothListener {
 	@FXML
 	fun onClear() {
 		textLog.clear()
+	}
+
+	@FXML
+	fun onResetLCD() {
+		controller?.communicator?.send("LCD_RESET")
 	}
 
 	@FXML

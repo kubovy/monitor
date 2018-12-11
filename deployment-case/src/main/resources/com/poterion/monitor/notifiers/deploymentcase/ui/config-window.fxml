@@ -214,6 +214,7 @@
 						<Button mnemonicParsing="false" onAction="#onPull" text="Pull [F2]"/>
 						<Button mnemonicParsing="false" onAction="#onPush" text="Push [F3]"/>
 						<Button mnemonicParsing="false" onAction="#onClear" text="Clear [F8]"/>
+						<Button mnemonicParsing="false" onAction="#onResetLCD" text="LCD Reset"/>
 						<Button mnemonicParsing="false" onAction="#onReconnect" text="Reconnect [F5]"/>
 					</children>
 				</HBox>
