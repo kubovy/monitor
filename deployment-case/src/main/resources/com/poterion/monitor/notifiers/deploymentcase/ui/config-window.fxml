@@ -4,9 +4,8 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
-<SplitPane centerShape="false" dividerPositions="0.2516297262059974" onKeyPressed="#onKeyPressed" prefHeight="580.0"
-		   prefWidth="801.0" scaleShape="false" xmlns="http://javafx.com/javafx/10.0.1"
-		   xmlns:fx="http://javafx.com/fxml/1"
+<SplitPane centerShape="false" dividerPositions="0.2" onKeyPressed="#onKeyPressed" prefHeight="580.0" prefWidth="801.0"
+		   scaleShape="false" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1"
 		   fx:controller="com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController">
 	<items>
 		<VBox maxWidth="1.7976931348623157E308">

@@ -89,9 +89,9 @@ class Controller(override val stage: Stage, configFileName: String = "config.yam
 		val now = System.currentTimeMillis()
 		_services
 				.filter { force || (now - (serviceLastChecked[it.config.name] ?: 0L)) > it.config.checkInterval }
-				.forEach {
-					serviceLastChecked[it.config.name] = System.currentTimeMillis()
-					it.check { StatusCollector.update(it) }
+				.forEach { service ->
+					serviceLastChecked[service.config.name] = System.currentTimeMillis()
+					service.check { StatusCollector.update(it) }
 				}
 	}
 
@@ -106,6 +106,10 @@ class Controller(override val stage: Stage, configFileName: String = "config.yam
 
 	override fun registerForConfigUpdates(listener: (Config) -> Unit) {
 		configListeners.add(listener)
+	}
+
+	override fun triggerUpdate() {
+		configListeners.forEach { it.invoke(config) }
 	}
 
 	override fun saveConfig() = try {

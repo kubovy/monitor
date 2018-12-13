@@ -3,6 +3,7 @@ package com.poterion.monitor.notifiers.raspiw2812.control
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.communication.BluetoothCommunicator
+import com.poterion.monitor.api.communication.BluetoothListener
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.ui.CommonIcon
@@ -24,22 +25,31 @@ import java.util.concurrent.TimeUnit
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-class RaspiW2812Notifier(override val controller: ControllerInterface, config: RaspiW2812Config) : Notifier<RaspiW2812Config>(config) {
+class RaspiW2812Notifier(override val controller: ControllerInterface, config: RaspiW2812Config) :
+		Notifier<RaspiW2812Config>(config), BluetoothListener {
+
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(RaspiW2812Notifier::class.java)
 	}
 
-	var communicator: BluetoothCommunicator = BluetoothCommunicator("WS", config.deviceAddress, 5, 6)
+	val communicator: BluetoothCommunicator = BluetoothCommunicator("WS", config.deviceAddress, 5, 6)
 	private var lastState = emptyList<LightConfig>()
 	private val objectMapper = ObjectMapper()
 	override val icon: Icon = RaspiW2812Icon.RASPBERRY
+	private val connectedIcon: Icon
+		get() = if (communicator.isInboundConnected && communicator.isOutboundConnected)
+			RaspiW2812Icon.CONNECTED else RaspiW2812Icon.DISCONNECTED
+
 	override val navigationRoot: NavigationItem
 		get() = super.navigationRoot.apply {
 			sub?.add(NavigationItem(
 					title = "Reconnect",
-					icon = RaspiW2812Icon.DISCONNECTED,
+					icon = connectedIcon,
 					action = { communicator.connect() },
-					update = { entry, _ -> (entry as? MenuItem)?.enabled = config.enabled }
+					update = { entry, _ ->
+						//(entry as? MenuItem)?.enabled = config.enabled
+						connectedIcon.inputStream.use { (entry as? MenuItem)?.setImage(it) }
+					}
 			))
 			sub?.add(NavigationItem(title = null))
 
@@ -106,6 +116,7 @@ class RaspiW2812Notifier(override val controller: ControllerInterface, config: R
 					?.takeIf { config.enabled }
 					?.also { changeLights(it) }
 		}
+		communicator.register(this)
 	}
 
 	internal fun changeLights(lightConfiguration: List<LightConfig>?) {
@@ -132,8 +143,28 @@ class RaspiW2812Notifier(override val controller: ControllerInterface, config: R
 		NotifierAction.SHUTDOWN -> changeLights(listOf(LightConfig()))
 	}
 
-	internal fun reset() {
-//		serialPortCommunicator = null
+	override fun onInboundConnect() {
+		super.onInboundConnect()
+		controller.check(true)
+		controller.triggerUpdate()
+	}
+
+	override fun onInboundDisconnect() {
+		super.onInboundDisconnect()
+		controller.check(true)
+		controller.triggerUpdate()
+	}
+
+	override fun onOutboundConnect() {
+		super.onOutboundConnect()
+		controller.check(true)
+		controller.triggerUpdate()
+	}
+
+	override fun onOutboundDisconnect() {
+		super.onOutboundDisconnect()
+		controller.check(true)
+		controller.triggerUpdate()
 	}
 
 	private fun StatusItem.key() = serviceName

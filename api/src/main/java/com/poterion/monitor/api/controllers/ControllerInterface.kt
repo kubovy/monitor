@@ -14,5 +14,6 @@ interface ControllerInterface {
 	fun check(force: Boolean = false)
 	fun quit()
 	fun saveConfig()
+	fun triggerUpdate()
 	fun registerForConfigUpdates(listener: (Config) -> Unit)
 }

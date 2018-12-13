@@ -304,13 +304,6 @@ class ConfigWindowController : BluetoothListener {
 	}
 
 	@FXML
-	fun onPortNameSelected() {
-		//config?.portName = comboPortName.selectionModel.selectedItem.takeIf { it != AUTODETECT }?.first
-		controller?.reset()
-		if (config?.enabled == true) controller?.controller?.check(force = true)
-	}
-
-	@FXML
 	fun onKeyPressed(keyEvent: KeyEvent) = when (keyEvent.code) {
 		KeyCode.F3 -> onTestLight()
 		KeyCode.F4 -> onTestLightSequence()
@@ -600,6 +593,7 @@ class ConfigWindowController : BluetoothListener {
 							statusFatal = children[9].lightConfigs ?: emptyList())
 				}
 		controller?.controller?.saveConfig()
+		controller?.communicator?.connect(config?.deviceAddress)
 	}
 
 	private fun TableColumn<LightConfig, LightColor>.init(propertyName: String) {
