@@ -197,16 +197,18 @@ class BluetoothCommunicator(private var prefix: String, private var address: Str
 	}
 
 	fun connect(address: String? = null) {
-		if (address != null) this.address = address
-		isChanging = true
-		disconnect()
-		LOGGER.debug("Connecting...")
-		interrupted.set(false)
-		inboundThread = Thread(inboundRunnable)
-		outboundThread = Thread(outboundRunnable)
-		inboundThread?.start()
-		outboundThread?.start()
-		isChanging = false
+		if (address == null || address != this.address || !isInboundConnected || !isOutboundConnected) {
+			if (address != null) this.address = address
+			isChanging = true
+			disconnect()
+			LOGGER.debug("Connecting...")
+			interrupted.set(false)
+			inboundThread = Thread(inboundRunnable)
+			outboundThread = Thread(outboundRunnable)
+			inboundThread?.start()
+			outboundThread?.start()
+			isChanging = false
+		}
 	}
 
 	fun disconnect() {

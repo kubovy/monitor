@@ -292,6 +292,7 @@ class ConfigWindowController : BluetoothListener {
 		config?.configurations = listConfigurations.items
 
 		controller?.controller?.saveConfig()
+		controller?.communicator?.connect(config?.deviceAddress)
 	}
 
 	private fun <Entry> TableColumn<Entry, String>.init(propertyName: String) {
