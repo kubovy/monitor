@@ -307,6 +307,7 @@ class ConfigWindowController : BluetoothListener {
 	fun onKeyPressed(keyEvent: KeyEvent) = when (keyEvent.code) {
 		KeyCode.F3 -> onTestLight()
 		KeyCode.F4 -> onTestLightSequence()
+		KeyCode.F5 -> onReconnect()
 		KeyCode.F12 -> onTurnOffLight()
 		KeyCode.S -> if (keyEvent.isControlDown) onSaveLight() else null
 		KeyCode.ESCAPE -> onClearLight()
