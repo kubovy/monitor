@@ -50,6 +50,8 @@ class ConfigWindowController : BluetoothListener {
 	@FXML private lateinit var textURL: TextField
 	@FXML private lateinit var textUsername: TextField
 	@FXML private lateinit var textPassword: PasswordField
+	@FXML private lateinit var textJobName: TextField
+	@FXML private lateinit var textParameters: TextField
 
 	@FXML private lateinit var tableVariables: TableView<Pair<String, String>>
 	@FXML private lateinit var columnVariableName: TableColumn<Pair<String, String>, String>
@@ -100,6 +102,8 @@ class ConfigWindowController : BluetoothListener {
 				textURL.text = configuration.url
 				textUsername.text = configuration.username
 				textPassword.text = configuration.password
+				textJobName.text = configuration.jobName
+				textParameters.text = configuration.parameters
 				tableVariables.items.clear()
 				tableVariables.items.addAll(configuration.variables.entries.map { it.key to it.value })
 				tableDevices.items.clear()
@@ -280,6 +284,8 @@ class ConfigWindowController : BluetoothListener {
 			url = textURL.text
 			username = textUsername.text
 			password = textPassword.text
+			jobName = textJobName.text
+			parameters = textParameters.text
 			variables = tableVariables.items.toMap()
 			devices = tableDevices.items
 			stateMachine = textStateMachine.text
