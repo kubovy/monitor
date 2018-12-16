@@ -22,5 +22,9 @@
 			<groupId>com.fasterxml.jackson.dataformat</groupId>
 			<artifactId>jackson-dataformat-yaml</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.hubspot.jinjava</groupId>
+			<artifactId>jinjava</artifactId>
+		</dependency>
 	</dependencies>
 </project>

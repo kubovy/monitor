@@ -1,5 +1,7 @@
 package com.poterion.monitor.notifiers.deploymentcase.control
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.poterion.monitor.api.communication.BluetoothCommunicator
 import com.poterion.monitor.api.communication.BluetoothListener
 import com.poterion.monitor.api.controllers.ControllerInterface
@@ -12,13 +14,26 @@ import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
 import com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController
 import dorkbox.systemTray.MenuItem
 import javafx.scene.Parent
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import java.io.IOException
+import java.net.URLEncoder
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
 class DeploymentCaseNotifier(override val controller: ControllerInterface, config: DeploymentCaseConfig) :
 		Notifier<DeploymentCaseConfig>(config), BluetoothListener {
+
+	companion object {
+		private val LOGGER: Logger = LoggerFactory.getLogger(DeploymentCaseNotifier::class.java)
+	}
+
 	val communicator: BluetoothCommunicator = BluetoothCommunicator("TBC", config.deviceAddress, 3, 4)
+
+	private val objectMapper = ObjectMapper()
+	private var isRunning = AtomicBoolean(false)
 
 	override val icon: Icon = DeploymentCaseIcon.NUCLEAR_FOOTBALL
 	private val connectedIcon: Icon
@@ -87,5 +102,41 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		super.onOutboundDisconnect()
 		controller.check(true)
 		controller.triggerUpdate()
+	}
+
+	override fun onMessage(message: String) {
+		super.onMessage(message)
+		try {
+			val data = objectMapper.readTree(message)
+			config.configurations
+					.find { data.has(it.name) }
+					?.let { it to data.get(it.name) }
+					?.also { (configuration, variables) ->
+						val context = variables
+								.fields()
+								.asSequence()
+								.map { (k, v) -> URLEncoder.encode(k, "UTF-8") to v.getValue() }
+								.toMap()
+
+						if (!isRunning.get()) {
+							isRunning.set(true)
+							Thread(DeploymentTask(configuration, communicator, context) { isRunning.set(false) }).start()
+						}
+					}
+		} catch (e: IOException) {
+			LOGGER.error(e.message, e)
+		}
+	}
+
+	private fun JsonNode.getValue(): Any? = when {
+		isBoolean -> asBoolean(false)
+		isInt -> asInt(0)
+		isLong -> asLong(0L)
+		isDouble -> asDouble(0.0)
+		isFloat -> asDouble(0.0)
+		isShort -> asInt(0)
+		isTextual -> URLEncoder.encode(asText(""), "UTF-8")
+		isObject -> toString() // TODO JK
+		else -> null
 	}
 }
