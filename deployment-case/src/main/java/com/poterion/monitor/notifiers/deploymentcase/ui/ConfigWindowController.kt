@@ -51,7 +51,7 @@ class ConfigWindowController : BluetoothListener {
 	@FXML private lateinit var textUsername: TextField
 	@FXML private lateinit var textPassword: PasswordField
 	@FXML private lateinit var textJobName: TextField
-	@FXML private lateinit var textParameters: TextField
+	@FXML private lateinit var textParameters: TextArea
 
 	@FXML private lateinit var tableVariables: TableView<Pair<String, String>>
 	@FXML private lateinit var columnVariableName: TableColumn<Pair<String, String>, String>
@@ -123,6 +123,8 @@ class ConfigWindowController : BluetoothListener {
 		textURL.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 		textUsername.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 		textPassword.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
+		textJobName.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
+		textParameters.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 
 		columnVariableName.init("first")
 		columnVariableValue.init("second")

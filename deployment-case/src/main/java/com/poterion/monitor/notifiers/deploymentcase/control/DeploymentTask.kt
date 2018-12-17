@@ -68,7 +68,7 @@ class DeploymentTask(private val configuration: Configuration,
 			if (lastBuildState == "in_progress") previousBuildNumber = -1
 
 			if (previousBuildNumber != -1) {
-				val parameters = jinjava.render(configuration.parameters, context)
+				val parameters = jinjava.render(configuration.parameters.replace("[\\n\\r]".toRegex(), ""), context)
 				val url = "${configuration.url}job/${configuration.jobName}/buildWithParameters?${parameters}"
 				service.fire(url).execute()
 			}
