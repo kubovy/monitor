@@ -13,6 +13,7 @@ import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
 import com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController
 import dorkbox.systemTray.MenuItem
+import javafx.application.Platform
 import javafx.scene.Parent
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -21,6 +22,8 @@ import java.net.URLEncoder
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
+ * Deployment case notifier.
+ *
  * @author Jan Kubovy <jan@kubovy.eu>
  */
 class DeploymentCaseNotifier(override val controller: ControllerInterface, config: DeploymentCaseConfig) :
@@ -108,20 +111,24 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		super.onMessage(message)
 		try {
 			val data = objectMapper.readTree(message)
-			config.configurations
-					.find { data.has(it.name) }
-					?.let { it to data.get(it.name) }
+			config.configurations // selects a message,
+					.takeUnless { isRunning.getAndSet(true) }
+					?.find { data.has(it.name) } // which name was provided as a key
+					?.let { it to data.get(it.name) } // and use the key's data
 					?.also { (configuration, variables) ->
-						val context = variables
+						val context = variables // create context map from the data
 								.fields()
 								.asSequence()
 								.map { (k, v) -> URLEncoder.encode(k, "UTF-8") to v.getValue() }
 								.toMap()
 
-						if (!isRunning.get()) {
-							isRunning.set(true)
-							Thread(DeploymentTask(configuration, communicator, context) { isRunning.set(false) }).start()
-						}
+						val task = DeploymentTask(configuration, context,
+								{ states ->
+									states.joinToString(";") { (name, status) -> "state,${name},${status}" }
+											.also { message -> Platform.runLater { communicator.send(message) } }
+								},
+								{ isRunning.set(false) })
+						Thread(task).start()
 					}
 		} catch (e: IOException) {
 			LOGGER.error(e.message, e)
