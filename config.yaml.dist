@@ -43,10 +43,30 @@ services:
     priority: "HIGH"
   filter: "^Job-.*"
 notifiers:
-- !<RaspiW2812Config>
-  name: "Calvatia [Raspi W2812]"
+- type: "SystemTrayConfig"
+  name: "System Tray"
   enabled: true
-  deviceName: "CALVATIA"
+  minPriority: "LOW"
+- type: "DeploymentCaseConfig"
+  name: "Deployment Case"
+  enabled: true
+  minPriority: "MEDIUM"
+  deviceAddress: "00:00:00:00:00:00"
+  configurations:
+  - name: "Test"
+    active: true
+    method: "POST"
+    url: "http://jenkins.example.com"
+    username: "username"
+    password: "password"
+    jobName: "some_job"
+    parameters: "key1=val1"
+- !<RaspiW2812Config>
+  name: "Raspi W2812"
+  enabled: true
+  combineMultipleServices: true
+  deviceAddress: "00:00:00:00:00:00"
+  minPriority: "MEDIUM"
   items:
   - id: ""
     statusNone:
