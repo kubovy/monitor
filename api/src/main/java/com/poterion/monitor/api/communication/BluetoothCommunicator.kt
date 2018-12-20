@@ -88,7 +88,7 @@ class BluetoothCommunicator(private var prefix: String, private var address: Str
 										val data = String(buffer.sliceArray(0 until read))
 										LOGGER.debug("Outbound received: \"${data.trim()}\"")
 										val ack = data.trim().split(":", limit = 2)
-										correctlyReceived = crc32Calculated == ack[1].toLong()
+										correctlyReceived = ack.size > 1 && crc32Calculated == ack[1].toLong()
 										retries++
 										LOGGER.debug("Outbound ${ack[0]}: calculated=${crc32Calculated}, received=${ack[1]} => ${correctlyReceived}")
 									}
