@@ -179,7 +179,7 @@ class DeploymentTask(configuration: Configuration,
 			statesToSend.add("status" to status)
 		}
 
-		Platform.runLater { onUpdate(statesToSend) }
+		if (statesToSend.isNotEmpty()) Platform.runLater { onUpdate(statesToSend) }
 		states.clear()
 	}
 

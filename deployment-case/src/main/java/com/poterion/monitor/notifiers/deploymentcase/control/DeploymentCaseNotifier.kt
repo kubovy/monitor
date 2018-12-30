@@ -112,8 +112,8 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		try {
 			val data = objectMapper.readTree(message)
 			config.configurations // selects a message,
-					.takeUnless { isRunning.getAndSet(true) }
-					?.find { data.has(it.name) } // which name was provided as a key
+					.find { data.has(it.name) } // which name was provided as a key
+					?.takeUnless { isRunning.getAndSet(true) }
 					?.let { it to data.get(it.name) } // and use the key's data
 					?.also { (configuration, variables) ->
 						val context = variables // create context map from the data
@@ -124,8 +124,9 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 
 						val task = DeploymentTask(configuration, context,
 								{ states ->
-									states.joinToString(";") { (name, status) -> "state,${name},${status}" }
-											.also { message -> Platform.runLater { communicator.send(message) } }
+									states.takeIf { it.isNotEmpty() }
+											?.joinToString(";") { (name, status) -> "state,${name},${status}" }
+											?.also { message -> Platform.runLater { communicator.send(message) } }
 								},
 								{ isRunning.set(false) })
 						Thread(task).start()
