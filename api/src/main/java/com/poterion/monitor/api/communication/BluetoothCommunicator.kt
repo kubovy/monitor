@@ -69,30 +69,30 @@ class BluetoothCommunicator(private var prefix: String, private var address: Str
 						var loop = 0
 						while (!interrupted.get()) {
 							if (queue.isNotEmpty()) {
-								queue.poll()?.takeIf { it.isNotEmpty() }?.also { message ->
-									var correctlyReceived = false
-									var retries = 0
-									while (correctlyReceived.not() && retries < 3) {
-										val checksum = CRC32()
-										output.write("${STX}\n".toByteArray())
-										"${prefix}:${message}".chunked(BUFFER).forEach { chunk ->
-											output.write(chunk.toByteArray())
-											val bytes = chunk.toByteArray()
-											checksum.update(bytes, 0, bytes.size)
-										}
-										output.write("\n$ETX\n".toByteArray())
-
-										val crc32Calculated = checksum.value
-
-										val read = input.read(buffer)
-										val data = String(buffer.sliceArray(0 until read))
-										LOGGER.debug("Outbound received: \"${data.trim()}\"")
-										val ack = data.trim().split(":", limit = 2)
-										correctlyReceived = ack.size > 1 && crc32Calculated == ack[1].toLong()
-										retries++
-										LOGGER.debug("Outbound ${ack[0]}: calculated=${crc32Calculated}, received=${ack[1]} => ${correctlyReceived}")
+								val message = queue.peek()
+								var correctlyReceived = false
+								var retries = 0
+								while (correctlyReceived.not() && retries < 3) {
+									val checksum = CRC32()
+									output.write("${STX}\n".toByteArray())
+									"${prefix}:${message}".chunked(BUFFER).forEach { chunk ->
+										output.write(chunk.toByteArray())
+										val bytes = chunk.toByteArray()
+										checksum.update(bytes, 0, bytes.size)
 									}
+									output.write("\n$ETX\n".toByteArray())
+
+									val crc32Calculated = checksum.value
+
+									val read = input.read(buffer)
+									val data = String(buffer.sliceArray(0 until read))
+									LOGGER.debug("Outbound received: \"${data.trim()}\"")
+									val ack = data.trim().split(":", limit = 2)
+									correctlyReceived = ack.size > 1 && crc32Calculated == ack[1].toLong()
+									retries++
+									LOGGER.debug("Outbound ${ack[0]}: calculated=${crc32Calculated}, received=${ack[1]} => ${correctlyReceived}")
 								}
+								if (correctlyReceived) queue.poll()
 							} else {
 								if (loop == 0) output.write("$NOP\n".toByteArray())
 								loop = (loop + 1) % 10
@@ -220,7 +220,7 @@ class BluetoothCommunicator(private var prefix: String, private var address: Str
 		isChanging = false
 	}
 
-	fun send(message: String) = queue.offer(message)
+	fun send(message: String) = message.takeIf { it.isNotEmpty() }.also { queue.offer(it) }
 
 	fun register(listener: BluetoothListener) {
 		if (!listeners.contains(listener)) listeners.add(listener)
