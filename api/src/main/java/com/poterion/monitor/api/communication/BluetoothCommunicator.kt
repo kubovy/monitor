@@ -13,7 +13,11 @@ import javax.microedition.io.StreamConnection
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-class BluetoothCommunicator(private var prefix: String, private var address: String, private val outboundPort: Int, private val inboundPort: Int) {
+class BluetoothCommunicator(private var prefix: String,
+							private var address: String,
+							private val outboundPort: Int,
+							private val inboundPort: Int,
+							var shouldConnect: Boolean) {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(BluetoothCommunicator::class.java)
@@ -36,7 +40,6 @@ class BluetoothCommunicator(private var prefix: String, private var address: Str
 	private val queue: ConcurrentLinkedQueue<String> = ConcurrentLinkedQueue()
 	private val listeners = mutableListOf<BluetoothListener>()
 	private var isChanging = false
-	var shouldConnect = true
 
 	private var inboundThread: Thread? = null
 	private var outboundThread: Thread? = null
@@ -201,7 +204,7 @@ class BluetoothCommunicator(private var prefix: String, private var address: Str
 			if (address != null) this.address = address
 			isChanging = true
 			disconnect()
-			LOGGER.debug("Connecting...")
+			LOGGER.debug("Connecting to ${address}...")
 			interrupted.set(false)
 			inboundThread = Thread(inboundRunnable)
 			outboundThread = Thread(outboundRunnable)
@@ -213,7 +216,7 @@ class BluetoothCommunicator(private var prefix: String, private var address: Str
 
 	fun disconnect() {
 		isChanging = true
-		LOGGER.debug("Disconnecting...")
+		LOGGER.debug("Disconnecting from ${address}...")
 		interrupted.set(true)
 		inboundThread?.join(5_000)
 		outboundThread?.join(5_000)

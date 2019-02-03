@@ -32,7 +32,7 @@ class RaspiW2812Notifier(override val controller: ControllerInterface, config: R
 		val LOGGER: Logger = LoggerFactory.getLogger(RaspiW2812Notifier::class.java)
 	}
 
-	val communicator: BluetoothCommunicator = BluetoothCommunicator("WS", config.deviceAddress, 5, 6)
+	val communicator: BluetoothCommunicator = BluetoothCommunicator("WS", config.deviceAddress, 5, 6, config.enabled)
 	private var lastState = emptyList<LightConfig>()
 	private val objectMapper = ObjectMapper()
 	override val icon: Icon = RaspiW2812Icon.RASPBERRY
@@ -132,11 +132,15 @@ class RaspiW2812Notifier(override val controller: ControllerInterface, config: R
 	override fun execute(action: NotifierAction): Unit = when (action) {
 		NotifierAction.ENABLE -> {
 			config.enabled = true
+			communicator.shouldConnect = true
+			communicator.connect()
 			changeLights(lastState)
 			controller.saveConfig()
 		}
 		NotifierAction.DISABLE -> {
 			config.enabled = false
+			communicator.shouldConnect = false
+			communicator.disconnect()
 			controller.saveConfig()
 		}
 		NotifierAction.TOGGLE -> execute(if (config.enabled) NotifierAction.DISABLE else NotifierAction.ENABLE)

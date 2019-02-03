@@ -33,7 +33,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		private val LOGGER: Logger = LoggerFactory.getLogger(DeploymentCaseNotifier::class.java)
 	}
 
-	val communicator: BluetoothCommunicator = BluetoothCommunicator("TBC", config.deviceAddress, 3, 4)
+	val communicator: BluetoothCommunicator = BluetoothCommunicator("TBC", config.deviceAddress, 3, 4, config.enabled)
 
 	private val objectMapper = ObjectMapper()
 	private var isRunning = AtomicBoolean(false)
