@@ -1,0 +1,3376 @@
+---
+variables:
+- name: "color_aborted"
+  type: "COLOR_PATTERN"
+  value: "0,0,0,32"
+- name: "color_black"
+  type: "COLOR_PATTERN"
+  value: "0,0,0,0"
+- name: "color_blue"
+  type: "COLOR_PATTERN"
+  value: "0,0,0,32"
+- name: "color_failure"
+  type: "COLOR_PATTERN"
+  value: "0,32,0,0"
+- name: "color_green"
+  type: "COLOR_PATTERN"
+  value: "0,0,32,0"
+- name: "color_in_progress"
+  type: "COLOR_PATTERN"
+  value: "4,0,32,32"
+- name: "color_magenta"
+  type: "COLOR_PATTERN"
+  value: "0,32,0,16"
+- name: "color_not_built"
+  type: "COLOR_PATTERN"
+  value: "0,0,0,0"
+- name: "color_not_executed"
+  type: "COLOR_PATTERN"
+  value: "0,0,0,0"
+- name: "color_orange"
+  type: "COLOR_PATTERN"
+  value: "0,32,16,0"
+- name: "color_pending"
+  type: "COLOR_PATTERN"
+  value: "4,16,16,16"
+- name: "color_red"
+  type: "COLOR_PATTERN"
+  value: "0,32,0,0"
+- name: "color_success"
+  type: "COLOR_PATTERN"
+  value: "0,0,32,0"
+- name: "color_unknown"
+  type: "COLOR_PATTERN"
+  value: "0,0,0,0"
+- name: "color_unstable"
+  type: "COLOR_PATTERN"
+  value: "0,32,32,0"
+- name: "color_white"
+  type: "COLOR_PATTERN"
+  value: "0,16,16,16"
+- name: "color_yellow"
+  type: "COLOR_PATTERN"
+  value: "0,32,32,0"
+- name: "color_yellow_fade"
+  type: "COLOR_PATTERN"
+  value: "4,32,32,0"
+- name: "false"
+  type: "BOOLEAN"
+  value: "false"
+- name: "message_aab_armed"
+  type: "STRING"
+  value: "|c|AAB\\n|c|Judge\\n\\n|c|--== ARMED ==--"
+- name: "message_aab_disarmed"
+  type: "STRING"
+  value: "|c|AAB\\n|c|Judge\\n\\n|c|--== DISARMED ==--"
+- name: "message_bt_connected"
+  type: "STRING"
+  value: "\\n|c|Monitor Application\\n\\n--== CONNECTED ==--"
+- name: "message_bt_disconnected"
+  type: "STRING"
+  value: "\\n|c|Monitor Application\\n\\n--= DISCONNECTED =--"
+- name: "message_demand_armed"
+  type: "STRING"
+  value: "|c|Demand\\n|c|Loader\\n\\n|c|--== ARMED ==--"
+- name: "message_demand_disarmed"
+  type: "STRING"
+  value: "|c|Demand\\n|c|Loader\\n\\n|c|--== DISARMED ==--"
+- name: "message_elk_armed"
+  type: "STRING"
+  value: "\\n|c|ELK Stack\\n\\n|c|--== ARMED ==--"
+- name: "message_elk_disarmed"
+  type: "STRING"
+  value: "\\n|c|ELK Stack\\n\\n|c|--== DISARMED ==--"
+- name: "message_env_intfb"
+  type: "STRING"
+  value: "\\n|c|Integration FB\\n|c|Environment\\n"
+- name: "message_env_intit"
+  type: "STRING"
+  value: "\\n|c|Integration IT\\n|c|Environment\\n"
+- name: "message_env_prod"
+  type: "STRING"
+  value: "\\n|c|Production\\n|c|Environment\\n"
+- name: "message_env_test"
+  type: "STRING"
+  value: "\\n|c|Test\\n|c|Environment\\n"
+- name: "message_facades_armed"
+  type: "STRING"
+  value: "\\n|c|Facades\\n\\n|c|--== ARMED ==--"
+- name: "message_facades_disarmed"
+  type: "STRING"
+  value: "\\n|c|Facades\\n\\n|c|--== DISARMED ==--"
+- name: "message_initializing"
+  type: "STRING"
+  value: "\\nInitializing\\n....................\\n{:1000:}\\n  Deployment Case\\\
+    n\\n   READY to ROLL"
+- name: "message_jenkins_armed"
+  type: "STRING"
+  value: "\\n|c|Workflow Jenkins\\n\\n|c|--== ARMED ==--"
+- name: "message_jenkins_disarmed"
+  type: "STRING"
+  value: "\\n|c|Workflow Jenkins\\n\\n|c|--== DISARMED ==--"
+- name: "message_masterdata_armed"
+  type: "STRING"
+  value: "|c|Master Data\\n|c|Loader\\n\\n|c|--== ARMED ==--"
+- name: "message_masterdata_disarmed"
+  type: "STRING"
+  value: "|c|Master Data\\n|c|Loader\\n\\n|c|--== DISARMED ==--"
+- name: "message_nuke_armed"
+  type: "STRING"
+  value: "\\n|c|Tsar Bomb\\n\\n|c|--== ARMED ==--"
+- name: "message_nuke_disarmed"
+  type: "STRING"
+  value: "\\n|c|Tsar Bomb\\n\\n|c|--== DISARMED ==--"
+- name: "message_order_armed"
+  type: "STRING"
+  value: "|c|Order\\n|c|Loader\\n\\n|c|--== ARMED ==--"
+- name: "message_order_disarmed"
+  type: "STRING"
+  value: "|c|Order\\n|c|Loader\\n\\n|c|--== DISARMED ==--"
+- name: "message_rawbom_armed"
+  type: "STRING"
+  value: "|c|Raw BoM\\n|c|Loader\\n\\n|c|--== ARMED ==--"
+- name: "message_rawbom_disarmed"
+  type: "STRING"
+  value: "|c|Raw BoM\\n|c|Loader\\n\\n|c|--== DISARMED ==--"
+- name: "message_release_activated"
+  type: "STRING"
+  value: "\\n|c|Release\\n\\n--== ACTIVATED ==--"
+- name: "message_release_deactivated"
+  type: "STRING"
+  value: "\\n|c|Release\\n\\n--= DEACTIVATED =--"
+- name: "message_scenario_armed"
+  type: "STRING"
+  value: "|c|Scenario\\n|c|Loader\\n\\n|c|--== ARMED ==--"
+- name: "message_scenario_disarmed"
+  type: "STRING"
+  value: "|c|Scenario\\n|c|Loader\\n\\n|c|--== DISARMED ==--"
+- name: "message_sdd_armed"
+  type: "STRING"
+  value: "|c|SDD\\n|c|Judge\\n\\n|c|--== ARMED ==--"
+- name: "message_sdd_disarmed"
+  type: "STRING"
+  value: "|c|SDD\\n|c|Judge\\n\\n|c|--== DISARMED ==--"
+- name: "message_solr_armed"
+  type: "STRING"
+  value: "\\n|c|Solr\\n\\n|c|--== ARMED ==--"
+- name: "message_solr_disarmed"
+  type: "STRING"
+  value: "\\n|c|Solr\\n\\n|c|--== DISARMED ==--"
+- name: "message_spark_armed"
+  type: "STRING"
+  value: "\\n|c|Spark\\n\\n|c|--== ARMED ==--"
+- name: "message_spark_disarmed"
+  type: "STRING"
+  value: "\\n|c|Spark\\n\\n|c|--== DISARMED ==--"
+- name: "message_ui_armed"
+  type: "STRING"
+  value: "\\n|c|UI\\n\\n|c|--== ARMED ==--"
+- name: "message_ui_disarmed"
+  type: "STRING"
+  value: "\\n|c|UI\\n\\n|c|--== DISARMED ==--"
+- name: "message_zk_armed"
+  type: "STRING"
+  value: "\\n|c|ZooKeeper\\n\\n|c|--== ARMED ==--"
+- name: "message_zk_disarmed"
+  type: "STRING"
+  value: "\\n|c|ZooKeeper\\n\\n|c|--== DISARMED ==--"
+- name: "true"
+  type: "BOOLEAN"
+  value: "true"
+- name: "message_armed"
+  type: "STRING"
+  value: "\\n|c|--== ARMED ==--\\n\\n|c|Confirm to FIRE"
+- name: "message_fired"
+  type: "STRING"
+  value: "\\n\\n|c|--== FIRED ==--\\n"
+- name: "message_deployment_successfull"
+  type: "STRING"
+  value: "\\nDeployment Completed\\n\\n{:2000:}\\nDeployment Completed\\n\\n|c|See\
+    \ ya"
+- name: "message_deployment_failed"
+  type: "STRING"
+  value: "\\n|c|Deployment Failed\\n\\n{:2000:}\\n|c|Deployment Failed\\n\\n|c|FUCK!"
+devices:
+- name: "btn_release"
+  kind: "MCP23017"
+  key: "0"
+- name: "btn_env_intit"
+  kind: "MCP23017"
+  key: "1"
+- name: "btn_env_prod"
+  kind: "MCP23017"
+  key: "2"
+- name: "btn_nuke"
+  kind: "MCP23017"
+  key: "3"
+- name: "btn_arm"
+  kind: "MCP23017"
+  key: "4"
+- name: "btn_zk"
+  kind: "MCP23017"
+  key: "5"
+- name: "btn_workflow"
+  kind: "MCP23017"
+  key: "6"
+- name: "btn_solr"
+  kind: "MCP23017"
+  key: "7"
+- name: "btn_spark"
+  kind: "MCP23017"
+  key: "8"
+- name: "btn_elk"
+  kind: "MCP23017"
+  key: "9"
+- name: "btn_raw_bom"
+  kind: "MCP23017"
+  key: "10"
+- name: "btn_masterdata"
+  kind: "MCP23017"
+  key: "11"
+- name: "btn_order"
+  kind: "MCP23017"
+  key: "12"
+- name: "btn_demand"
+  kind: "MCP23017"
+  key: "13"
+- name: "btn_reserved_1"
+  kind: "MCP23017"
+  key: "14"
+- name: "btn_reserved_2"
+  kind: "MCP23017"
+  key: "15"
+- name: "btn_reserved_3"
+  kind: "MCP23017"
+  key: "16"
+- name: "btn_reserved_4"
+  kind: "MCP23017"
+  key: "17"
+- name: "btn_sdd_judge"
+  kind: "MCP23017"
+  key: "18"
+- name: "btn_aab_judge"
+  kind: "MCP23017"
+  key: "19"
+- name: "btn_ui"
+  kind: "MCP23017"
+  key: "20"
+- name: "btn_facades"
+  kind: "MCP23017"
+  key: "21"
+- name: "btn_scenario"
+  kind: "MCP23017"
+  key: "22"
+- name: "btn_launch"
+  kind: "MCP23017"
+  key: "23"
+- name: "btn_key_left"
+  kind: "MCP23017"
+  key: "24"
+- name: "btn_key_right"
+  kind: "MCP23017"
+  key: "25"
+- name: ""
+  kind: "MCP23017"
+  key: "26"
+- name: ""
+  kind: "MCP23017"
+  key: "27"
+- name: ""
+  kind: "MCP23017"
+  key: "28"
+- name: ""
+  kind: "MCP23017"
+  key: "29"
+- name: ""
+  kind: "MCP23017"
+  key: "30"
+- name: ""
+  kind: "MCP23017"
+  key: "31"
+- name: "led_release"
+  kind: "MCP23017"
+  key: "32"
+- name: "led_nuke"
+  kind: "MCP23017"
+  key: "33"
+- name: "led_arm"
+  kind: "MCP23017"
+  key: "34"
+- name: "led_launch"
+  kind: "MCP23017"
+  key: "35"
+- name: ""
+  kind: "MCP23017"
+  key: "36"
+- name: ""
+  kind: "MCP23017"
+  key: "37"
+- name: ""
+  kind: "MCP23017"
+  key: "38"
+- name: ""
+  kind: "MCP23017"
+  key: "39"
+- name: "rgb_release"
+  kind: "WS281x"
+  key: "0"
+- name: "rgb_environment"
+  kind: "WS281x"
+  key: "1"
+- name: "rgb_right_top"
+  kind: "WS281x"
+  key: "2"
+- name: "rgb_right_middle"
+  kind: "WS281x"
+  key: "3"
+- name: "rgb_right_bottom"
+  kind: "WS281x"
+  key: "4"
+- name: "rgb_prod"
+  kind: "WS281x"
+  key: "5"
+- name: "rgb_intfb"
+  kind: "WS281x"
+  key: "6"
+- name: "rgb_intit"
+  kind: "WS281x"
+  key: "7"
+- name: "rgb_test"
+  kind: "WS281x"
+  key: "8"
+- name: "rgb_left_top"
+  kind: "WS281x"
+  key: "9"
+- name: "rgb_left_middle"
+  kind: "WS281x"
+  key: "10"
+- name: "rgb_left_bottom"
+  kind: "WS281x"
+  key: "11"
+- name: "rgb_nuke"
+  kind: "WS281x"
+  key: "12"
+- name: "rgb_arm"
+  kind: "WS281x"
+  key: "13"
+- name: "rgb_zk"
+  kind: "WS281x"
+  key: "14"
+- name: "rgb_workflow"
+  kind: "WS281x"
+  key: "15"
+- name: "rgb_solr"
+  kind: "WS281x"
+  key: "16"
+- name: "rgb_spark"
+  kind: "WS281x"
+  key: "17"
+- name: "rgb_elk"
+  kind: "WS281x"
+  key: "18"
+- name: "rgb_raw_bom"
+  kind: "WS281x"
+  key: "19"
+- name: "rgb_masterdata"
+  kind: "WS281x"
+  key: "20"
+- name: "rgb_order"
+  kind: "WS281x"
+  key: "21"
+- name: "rgb_demand"
+  kind: "WS281x"
+  key: "22"
+- name: "rgb_reserved_1"
+  kind: "WS281x"
+  key: "23"
+- name: "rgb_reserved_2"
+  kind: "WS281x"
+  key: "24"
+- name: "rgb_reserved_3"
+  kind: "WS281x"
+  key: "25"
+- name: "rgb_reserved_4"
+  kind: "WS281x"
+  key: "26"
+- name: "rgb_sdd_judge"
+  kind: "WS281x"
+  key: "27"
+- name: "rgb_aab_judge"
+  kind: "WS281x"
+  key: "28"
+- name: "rgb_ui"
+  kind: "WS281x"
+  key: "29"
+- name: "rgb_facades"
+  kind: "WS281x"
+  key: "30"
+- name: "rgb_scenario"
+  kind: "WS281x"
+  key: "31"
+- name: "bt_connected"
+  kind: "BLUETOOTH"
+  key: "connected"
+- name: "bt_trigger"
+  kind: "BLUETOOTH"
+  key: "trigger"
+- name: "lcd_message"
+  kind: "LCD"
+  key: "message"
+- name: "lcd_backlight"
+  kind: "LCD"
+  key: "backlight"
+- name: "lcd_reset"
+  kind: "LCD"
+  key: "reset"
+- name: "lcd_clear"
+  kind: "LCD"
+  key: "clear"
+stateMachine:
+- name: "initial"
+  evaluations:
+  - conditions: []
+    actions:
+    - device:
+        name: "rgb_release"
+        kind: "WS281x"
+        key: "0"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_environment"
+        kind: "WS281x"
+        key: "1"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_right_top"
+        kind: "WS281x"
+        key: "2"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_right_middle"
+        kind: "WS281x"
+        key: "3"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_right_bottom"
+        kind: "WS281x"
+        key: "4"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_prod"
+        kind: "WS281x"
+        key: "5"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_intfb"
+        kind: "WS281x"
+        key: "6"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_intit"
+        kind: "WS281x"
+        key: "7"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_test"
+        kind: "WS281x"
+        key: "8"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_left_middle"
+        kind: "WS281x"
+        key: "10"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_left_bottom"
+        kind: "WS281x"
+        key: "11"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_nuke"
+        kind: "WS281x"
+        key: "12"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_arm"
+        kind: "WS281x"
+        key: "13"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_zk"
+        kind: "WS281x"
+        key: "14"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_workflow"
+        kind: "WS281x"
+        key: "15"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_solr"
+        kind: "WS281x"
+        key: "16"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_spark"
+        kind: "WS281x"
+        key: "17"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_elk"
+        kind: "WS281x"
+        key: "18"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_raw_bom"
+        kind: "WS281x"
+        key: "19"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_masterdata"
+        kind: "WS281x"
+        key: "20"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_order"
+        kind: "WS281x"
+        key: "21"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_demand"
+        kind: "WS281x"
+        key: "22"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_reserved_1"
+        kind: "WS281x"
+        key: "23"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_reserved_2"
+        kind: "WS281x"
+        key: "24"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_reserved_3"
+        kind: "WS281x"
+        key: "25"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_reserved_4"
+        kind: "WS281x"
+        key: "26"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_sdd_judge"
+        kind: "WS281x"
+        key: "27"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_aab_judge"
+        kind: "WS281x"
+        key: "28"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_ui"
+        kind: "WS281x"
+        key: "29"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_facades"
+        kind: "WS281x"
+        key: "30"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_scenario"
+        kind: "WS281x"
+        key: "31"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "led_nuke"
+        kind: "MCP23017"
+        key: "33"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "led_arm"
+        kind: "MCP23017"
+        key: "34"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "led_launch"
+        kind: "MCP23017"
+        key: "35"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "lcd_reset"
+        kind: "LCD"
+        key: "reset"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "lcd_backlight"
+        kind: "LCD"
+        key: "backlight"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+  - conditions:
+    - device:
+        name: "btn_key_right"
+        kind: "MCP23017"
+        key: "25"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "GOTO"
+        kind: "VIRTUAL"
+        key: "goto"
+      value:
+        name: "state_boot"
+        type: "STATE"
+        value: "boot"
+  - conditions:
+    - device:
+        name: "btn_key_left"
+        kind: "MCP23017"
+        key: "24"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "GOTO"
+        kind: "VIRTUAL"
+        key: "goto"
+      value:
+        name: "state_boot"
+        type: "STATE"
+        value: "boot"
+  - conditions:
+    - device:
+        name: "bt_connected"
+        kind: "BLUETOOTH"
+        key: "connected"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_left_top"
+        kind: "WS281x"
+        key: "9"
+      value:
+        name: "color_green"
+        type: "COLOR_PATTERN"
+        value: "0,0,32,0"
+  - conditions:
+    - device:
+        name: "bt_connected"
+        kind: "BLUETOOTH"
+        key: "connected"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_left_top"
+        kind: "WS281x"
+        key: "9"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_launch"
+        kind: "MCP23017"
+        key: "23"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "lcd_reset"
+        kind: "LCD"
+        key: "reset"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+- name: "boot"
+  evaluations:
+  - conditions: []
+    actions:
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_initializing"
+        type: "STRING"
+        value: "\\nInitializing\\n....................\\n{:1000:}\\n  Deployment\
+          \ Case\\n\\n   READY to ROLL"
+    - device:
+        name: "GOTO"
+        kind: "VIRTUAL"
+        key: "goto"
+      value:
+        name: "state_ready"
+        type: "STATE"
+        value: "ready"
+- name: "ready"
+  evaluations:
+  - conditions: []
+    actions:
+    - device:
+        name: "led_launch"
+        kind: "MCP23017"
+        key: "35"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+  - conditions:
+    - device:
+        name: "bt_connected"
+        kind: "BLUETOOTH"
+        key: "connected"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_left_top"
+        kind: "WS281x"
+        key: "9"
+      value:
+        name: "color_green"
+        type: "COLOR_PATTERN"
+        value: "0,0,32,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_bt_connected"
+        type: "STRING"
+        value: "\\n|c|Monitor Application\\n\\n--== CONNECTED ==--"
+  - conditions:
+    - device:
+        name: "bt_connected"
+        kind: "BLUETOOTH"
+        key: "connected"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_left_top"
+        kind: "WS281x"
+        key: "9"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_bt_disconnected"
+        type: "STRING"
+        value: "\\n|c|Monitor Application\\n\\n--= DISCONNECTED =--"
+  - conditions:
+    - device:
+        name: "btn_key_left"
+        kind: "MCP23017"
+        key: "24"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "btn_key_right"
+        kind: "MCP23017"
+        key: "25"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "GOTO"
+        kind: "VIRTUAL"
+        key: "goto"
+      value:
+        name: "state_initial"
+        type: "STATE"
+        value: "initial"
+  - conditions:
+    - device:
+        name: "btn_key_left"
+        kind: "MCP23017"
+        key: "24"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "btn_key_right"
+        kind: "MCP23017"
+        key: "25"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_environment"
+        kind: "WS281x"
+        key: "1"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_arm"
+        kind: "WS281x"
+        key: "13"
+      value:
+        name: "color_blue"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,32"
+    - device:
+        name: "rgb_test"
+        kind: "WS281x"
+        key: "8"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "rgb_intit"
+        kind: "WS281x"
+        key: "7"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_intfb"
+        kind: "WS281x"
+        key: "6"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_prod"
+        kind: "WS281x"
+        key: "5"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "led_release"
+        kind: "MCP23017"
+        key: "32"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "led_nuke"
+        kind: "MCP23017"
+        key: "33"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "led_arm"
+        kind: "MCP23017"
+        key: "34"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_env_test"
+        type: "STRING"
+        value: "\\n|c|Test\\n|c|Environment\\n"
+  - conditions:
+    - device:
+        name: "btn_key_left"
+        kind: "MCP23017"
+        key: "24"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "btn_key_right"
+        kind: "MCP23017"
+        key: "25"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_environment"
+        kind: "WS281x"
+        key: "1"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_arm"
+        kind: "WS281x"
+        key: "13"
+      value:
+        name: "color_blue"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,32"
+    - device:
+        name: "rgb_test"
+        kind: "WS281x"
+        key: "8"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "rgb_intit"
+        kind: "WS281x"
+        key: "7"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_intfb"
+        kind: "WS281x"
+        key: "6"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_prod"
+        kind: "WS281x"
+        key: "5"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "led_release"
+        kind: "MCP23017"
+        key: "32"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "led_nuke"
+        kind: "MCP23017"
+        key: "33"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "led_arm"
+        kind: "MCP23017"
+        key: "34"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_env_test"
+        type: "STRING"
+        value: "\\n|c|Test\\n|c|Environment\\n"
+  - conditions:
+    - device:
+        name: "btn_key_left"
+        kind: "MCP23017"
+        key: "24"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "btn_key_right"
+        kind: "MCP23017"
+        key: "25"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_environment"
+        kind: "WS281x"
+        key: "1"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_arm"
+        kind: "WS281x"
+        key: "13"
+      value:
+        name: "color_magenta"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,16"
+    - device:
+        name: "led_release"
+        kind: "MCP23017"
+        key: "32"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "led_nuke"
+        kind: "MCP23017"
+        key: "33"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "led_arm"
+        kind: "MCP23017"
+        key: "34"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+  - conditions:
+    - device:
+        name: "btn_env_intit"
+        kind: "MCP23017"
+        key: "1"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "btn_env_prod"
+        kind: "MCP23017"
+        key: "2"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "btn_key_left"
+        kind: "MCP23017"
+        key: "24"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "btn_key_right"
+        kind: "MCP23017"
+        key: "25"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_environment"
+        kind: "WS281x"
+        key: "1"
+      value:
+        name: "color_blue"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,32"
+    - device:
+        name: "rgb_test"
+        kind: "WS281x"
+        key: "8"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_intit"
+        kind: "WS281x"
+        key: "7"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "rgb_intfb"
+        kind: "WS281x"
+        key: "6"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_prod"
+        kind: "WS281x"
+        key: "5"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_env_intit"
+        type: "STRING"
+        value: "\\n|c|Integration IT\\n|c|Environment\\n"
+  - conditions:
+    - device:
+        name: "btn_env_intit"
+        kind: "MCP23017"
+        key: "1"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "btn_env_prod"
+        kind: "MCP23017"
+        key: "2"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "btn_key_left"
+        kind: "MCP23017"
+        key: "24"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "btn_key_right"
+        kind: "MCP23017"
+        key: "25"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_environment"
+        kind: "WS281x"
+        key: "1"
+      value:
+        name: "color_orange"
+        type: "COLOR_PATTERN"
+        value: "0,32,16,0"
+    - device:
+        name: "rgb_test"
+        kind: "WS281x"
+        key: "8"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_intit"
+        kind: "WS281x"
+        key: "7"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_intfb"
+        kind: "WS281x"
+        key: "6"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "rgb_prod"
+        kind: "WS281x"
+        key: "5"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_env_intfb"
+        type: "STRING"
+        value: "\\n|c|Integration FB\\n|c|Environment\\n"
+  - conditions:
+    - device:
+        name: "btn_env_intit"
+        kind: "MCP23017"
+        key: "1"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "btn_env_prod"
+        kind: "MCP23017"
+        key: "2"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "btn_key_left"
+        kind: "MCP23017"
+        key: "24"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "btn_key_right"
+        kind: "MCP23017"
+        key: "25"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_environment"
+        kind: "WS281x"
+        key: "1"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+    - device:
+        name: "rgb_test"
+        kind: "WS281x"
+        key: "8"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_intit"
+        kind: "WS281x"
+        key: "7"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_intfb"
+        kind: "WS281x"
+        key: "6"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_prod"
+        kind: "WS281x"
+        key: "5"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_env_prod"
+        type: "STRING"
+        value: "\\n|c|Production\\n|c|Environment\\n"
+  - conditions:
+    - device:
+        name: "btn_release"
+        kind: "MCP23017"
+        key: "0"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "btn_key_left"
+        kind: "MCP23017"
+        key: "24"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "btn_key_right"
+        kind: "MCP23017"
+        key: "25"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_release"
+        kind: "WS281x"
+        key: "0"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_release_deactivated"
+        type: "STRING"
+        value: "\\n|c|Release\\n\\n--= DEACTIVATED =--"
+  - conditions:
+    - device:
+        name: "btn_release"
+        kind: "MCP23017"
+        key: "0"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "btn_key_left"
+        kind: "MCP23017"
+        key: "24"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "btn_key_right"
+        kind: "MCP23017"
+        key: "25"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_release"
+        kind: "WS281x"
+        key: "0"
+      value:
+        name: "color_green"
+        type: "COLOR_PATTERN"
+        value: "0,0,32,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_release_activated"
+        type: "STRING"
+        value: "\\n|c|Release\\n\\n--== ACTIVATED ==--"
+  - conditions:
+    - device:
+        name: "btn_release"
+        kind: "MCP23017"
+        key: "0"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "btn_key_left"
+        kind: "MCP23017"
+        key: "24"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "btn_key_right"
+        kind: "MCP23017"
+        key: "25"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_release"
+        kind: "WS281x"
+        key: "0"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_release_deactivated"
+        type: "STRING"
+        value: "\\n|c|Release\\n\\n--= DEACTIVATED =--"
+  - conditions:
+    - device:
+        name: "btn_release"
+        kind: "MCP23017"
+        key: "0"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "btn_key_left"
+        kind: "MCP23017"
+        key: "24"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "btn_key_right"
+        kind: "MCP23017"
+        key: "25"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_release"
+        kind: "WS281x"
+        key: "0"
+      value:
+        name: "color_green"
+        type: "COLOR_PATTERN"
+        value: "0,0,32,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_release_activated"
+        type: "STRING"
+        value: "\\n|c|Release\\n\\n--== ACTIVATED ==--"
+  - conditions:
+    - device:
+        name: "btn_nuke"
+        kind: "MCP23017"
+        key: "3"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_nuke"
+        kind: "WS281x"
+        key: "12"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_nuke_disarmed"
+        type: "STRING"
+        value: "\\n|c|Tsar Bomb\\n\\n|c|--== DISARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_nuke"
+        kind: "MCP23017"
+        key: "3"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_nuke"
+        kind: "WS281x"
+        key: "12"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_nuke_armed"
+        type: "STRING"
+        value: "\\n|c|Tsar Bomb\\n\\n|c|--== ARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_arm"
+        kind: "MCP23017"
+        key: "4"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "GOTO"
+        kind: "VIRTUAL"
+        key: "goto"
+      value:
+        name: "state_armed"
+        type: "STATE"
+        value: "armed"
+  - conditions:
+    - device:
+        name: "btn_zk"
+        kind: "MCP23017"
+        key: "5"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_zk"
+        kind: "WS281x"
+        key: "14"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_zk_disarmed"
+        type: "STRING"
+        value: "\\n|c|ZooKeeper\\n\\n|c|--== DISARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_zk"
+        kind: "MCP23017"
+        key: "5"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_zk"
+        kind: "WS281x"
+        key: "14"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_zk_armed"
+        type: "STRING"
+        value: "\\n|c|ZooKeeper\\n\\n|c|--== ARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_workflow"
+        kind: "MCP23017"
+        key: "6"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_workflow"
+        kind: "WS281x"
+        key: "15"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_jenkins_disarmed"
+        type: "STRING"
+        value: "\\n|c|Workflow Jenkins\\n\\n|c|--== DISARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_workflow"
+        kind: "MCP23017"
+        key: "6"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_workflow"
+        kind: "WS281x"
+        key: "15"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_jenkins_armed"
+        type: "STRING"
+        value: "\\n|c|Workflow Jenkins\\n\\n|c|--== ARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_solr"
+        kind: "MCP23017"
+        key: "7"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_solr"
+        kind: "WS281x"
+        key: "16"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_solr_disarmed"
+        type: "STRING"
+        value: "\\n|c|Solr\\n\\n|c|--== DISARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_solr"
+        kind: "MCP23017"
+        key: "7"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_solr"
+        kind: "WS281x"
+        key: "16"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_solr_armed"
+        type: "STRING"
+        value: "\\n|c|Solr\\n\\n|c|--== ARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_spark"
+        kind: "MCP23017"
+        key: "8"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_spark"
+        kind: "WS281x"
+        key: "17"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_spark_disarmed"
+        type: "STRING"
+        value: "\\n|c|Spark\\n\\n|c|--== DISARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_spark"
+        kind: "MCP23017"
+        key: "8"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_spark"
+        kind: "WS281x"
+        key: "17"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_spark_armed"
+        type: "STRING"
+        value: "\\n|c|Spark\\n\\n|c|--== ARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_elk"
+        kind: "MCP23017"
+        key: "9"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_elk"
+        kind: "WS281x"
+        key: "18"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_elk_disarmed"
+        type: "STRING"
+        value: "\\n|c|ELK Stack\\n\\n|c|--== DISARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_elk"
+        kind: "MCP23017"
+        key: "9"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_elk"
+        kind: "WS281x"
+        key: "18"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_elk_armed"
+        type: "STRING"
+        value: "\\n|c|ELK Stack\\n\\n|c|--== ARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_raw_bom"
+        kind: "MCP23017"
+        key: "10"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_raw_bom"
+        kind: "WS281x"
+        key: "19"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_rawbom_disarmed"
+        type: "STRING"
+        value: "|c|Raw BoM\\n|c|Loader\\n\\n|c|--== DISARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_raw_bom"
+        kind: "MCP23017"
+        key: "10"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_raw_bom"
+        kind: "WS281x"
+        key: "19"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_rawbom_armed"
+        type: "STRING"
+        value: "|c|Raw BoM\\n|c|Loader\\n\\n|c|--== ARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_masterdata"
+        kind: "MCP23017"
+        key: "11"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_masterdata"
+        kind: "WS281x"
+        key: "20"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_masterdata_disarmed"
+        type: "STRING"
+        value: "|c|Master Data\\n|c|Loader\\n\\n|c|--== DISARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_masterdata"
+        kind: "MCP23017"
+        key: "11"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_masterdata"
+        kind: "WS281x"
+        key: "20"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_masterdata_armed"
+        type: "STRING"
+        value: "|c|Master Data\\n|c|Loader\\n\\n|c|--== ARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_order"
+        kind: "MCP23017"
+        key: "12"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_order"
+        kind: "WS281x"
+        key: "21"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_order_disarmed"
+        type: "STRING"
+        value: "|c|Order\\n|c|Loader\\n\\n|c|--== DISARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_order"
+        kind: "MCP23017"
+        key: "12"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_order"
+        kind: "WS281x"
+        key: "21"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_order_armed"
+        type: "STRING"
+        value: "|c|Order\\n|c|Loader\\n\\n|c|--== ARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_demand"
+        kind: "MCP23017"
+        key: "13"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_demand"
+        kind: "WS281x"
+        key: "22"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_demand_disarmed"
+        type: "STRING"
+        value: "|c|Demand\\n|c|Loader\\n\\n|c|--== DISARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_demand"
+        kind: "MCP23017"
+        key: "13"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_demand"
+        kind: "WS281x"
+        key: "22"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_demand_armed"
+        type: "STRING"
+        value: "|c|Demand\\n|c|Loader\\n\\n|c|--== ARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_scenario"
+        kind: "MCP23017"
+        key: "22"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_scenario"
+        kind: "WS281x"
+        key: "31"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_scenario_disarmed"
+        type: "STRING"
+        value: "|c|Scenario\\n|c|Loader\\n\\n|c|--== DISARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_scenario"
+        kind: "MCP23017"
+        key: "22"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_scenario"
+        kind: "WS281x"
+        key: "31"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_scenario_armed"
+        type: "STRING"
+        value: "|c|Scenario\\n|c|Loader\\n\\n|c|--== ARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_facades"
+        kind: "MCP23017"
+        key: "21"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_facades"
+        kind: "WS281x"
+        key: "30"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_facades_disarmed"
+        type: "STRING"
+        value: "\\n|c|Facades\\n\\n|c|--== DISARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_facades"
+        kind: "MCP23017"
+        key: "21"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_facades"
+        kind: "WS281x"
+        key: "30"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_facades_armed"
+        type: "STRING"
+        value: "\\n|c|Facades\\n\\n|c|--== ARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_ui"
+        kind: "MCP23017"
+        key: "20"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_ui"
+        kind: "WS281x"
+        key: "29"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_ui_disarmed"
+        type: "STRING"
+        value: "\\n|c|UI\\n\\n|c|--== DISARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_ui"
+        kind: "MCP23017"
+        key: "20"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_ui"
+        kind: "WS281x"
+        key: "29"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_ui_armed"
+        type: "STRING"
+        value: "\\n|c|UI\\n\\n|c|--== ARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_aab_judge"
+        kind: "MCP23017"
+        key: "19"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_aab_judge"
+        kind: "WS281x"
+        key: "28"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_aab_disarmed"
+        type: "STRING"
+        value: "|c|AAB\\n|c|Judge\\n\\n|c|--== DISARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_aab_judge"
+        kind: "MCP23017"
+        key: "19"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_aab_judge"
+        kind: "WS281x"
+        key: "28"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_aab_armed"
+        type: "STRING"
+        value: "|c|AAB\\n|c|Judge\\n\\n|c|--== ARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_sdd_judge"
+        kind: "MCP23017"
+        key: "18"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_sdd_judge"
+        kind: "WS281x"
+        key: "27"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_aab_disarmed"
+        type: "STRING"
+        value: "|c|AAB\\n|c|Judge\\n\\n|c|--== DISARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_sdd_judge"
+        kind: "MCP23017"
+        key: "18"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_sdd_judge"
+        kind: "WS281x"
+        key: "27"
+      value:
+        name: "color_white"
+        type: "COLOR_PATTERN"
+        value: "0,16,16,16"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_sdd_armed"
+        type: "STRING"
+        value: "|c|SDD\\n|c|Judge\\n\\n|c|--== ARMED ==--"
+  - conditions:
+    - device:
+        name: "btn_reserved_4"
+        kind: "MCP23017"
+        key: "17"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_reserved_4"
+        kind: "WS281x"
+        key: "26"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_reserved_4"
+        kind: "MCP23017"
+        key: "17"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_reserved_4"
+        kind: "WS281x"
+        key: "26"
+      value:
+        name: "color_orange"
+        type: "COLOR_PATTERN"
+        value: "0,32,16,0"
+  - conditions:
+    - device:
+        name: "btn_reserved_3"
+        kind: "MCP23017"
+        key: "16"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_reserved_3"
+        kind: "WS281x"
+        key: "25"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_reserved_3"
+        kind: "MCP23017"
+        key: "16"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_reserved_3"
+        kind: "WS281x"
+        key: "25"
+      value:
+        name: "color_orange"
+        type: "COLOR_PATTERN"
+        value: "0,32,16,0"
+  - conditions:
+    - device:
+        name: "btn_reserved_2"
+        kind: "MCP23017"
+        key: "15"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_reserved_2"
+        kind: "WS281x"
+        key: "24"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_reserved_2"
+        kind: "MCP23017"
+        key: "15"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_reserved_2"
+        kind: "WS281x"
+        key: "24"
+      value:
+        name: "color_orange"
+        type: "COLOR_PATTERN"
+        value: "0,32,16,0"
+  - conditions:
+    - device:
+        name: "btn_reserved_1"
+        kind: "MCP23017"
+        key: "14"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_reserved_1"
+        kind: "WS281x"
+        key: "23"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_reserved_1"
+        kind: "MCP23017"
+        key: "14"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_reserved_1"
+        kind: "WS281x"
+        key: "23"
+      value:
+        name: "color_orange"
+        type: "COLOR_PATTERN"
+        value: "0,32,16,0"
+- name: "armed"
+  evaluations:
+  - conditions: []
+    actions:
+    - device:
+        name: "led_release"
+        kind: "MCP23017"
+        key: "32"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "led_nuke"
+        kind: "MCP23017"
+        key: "33"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "led_arm"
+        kind: "MCP23017"
+        key: "34"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "led_launch"
+        kind: "MCP23017"
+        key: "35"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "rgb_reserved_1"
+        kind: "WS281x"
+        key: "23"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_reserved_2"
+        kind: "WS281x"
+        key: "24"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_reserved_3"
+        kind: "WS281x"
+        key: "25"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "rgb_reserved_4"
+        kind: "WS281x"
+        key: "26"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_armed"
+        type: "STRING"
+        value: "\\n|c|--== ARMED ==--\\n\\n|c|Confirm to FIRE"
+  - conditions:
+    - device:
+        name: "btn_zk"
+        kind: "MCP23017"
+        key: "5"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_zk"
+        kind: "WS281x"
+        key: "14"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_zk"
+        kind: "MCP23017"
+        key: "5"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_zk"
+        kind: "WS281x"
+        key: "14"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "btn_workflow"
+        kind: "MCP23017"
+        key: "6"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_workflow"
+        kind: "WS281x"
+        key: "15"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_workflow"
+        kind: "MCP23017"
+        key: "6"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_workflow"
+        kind: "WS281x"
+        key: "15"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "btn_solr"
+        kind: "MCP23017"
+        key: "7"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_solr"
+        kind: "WS281x"
+        key: "16"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_solr"
+        kind: "MCP23017"
+        key: "7"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_solr"
+        kind: "WS281x"
+        key: "16"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "btn_spark"
+        kind: "MCP23017"
+        key: "8"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_spark"
+        kind: "WS281x"
+        key: "17"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_spark"
+        kind: "MCP23017"
+        key: "8"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_spark"
+        kind: "WS281x"
+        key: "17"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "btn_elk"
+        kind: "MCP23017"
+        key: "9"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_elk"
+        kind: "WS281x"
+        key: "18"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_elk"
+        kind: "MCP23017"
+        key: "9"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_elk"
+        kind: "WS281x"
+        key: "18"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "btn_raw_bom"
+        kind: "MCP23017"
+        key: "10"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_raw_bom"
+        kind: "WS281x"
+        key: "19"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_raw_bom"
+        kind: "MCP23017"
+        key: "10"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_raw_bom"
+        kind: "WS281x"
+        key: "19"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "btn_masterdata"
+        kind: "MCP23017"
+        key: "11"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_masterdata"
+        kind: "WS281x"
+        key: "20"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_masterdata"
+        kind: "MCP23017"
+        key: "11"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_masterdata"
+        kind: "WS281x"
+        key: "20"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "btn_order"
+        kind: "MCP23017"
+        key: "12"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_order"
+        kind: "WS281x"
+        key: "21"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_order"
+        kind: "MCP23017"
+        key: "12"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_order"
+        kind: "WS281x"
+        key: "21"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "btn_demand"
+        kind: "MCP23017"
+        key: "13"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_demand"
+        kind: "WS281x"
+        key: "22"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_demand"
+        kind: "MCP23017"
+        key: "13"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_demand"
+        kind: "WS281x"
+        key: "22"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "btn_scenario"
+        kind: "MCP23017"
+        key: "22"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_scenario"
+        kind: "WS281x"
+        key: "31"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_scenario"
+        kind: "MCP23017"
+        key: "22"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_scenario"
+        kind: "WS281x"
+        key: "31"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "btn_facades"
+        kind: "MCP23017"
+        key: "21"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_facades"
+        kind: "WS281x"
+        key: "30"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_facades"
+        kind: "MCP23017"
+        key: "21"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_facades"
+        kind: "WS281x"
+        key: "30"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "btn_ui"
+        kind: "MCP23017"
+        key: "20"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_ui"
+        kind: "WS281x"
+        key: "29"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_ui"
+        kind: "MCP23017"
+        key: "20"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_ui"
+        kind: "WS281x"
+        key: "29"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "btn_aab_judge"
+        kind: "MCP23017"
+        key: "19"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_aab_judge"
+        kind: "WS281x"
+        key: "28"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_aab_judge"
+        kind: "MCP23017"
+        key: "19"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_aab_judge"
+        kind: "WS281x"
+        key: "28"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "btn_sdd_judge"
+        kind: "MCP23017"
+        key: "18"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_sdd_judge"
+        kind: "WS281x"
+        key: "27"
+      value:
+        name: "color_black"
+        type: "COLOR_PATTERN"
+        value: "0,0,0,0"
+  - conditions:
+    - device:
+        name: "btn_sdd_judge"
+        kind: "MCP23017"
+        key: "18"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_sdd_judge"
+        kind: "WS281x"
+        key: "27"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "btn_arm"
+        kind: "MCP23017"
+        key: "4"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "GOTO"
+        kind: "VIRTUAL"
+        key: "goto"
+      value:
+        name: "state_ready"
+        type: "STATE"
+        value: "ready"
+  - conditions:
+    - device:
+        name: "btn_launch"
+        kind: "MCP23017"
+        key: "23"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "GOTO"
+        kind: "VIRTUAL"
+        key: "goto"
+      value:
+        name: "state_running"
+        type: "STATE"
+        value: "running"
+  - conditions:
+    - device:
+        name: "bt_connected"
+        kind: "BLUETOOTH"
+        key: "connected"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_left_top"
+        kind: "WS281x"
+        key: "9"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "bt_connected"
+        kind: "BLUETOOTH"
+        key: "connected"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_left_top"
+        kind: "WS281x"
+        key: "9"
+      value:
+        name: "color_green"
+        type: "COLOR_PATTERN"
+        value: "0,0,32,0"
+- name: "running"
+  evaluations:
+  - conditions: []
+    actions:
+    - device:
+        name: "led_release"
+        kind: "MCP23017"
+        key: "32"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "led_nuke"
+        kind: "MCP23017"
+        key: "33"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "led_arm"
+        kind: "MCP23017"
+        key: "34"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "led_launch"
+        kind: "MCP23017"
+        key: "35"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    - device:
+        name: "rgb_arm"
+        kind: "WS281x"
+        key: "13"
+      value:
+        name: "color_yellow_fade"
+        type: "COLOR_PATTERN"
+        value: "4,32,32,0"
+    - device:
+        name: "bt_trigger"
+        kind: "BLUETOOTH"
+        key: "trigger"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_fired"
+        type: "STRING"
+        value: "\\n\\n|c|--== FIRED ==--\\n"
+  - conditions:
+    - device:
+        name: "bt_connected"
+        kind: "BLUETOOTH"
+        key: "connected"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "rgb_left_top"
+        kind: "WS281x"
+        key: "9"
+      value:
+        name: "color_red"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+  - conditions:
+    - device:
+        name: "bt_connected"
+        kind: "BLUETOOTH"
+        key: "connected"
+      value:
+        name: "true"
+        type: "BOOLEAN"
+        value: "true"
+    actions:
+    - device:
+        name: "rgb_left_top"
+        kind: "WS281x"
+        key: "9"
+      value:
+        name: "color_green"
+        type: "COLOR_PATTERN"
+        value: "0,0,32,0"
+  - conditions:
+    - device:
+        name: "btn_launch"
+        kind: "MCP23017"
+        key: "23"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "GOTO"
+        kind: "VIRTUAL"
+        key: "goto"
+      value:
+        name: "state_armed"
+        type: "STATE"
+        value: "armed"
+- name: "completed"
+  evaluations:
+  - conditions: []
+    actions:
+    - device:
+        name: "rgb_arm"
+        kind: "WS281x"
+        key: "13"
+      value:
+        name: "color_success"
+        type: "COLOR_PATTERN"
+        value: "0,0,32,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_deployment_successfull"
+        type: "STRING"
+        value: "\\nDeployment Completed\\n\\n{:2000:}\\nDeployment Completed\\\
+          n\\n|c|See ya"
+  - conditions:
+    - device:
+        name: "btn_launch"
+        kind: "MCP23017"
+        key: "23"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "GOTO"
+        kind: "VIRTUAL"
+        key: "goto"
+      value:
+        name: "state_ready"
+        type: "STATE"
+        value: "ready"
+- name: "failed"
+  evaluations:
+  - conditions: []
+    actions:
+    - device:
+        name: "rgb_arm"
+        kind: "WS281x"
+        key: "13"
+      value:
+        name: "color_failure"
+        type: "COLOR_PATTERN"
+        value: "0,32,0,0"
+    - device:
+        name: "lcd_message"
+        kind: "LCD"
+        key: "message"
+      value:
+        name: "message_deployment_failed"
+        type: "STRING"
+        value: "\\n|c|Deployment Failed\\n\\n{:2000:}\\n|c|Deployment Failed\\\
+          n\\n|c|FUCK!"
+  - conditions:
+    - device:
+        name: "btn_launch"
+        kind: "MCP23017"
+        key: "23"
+      value:
+        name: "false"
+        type: "BOOLEAN"
+        value: "false"
+    actions:
+    - device:
+        name: "GOTO"
+        kind: "VIRTUAL"
+        key: "goto"
+      value:
+        name: "state_ready"
+        type: "STATE"
+        value: "ready"

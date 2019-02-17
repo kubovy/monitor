@@ -3,7 +3,7 @@ package com.poterion.monitor.api.communication
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-interface BluetoothListener {
+interface BluetoothRaspiListener {
 	/** On inbound connection established callback */
 	fun onInboundConnect() {
 	}

@@ -1,6 +1,6 @@
 package com.poterion.monitor.notifiers.raspiw2812.ui
 
-import com.poterion.monitor.api.communication.BluetoothListener
+import com.poterion.monitor.api.communication.BluetoothRaspiListener
 import com.poterion.monitor.api.ui.CommonIcon
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.raspiw2812.RaspiW2812Icon
@@ -34,7 +34,7 @@ import kotlin.math.roundToInt
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-class ConfigWindowController : BluetoothListener {
+class ConfigWindowController : BluetoothRaspiListener {
 	companion object {
 		internal fun getRoot(config: RaspiW2812Config, controller: RaspiW2812Notifier): Parent =
 				FXMLLoader(ConfigWindowController::class.java.getResource("config-window.fxml"))

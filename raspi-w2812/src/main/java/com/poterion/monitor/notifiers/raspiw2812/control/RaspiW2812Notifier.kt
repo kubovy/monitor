@@ -2,8 +2,8 @@ package com.poterion.monitor.notifiers.raspiw2812.control
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.poterion.monitor.api.StatusCollector
-import com.poterion.monitor.api.communication.BluetoothCommunicator
-import com.poterion.monitor.api.communication.BluetoothListener
+import com.poterion.monitor.api.communication.BluetoothCommunicatorRaspi
+import com.poterion.monitor.api.communication.BluetoothRaspiListener
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.ui.CommonIcon
@@ -26,13 +26,13 @@ import java.util.concurrent.TimeUnit
  * @author Jan Kubovy <jan@kubovy.eu>
  */
 class RaspiW2812Notifier(override val controller: ControllerInterface, config: RaspiW2812Config) :
-		Notifier<RaspiW2812Config>(config), BluetoothListener {
+		Notifier<RaspiW2812Config>(config), BluetoothRaspiListener {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(RaspiW2812Notifier::class.java)
 	}
 
-	val communicator: BluetoothCommunicator = BluetoothCommunicator("WS", config.deviceAddress, 5, 6, config.enabled)
+	val communicator: BluetoothCommunicatorRaspi = BluetoothCommunicatorRaspi("WS", config.deviceAddress, 5, 6, config.enabled)
 	private var lastState = emptyList<LightConfig>()
 	private val objectMapper = ObjectMapper()
 	override val icon: Icon = RaspiW2812Icon.RASPBERRY

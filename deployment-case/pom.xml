@@ -26,5 +26,10 @@
 			<groupId>com.hubspot.jinjava</groupId>
 			<artifactId>jinjava</artifactId>
 		</dependency>
+		<!-- Testing -->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+		</dependency>
 	</dependencies>
 </project>

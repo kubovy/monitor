@@ -4,4 +4,4 @@ out/
 *.bak
 *.iml
 *.log
-*.yaml
+/*.yaml
