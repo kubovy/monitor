@@ -12,7 +12,14 @@ enum class DeploymentCaseIcon(private val file: String) : Icon {
 	NUCLEAR_FOOTBALL("/icons/nuclear-football.png"),
 	BLUETOOTH("/icons/bluetooth.png"),
 	CONNECTED("/icons/connected.png"),
-	DISCONNECTED("/icons/disconnected.png");
+	DISCONNECTED("/icons/disconnected.png"),
+
+	STATE("/icons/state.png"),
+	EVALUATION("/icons/evaluation.png"),
+	CONDITIONS("/icons/conditions.png"),
+	CONDITION("/icons/condition.png"),
+	ACTIONS("/icons/actions.png"),
+	ACTION("/icons/action.png");
 
 	override val inputStream: InputStream
 		get() = DeploymentCaseIcon::class.java.getResourceAsStream(file)

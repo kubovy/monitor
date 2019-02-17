@@ -13,14 +13,14 @@ import javax.microedition.io.StreamConnection
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-class BluetoothCommunicator(private var prefix: String,
-							private var address: String,
-							private val outboundPort: Int,
-							private val inboundPort: Int,
-							var shouldConnect: Boolean) {
+class BluetoothCommunicatorRaspi(private var prefix: String,
+								 private var address: String,
+								 private val outboundPort: Int,
+								 private val inboundPort: Int,
+								 var shouldConnect: Boolean) {
 
 	companion object {
-		val LOGGER: Logger = LoggerFactory.getLogger(BluetoothCommunicator::class.java)
+		val LOGGER: Logger = LoggerFactory.getLogger(BluetoothCommunicatorRaspi::class.java)
 		private const val SERVICE_NAME = "Poterion Monitor"
 		private const val STX = "STX"
 		private const val ETX = "ETX"
@@ -38,7 +38,7 @@ class BluetoothCommunicator(private var prefix: String,
 		get() = "btspp://${address.replace(":", "")}:${inboundPort};authenticate=false;encrypt=false;master=false"
 
 	private val queue: ConcurrentLinkedQueue<String> = ConcurrentLinkedQueue()
-	private val listeners = mutableListOf<BluetoothListener>()
+	private val listeners = mutableListOf<BluetoothRaspiListener>()
 	private var isChanging = false
 
 	private var inboundThread: Thread? = null
@@ -188,7 +188,7 @@ class BluetoothCommunicator(private var prefix: String,
 			} catch (e: IOException) {
 				LOGGER.warn(e.message)
 			}
-			isOutboundConnected = false
+			isInboundConnected = false
 			listeners.forEach { Platform.runLater(it::onInboundDisconnect) }
 		} catch (e: IOException) {
 			LOGGER.info(e.message)
@@ -200,7 +200,7 @@ class BluetoothCommunicator(private var prefix: String,
 	}
 
 	fun connect(address: String? = null) {
-		if (address == null || address != this.address || !isInboundConnected || !isOutboundConnected) {
+		if (shouldConnect && (address == null || address != this.address || !isInboundConnected || !isOutboundConnected)) {
 			if (address != null) this.address = address
 			isChanging = true
 			disconnect()
@@ -225,9 +225,9 @@ class BluetoothCommunicator(private var prefix: String,
 
 	fun send(message: String) = message.takeIf { it.isNotEmpty() }.also { queue.offer(it) }
 
-	fun register(listener: BluetoothListener) {
+	fun register(listener: BluetoothRaspiListener) {
 		if (!listeners.contains(listener)) listeners.add(listener)
 	}
 
-	fun unregister(listener: BluetoothListener) = listeners.remove(listener)
+	fun unregister(listener: BluetoothRaspiListener) = listeners.remove(listener)
 }
