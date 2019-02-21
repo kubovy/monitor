@@ -69,7 +69,7 @@ class Controller(override val stage: Stage, configFileName: String = "config.yam
 
 	fun start() {
 		LOGGER.info("Starting with ${configFile.absolutePath} config file")
-		config = mapper.readValue(configFile, Config::class.java)
+		if (configFile.exists()) config = mapper.readValue(configFile, Config::class.java)
 
 		for (module in _modules) when (module) {
 			is ServiceModule<*, *> -> _services.addAll(module.createControllers(this, config))

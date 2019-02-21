@@ -165,6 +165,8 @@ class BluetoothCommunicatorEmbedded(private var address: String, var shouldConne
 								.let { byte -> BluetoothMessageKind.values().find { it.byteCode == byte } }
 								?: BluetoothMessageKind.UNKNOWN
 
+						if (messageKind != BluetoothMessageKind.CRC) chksumQueue.add(chksum.toByte())
+
 						when (messageKind) {
 							BluetoothMessageKind.CRC -> lastChecksum = (buffer[2].toInt() and 0xFF)
 							BluetoothMessageKind.PUSH_STATE_MACHINE -> {
@@ -176,8 +178,6 @@ class BluetoothCommunicatorEmbedded(private var address: String, var shouldConne
 								(0 until (read - 6)).forEach {
 									stateMachineBuffer[it + addr] = buffer[it + 6]
 								}
-
-								chksumQueue.add(chksum.toByte())
 
 								listeners.forEach { Platform.runLater { it.onProgress(addr + read - 6, length, true) } }
 								LOGGER.debug("State Machine address: 0x%02X - 0x%02X, size: %d bytes, transfered: %d bytes, total: %d bytes"
@@ -197,6 +197,12 @@ class BluetoothCommunicatorEmbedded(private var address: String, var shouldConne
 											chars = ""
 										}
 									}
+								}
+							}
+							BluetoothMessageKind.SET_VALUE -> {
+								val length = buffer[2].toInt() and 0xFF
+								(0 until length).forEach {
+
 								}
 							}
 							else -> {

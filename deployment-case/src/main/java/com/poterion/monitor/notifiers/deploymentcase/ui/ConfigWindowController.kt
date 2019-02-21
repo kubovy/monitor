@@ -10,8 +10,10 @@ import com.poterion.monitor.notifiers.deploymentcase.control.*
 import com.poterion.monitor.notifiers.deploymentcase.data.*
 import javafx.application.Platform
 import javafx.collections.FXCollections
+import javafx.event.ActionEvent
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
+import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.*
 import javafx.scene.control.Alert.AlertType
@@ -28,6 +30,7 @@ import javafx.util.StringConverter
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import javafx.scene.control.TreeItem
+import javafx.scene.shape.Circle
 
 
 /**
@@ -53,6 +56,72 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 	@FXML private lateinit var rootPane: SplitPane
 	@FXML private lateinit var textBluetoothAddress: TextField
 	@FXML private lateinit var listConfigurations: ListView<Configuration>
+
+	@FXML private lateinit var lcd: TextArea
+	@FXML private lateinit var led0: Circle
+	@FXML private lateinit var led1: Circle
+	@FXML private lateinit var led2: Circle
+	@FXML private lateinit var led3: Circle
+	@FXML private lateinit var rgb00: Circle
+	@FXML private lateinit var rgb01: Circle
+	@FXML private lateinit var rgb02: Circle
+	@FXML private lateinit var rgb03: Circle
+	@FXML private lateinit var rgb04: Circle
+	@FXML private lateinit var rgb05: Circle
+	@FXML private lateinit var rgb06: Circle
+	@FXML private lateinit var rgb07: Circle
+	@FXML private lateinit var rgb08: Circle
+	@FXML private lateinit var rgb09: Circle
+	@FXML private lateinit var rgb10: Circle
+	@FXML private lateinit var rgb11: Circle
+	@FXML private lateinit var rgb12: Circle
+	@FXML private lateinit var rgb13: Circle
+	@FXML private lateinit var rgb14: Circle
+	@FXML private lateinit var rgb15: Circle
+	@FXML private lateinit var rgb16: Circle
+	@FXML private lateinit var rgb17: Circle
+	@FXML private lateinit var rgb18: Circle
+	@FXML private lateinit var rgb19: Circle
+	@FXML private lateinit var rgb20: Circle
+	@FXML private lateinit var rgb21: Circle
+	@FXML private lateinit var rgb22: Circle
+	@FXML private lateinit var rgb23: Circle
+	@FXML private lateinit var rgb24: Circle
+	@FXML private lateinit var rgb25: Circle
+	@FXML private lateinit var rgb26: Circle
+	@FXML private lateinit var rgb27: Circle
+	@FXML private lateinit var rgb28: Circle
+	@FXML private lateinit var rgb29: Circle
+	@FXML private lateinit var rgb30: Circle
+	@FXML private lateinit var rgb31: Circle
+	@FXML private lateinit var btn00: ToggleButton
+	@FXML private lateinit var btn01: RadioButton
+	@FXML private lateinit var btn0102: RadioButton
+	@FXML private lateinit var btn02: RadioButton
+	@FXML private lateinit var btn03: ToggleButton
+	@FXML private lateinit var btn04: ToggleButton
+	@FXML private lateinit var btn05: ToggleButton
+	@FXML private lateinit var btn06: ToggleButton
+	@FXML private lateinit var btn07: ToggleButton
+	@FXML private lateinit var btn08: ToggleButton
+	@FXML private lateinit var btn09: ToggleButton
+	@FXML private lateinit var btn10: ToggleButton
+	@FXML private lateinit var btn11: ToggleButton
+	@FXML private lateinit var btn12: ToggleButton
+	@FXML private lateinit var btn13: ToggleButton
+	@FXML private lateinit var btn14: ToggleButton
+	@FXML private lateinit var btn15: ToggleButton
+	@FXML private lateinit var btn16: ToggleButton
+	@FXML private lateinit var btn17: ToggleButton
+	@FXML private lateinit var btn18: ToggleButton
+	@FXML private lateinit var btn19: ToggleButton
+	@FXML private lateinit var btn20: ToggleButton
+	@FXML private lateinit var btn21: ToggleButton
+	@FXML private lateinit var btn22: ToggleButton
+	@FXML private lateinit var btn23: ToggleButton
+	@FXML private lateinit var btn24: ToggleButton
+	@FXML private lateinit var btn25: ToggleButton
+
 
 	@FXML private lateinit var checkboxActive: CheckBox
 	@FXML private lateinit var textName: TextField
@@ -345,6 +414,36 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 		KeyCode.F5 -> onReconnect()
 		KeyCode.F8 -> onClear()
 		else -> null
+	}
+
+	@FXML
+	fun onTestButton(event: ActionEvent) {
+		LOGGER.info("ID: ${(event.source as? Node)?.id}")
+		(event.source as? Node)?.id?.also { id ->
+			if (id == "btn0102") {
+				val data = (1..2)
+						.map { Device(kind = DeviceKind.MCP23017, key = "1") }
+						.map { device -> device to  Variable(type = VariableType.BOOLEAN, value = "false") }
+						.map { (device, value) -> Action(device = device, value = value) }
+						.flatMap { it.toIntList() }
+						.toMutableList()
+						.asReversed()
+						.apply { add(2) }
+						.asReversed()
+						.map { it.toByte() }
+						.toByteArray()
+				controller?.communicator?.send(BluetoothMessageKind.SET_VALUE, data)
+			} else if (id.startsWith("btn") == true) {
+				val data = Device(kind = DeviceKind.MCP23017, key = "${id.substring(3, 5).toInt()}")
+						.let { device -> device to (event.source as? ToggleButton)?.isSelected }
+						.let { (device, value) -> device to  Variable(type = VariableType.BOOLEAN, value = value.toString()) }
+						.let { (device, value) -> Action(device = device, value = value) }
+						.let { listOf(1, *it.toIntList().toTypedArray()) }
+						.map { it.toByte() }
+						.toByteArray()
+				controller?.communicator?.send(BluetoothMessageKind.SET_VALUE, data)
+			}
+		}
 	}
 
 	@FXML

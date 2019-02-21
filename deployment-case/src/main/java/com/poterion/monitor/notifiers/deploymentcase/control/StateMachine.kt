@@ -5,7 +5,6 @@ import com.poterion.monitor.notifiers.deploymentcase.data.*
 import com.poterion.monitor.notifiers.deploymentcase.ui.expandAll
 import javafx.scene.control.TreeItem
 import javafx.scene.control.TreeView
-import java.io.*
 
 fun List<State>.toByteArray(): ByteArray {
 	val statesLength = mutableListOf<Int>()
@@ -89,34 +88,9 @@ fun List<State>.toByteArray(): ByteArray {
 //		}
 //	}
 
-	actions.forEachIndexed { actionIndex, action ->
-		val actionDevice = action.device
-		val actionValue = action.value
-		if (actionDevice != null && actionValue != null) {
-			val actionResult = mutableListOf<Int>()
-
-			// Action Device kind-key
-			actionResult.add(actionDevice.toInt())
-
-			// Action value length
-			actionResult.add(when (actionValue.type) {
-				VariableType.BOOLEAN -> 1                       // 0x01
-				VariableType.STRING -> actionValue.value.length // 0x01 - 0xFF
-				VariableType.COLOR_PATTERN -> 4                 // 0x04
-				VariableType.STATE -> 1                         // 0x01
-			})
-
-			// Action value
-			actionResult.addAll(when (actionValue.type) {
-				VariableType.BOOLEAN -> listOf(if (actionValue.value.toBoolean()) 1 else 0)
-				VariableType.STRING -> actionValue.value.toCharArray().map { it.toInt() }
-				VariableType.COLOR_PATTERN -> actionValue.value.split(",").map { it.toInt() }
-				VariableType.STATE -> listOf(map { it.name }.indexOf(actionValue.value))
-			})
-
-			actionsLength.add(actionResult.size)
-			actionsResult.addAll(actionResult)
-		}
+	actions.map { it.toIntList(this) }.takeIf { it.isNotEmpty() }?.forEach { actionResult ->
+		actionsLength.add(actionResult.size)
+		actionsResult.addAll(actionResult)
 	}
 
 	result.addAll(actionsLength.size.to2Byte()) // All action count
@@ -142,11 +116,7 @@ fun List<Int>.toStateMachine(devices: List<Device> = emptyList(),
 	val actionsStart = (stateCount * 2 + 2).let { this[it] * 256 + this[it + 1] }
 	val actionCount = this[actionsStart] * 256 + this[actionsStart + 1]
 	val actionStarts = (0 until actionCount).map { it * 2 + actionsStart + 2 }.map { this[it] * 256 + this[it + 1] }
-	val actions = actionStarts
-			.map { position -> (position + 1) to this[position].toDevice() }
-			.map { (position, device) -> device to this.subList(position, this.size).toVariable(device) }
-			.map { (device, variable) -> device.findName(devices) to variable.findName(variables) }
-			.map { (device, variable) -> Action(device, variable) }
+	val actions = actionStarts.map { start -> this.toAction(start, devices, variables) }
 
 //	BufferedWriter(FileWriter("a2.list")).use { writer ->
 //		actions.forEach { action ->
@@ -230,6 +200,41 @@ fun TreeView<StateMachineItem>.setStateMachine(states: List<State>) {
 	root.isExpanded = true
 	root.expandAll()
 }
+
+fun Action.toByteArray(states: List<State> = emptyList()) : ByteArray = toIntList(states)
+		.map { it.toByte() }
+		.toByteArray()
+
+fun Action.toIntList(states: List<State> = emptyList()): List<Int> = device?.let { d -> value?.let { v -> d to v } }?.let { (device, value) ->
+	val result = mutableListOf<Int>()
+
+	// Action Device kind-key
+	result.add(device.toInt())
+
+	// Action value length
+	result.add(when (value.type) {
+		VariableType.BOOLEAN -> 1                 // 0x01
+		VariableType.STRING -> value.value.length // 0x01 - 0xFF
+		VariableType.COLOR_PATTERN -> 4           // 0x04
+		VariableType.STATE -> 1                   // 0x01
+	})
+
+	// Action value
+	result.addAll(when (value.type) {
+		VariableType.BOOLEAN -> listOf(if (value.value.toBoolean()) 1 else 0)
+		VariableType.STRING -> value.value.toCharArray().map { it.toInt() }
+		VariableType.COLOR_PATTERN -> value.value.split(",").map { it.toInt() }
+		VariableType.STATE -> listOf(states.map { it.name }.indexOf(value.value))
+	})
+
+	result
+} ?: emptyList()
+
+fun List<Int>.toAction(start: Int = 0, devices: List<Device>, variables: List<Variable>): Action = start
+		.let { position -> (position + 1) to this[position].toDevice() }
+		.let { (position, device) -> device to this.subList(position, this.size).toVariable(device) }
+		.let { (device, variable) -> device.findName(devices) to variable.findName(variables) }
+		.let { (device, variable) -> Action(device, variable) }
 
 fun Int.toDevice() = when (this) {
 	in (0 until 40) -> Device(kind = DeviceKind.MCP23017, key = "${this}")      // 0x00 - 0x27
