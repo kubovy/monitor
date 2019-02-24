@@ -1,14 +1,11 @@
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.poterion.monitor.api.communication.BluetoothEmbeddedListener
-import com.poterion.monitor.api.communication.BluetoothMessageKind
 import com.poterion.monitor.notifiers.deploymentcase.*
+import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageKind
+import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageListener
 import com.poterion.monitor.notifiers.deploymentcase.control.*
 import com.poterion.monitor.notifiers.deploymentcase.data.*
-import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.event.ActionEvent
 import javafx.fxml.FXML
@@ -25,18 +22,19 @@ import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.scene.layout.HBox
 import javafx.scene.paint.Color
+import javafx.scene.shape.Circle
 import javafx.util.Callback
 import javafx.util.StringConverter
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import javafx.scene.control.TreeItem
-import javafx.scene.shape.Circle
 
 
 /**
+ * Deployment case configuration window controller.
+ *
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-class ConfigWindowController : BluetoothEmbeddedListener {
+class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedListener {
 
 	companion object {
 		private val LOGGER: Logger = LoggerFactory.getLogger(ConfigWindowController::class.java)
@@ -162,15 +160,7 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 
 	private var config: DeploymentCaseConfig? = null
 	private var controller: DeploymentCaseNotifier? = null
-	private val jsonMapper = ObjectMapper()
-	private val yamlMapper = ObjectMapper(YAMLFactory())
-	private var clipboardVariable: Variable? = null
 	private var clipboardStateMachineItem: TreeItem<StateMachineItem>? = null
-	private var messagesInQueue = 0
-
-	init {
-		yamlMapper.enable(SerializationFeature.INDENT_OUTPUT)
-	}
 
 	@FXML
 	fun initialize() {
@@ -198,7 +188,6 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 
 				tableVariables.items.clear()
 				tableVariables.items.addAll(configuration.variables)
-				//tableVariables.items.add(null)
 
 				tableDevices.items.clear()
 				tableDevices.items.addAll((0..39)
@@ -228,6 +217,17 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 
 		// Config
 		checkboxActive.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
+		checkboxActive.selectedProperty().addListener { _, _, selected ->
+			val selectedConfig = listConfigurations.selectionModel.selectedItem
+			if (selected) {
+				listConfigurations.items
+						.filter { it != listConfigurations.selectionModel.selectedItem }
+						.forEach { it.isActive = false }
+				selectedConfig?.also { controller?.sendStateMachine(it.stateMachine) }
+			}
+			selectedConfig?.isActive = selected
+			saveConfig()
+		}
 		textName.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 
 		comboboxMethod.items.addAll("GET", "POST")
@@ -240,18 +240,15 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 		textJobName.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 		textParameters.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 
-		columnVariableName.initEditableText("name",
-				{ Variable(it, VariableType.BOOLEAN, "false") },
-				{ variable, name ->
-					variable.name = name
-					tableActions.items.filter { it.value?.name == name }.forEach { it.value = variable }
-					tableActions.refresh()
-				})
+		columnVariableName.initEditableText("name") { variable, name ->
+			variable.name = name
+			tableActions.items.filter { it.value?.name == name }.forEach { it.value = variable }
+			tableActions.refresh()
+		}
 		columnVariableType.initEditableCombo("type",
 				{ VariableType.values() },
 				{ it?.description ?: "" },
 				{ str -> VariableType.values().find { it.description == str } },
-				{ type -> Variable("", type, "") },
 				{ variable, type ->
 					if (variable.type != type) {
 						variable.value = when (type) {
@@ -273,12 +270,10 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 		tableVariables.sortOrder.setAll(columnVariableName)
 		tableVariables.isEditable = true
 
-		columnDevicesName.initEditableText("name",
-				{ Device(it, DeviceKind.MCP23017, "") },
-				{ device, name ->
-					device.name = name
-					tableActions.refresh()
-				})
+		columnDevicesName.initEditableText("name") { device, name ->
+			device.name = name
+			tableActions.refresh()
+		}
 		columnDevicesKind.init("kind") { it?.description ?: "" }
 		columnDevicesKey.init("key") { it ?: "" }
 		tableDevices.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
@@ -289,13 +284,11 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 				{ tableDevices.items.toTypedArray() },
 				{ value -> value.getDisplayName() },
 				{ str -> str?.toDevice(tableDevices.items) },
-				{ device -> Action(device, null) },
 				{ action, device -> action.device = device })
 		columnActionsValue.initEditableCombo("value",
 				{ entry -> tableVariables.items.filter { it?.type == entry?.device?.type }.toTypedArray() },
 				{ it?.getDisplayNameValue() ?: "" },
 				{ str -> str?.toVariable(tableVariables.items) },
-				{ variable -> Action(tableDevices.items.first(), variable) },
 				{ action, variable -> action.value = variable })
 		tableActions.sortOrder.setAll(columnActionsId)
 
@@ -322,6 +315,7 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 				else DeploymentCaseIcon.DISCONNECTED.inputStream)
 
 		controller?.communicator?.register(this)
+		controller?.register(this)
 	}
 
 	@FXML
@@ -330,11 +324,6 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 		while (listConfigurations.items.map { it.name }.contains("${NEW_NAME} ${index}")) index++
 		listConfigurations.items.add(Configuration(name = "${NEW_NAME} ${index}"))
 		saveConfig()
-	}
-
-	@FXML
-	fun onAddVariable() {
-
 	}
 
 	@FXML
@@ -352,26 +341,13 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 	@FXML
 	fun onPull() {
 		rootPane.isDisable = true
-		controller?.communicator?.send(BluetoothMessageKind.PULL_STATE_MACHINE)
+		controller?.communicator?.send(DeploymentCaseMessageKind.PULL_STATE_MACHINE)
 	}
 
 	@FXML
 	fun onPush() {
 		rootPane.isDisable = true
-		val result = treeStateMachine.getStateMachine().toByteArray()
-		result.toList()
-				.chunked(61)
-				.map { data -> data.toTypedArray() }
-				.mapIndexed { index, data ->
-					(index * 61) to data
-				}
-				.map { (reg, data) ->
-					listOf(Math.floor(reg / 256.0).toByte(), (reg % 256).toByte(), *data)
-				}
-				.map { it.toByteArray() }
-				.forEach {
-					controller?.communicator?.send(BluetoothMessageKind.PUSH_STATE_MACHINE, it)
-				}
+		controller?.sendStateMachine(treeStateMachine.toStateMachine())
 	}
 
 	@FXML
@@ -381,11 +357,17 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 
 	@FXML
 	fun onResetLCD() {
-		//controller?.communicator?.send("LCD_RESET")
+		controller?.communicator?.send(DeploymentCaseMessageKind.SET_STATE,
+				Action(device = Device(kind = DeviceKind.LCD, key = LcdKey.RESET.key),
+						value = Variable(type = VariableType.BOOLEAN, value = true.toString()))
+						.toData(treeStateMachine.toStateMachine())
+						.toByteArray()
+						.let { byteArrayOf(1).plus(it) })
 	}
 
 	@FXML
 	fun onReconnect() {
+		controller?.communicator?.disconnect()
 		controller?.communicator?.connect()
 	}
 
@@ -422,26 +404,21 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 		(event.source as? Node)?.id?.also { id ->
 			if (id == "btn0102") {
 				val data = (1..2)
-						.map { Device(kind = DeviceKind.MCP23017, key = "1") }
-						.map { device -> device to  Variable(type = VariableType.BOOLEAN, value = "false") }
+						.map { Device(kind = DeviceKind.MCP23017, key = "${it}") }
+						.map { device -> device to Variable(type = VariableType.BOOLEAN, value = "false") }
 						.map { (device, value) -> Action(device = device, value = value) }
-						.flatMap { it.toIntList() }
-						.toMutableList()
-						.asReversed()
-						.apply { add(2) }
-						.asReversed()
-						.map { it.toByte() }
-						.toByteArray()
-				controller?.communicator?.send(BluetoothMessageKind.SET_VALUE, data)
-			} else if (id.startsWith("btn") == true) {
+						.map { it.toData(treeStateMachine.toStateMachine()).toByteArray() }
+						.reduce { acc, bytes -> acc.plus(bytes) }
+						.let { byteArrayOf(2).plus(it) }
+				controller?.communicator?.send(DeploymentCaseMessageKind.SET_STATE, data)
+			} else if (id.startsWith("btn")) {
 				val data = Device(kind = DeviceKind.MCP23017, key = "${id.substring(3, 5).toInt()}")
 						.let { device -> device to (event.source as? ToggleButton)?.isSelected }
-						.let { (device, value) -> device to  Variable(type = VariableType.BOOLEAN, value = value.toString()) }
+						.let { (device, value) -> device to Variable(type = VariableType.BOOLEAN, value = value.toString()) }
 						.let { (device, value) -> Action(device = device, value = value) }
-						.let { listOf(1, *it.toIntList().toTypedArray()) }
-						.map { it.toByte() }
-						.toByteArray()
-				controller?.communicator?.send(BluetoothMessageKind.SET_VALUE, data)
+						.let { it.toData(treeStateMachine.toStateMachine()).toByteArray() }
+						.let { byteArrayOf(1).plus(it) }
+				controller?.communicator?.send(DeploymentCaseMessageKind.SET_STATE, data)
 			}
 		}
 	}
@@ -456,7 +433,7 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 			KeyCode.DELETE -> tableVariables.selectionModel.selectedItem
 					.takeIf { it != null }
 					.takeIf { variable -> tableActions.items.none { it.value?.name == variable?.name } }
-					?.takeIf {
+					?.takeIf { _ ->
 						Alert(AlertType.CONFIRMATION).apply {
 							title = "Delete confirmation"
 							headerText = "Do you want to delete selected row?"
@@ -479,7 +456,7 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 				}
 			}
 			KeyCode.DELETE -> tableActions.selectionModel.selectedIndex
-					.takeIf {
+					.takeIf { _ ->
 						Alert(AlertType.CONFIRMATION).apply {
 							title = "Delete confirmation"
 							headerText = "Do you want to delete selected row?"
@@ -638,7 +615,7 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 			KeyCode.DELETE -> {
 				treeStateMachine.selectionModel.selectedItem
 						?.takeUnless { it.value is Placeholder }
-						?.takeIf {
+						?.takeIf { _ ->
 							Alert(AlertType.CONFIRMATION).apply {
 								title = "Delete confirmation"
 								headerText = "Do you want to delete selected node?"
@@ -652,42 +629,29 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 		}
 	}
 
+	override fun onConnecting() {
+		super.onConnecting()
+		progress.progress = ProgressIndicator.INDETERMINATE_PROGRESS
+		iconConnected.image = Image(DeploymentCaseIcon.DISCONNECTED.inputStream)
+	}
+
 	override fun onConnect() {
 		super.onConnect()
-		this.progress.progress = 0.0
+		progress.progress = 0.0
 		rootPane.isDisable = false
 		iconConnected.image = Image(DeploymentCaseIcon.CONNECTED.inputStream)
 	}
 
 	override fun onDisconnect() {
 		super.onDisconnect()
-		this.progress.progress = 0.0
+		progress.progress = 0.0
 		rootPane.isDisable = false
 		iconConnected.image = Image(DeploymentCaseIcon.DISCONNECTED.inputStream)
 	}
 
-	override fun onMessage(kind: BluetoothMessageKind, message: ByteArray) {
-		textLog.appendText("${message.map { "0x%02X ".format(it) } }}\n")
+	override fun onMessage(message: ByteArray) {
+		textLog.appendText("${message.map { "0x%02X ".format(it) }}}\n")
 		textLog.scrollTop = Double.MAX_VALUE
-
-		val json = jsonMapper.readTree(message)
-		if (json.has("states") && json.has("devices") && json.has("vars")) {
-//			textStateMachine.text = yamlMapper.writer().withDefaultPrettyPrinter().writeValueAsString(json.get("states"))
-//
-//			tableVariables.items.clear()
-//			tableVariables.items.addAll(json.get("vars").fields()
-//					.asSequence()
-//					.map { (k, v) -> k to v.toString() }
-//					.toList())
-//			tableVariables.sortOrder.setAll(columnVariableName)
-//
-//			tableDevices.items.clear()
-//			tableDevices.items.addAll(json.get("devices").fields()
-//					.asSequence()
-//					.map { (k, v) -> Device(k, v.get("kind").asText(), v.get("key").asText()) }
-//					.toList())
-//			tableDevices.sortOrder.setAll(columnDevicesName)
-		}
 	}
 
 	override fun onProgress(progress: Int, count: Int, disable: Boolean) {
@@ -704,11 +668,38 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 		}
 	}
 
-	override fun onStateMachine(stateMachine: ByteArray) {
-		super.onStateMachine(stateMachine)
-		StateCompareWindowController.popup(
-				treeStateMachine.getStateMachine(),
-				stateMachine.toStateMachine(tableDevices.items, tableVariables.items))
+	override fun onAction(action: Action) {
+		super.onAction(action)
+		action.let { it.device to it.value }
+				.let { (device, variable) -> device?.let { d -> variable?.let { v -> d to v } } }
+				//?.takeIf { (device, _) -> device.kind == DeviceKind.MCP23017 }
+				?.let { (device, variable) -> device to variable.value }
+				?.also { (device, value) ->
+					if (device.kind == DeviceKind.MCP23017 && device.key.toInt() < 32) listOf(btn00, btn01, btn02,
+							btn03, btn04, btn05, btn06, btn07, btn08, btn09, btn10, btn11, btn12, btn13, btn14, btn15,
+							btn16, btn17, btn18, btn19, btn20, btn21, btn22, btn23, btn24, btn25)
+							.find { it.id == "btn%02d".format(device.key.toInt()) }
+							?.isSelected = value.toBoolean()
+
+					if (device.kind == DeviceKind.MCP23017 && device.key.toInt() >= 32) listOf(led0, led1, led2, led3)
+							.find { it.id == "led%d".format(device.key.toInt() - 32) }
+							?.fill = if (value.toBoolean()) Color.RED else Color.BLACK
+
+					if (device.kind == DeviceKind.WS281x) listOf(rgb00, rgb01, rgb02, rgb03, rgb04, rgb05, rgb06, rgb07,
+							rgb08, rgb09, rgb10, rgb11, rgb12, rgb13, rgb14, rgb15, rgb16, rgb17, rgb18, rgb19, rgb20,
+							rgb21, rgb22, rgb23, rgb24, rgb25, rgb26, rgb27, rgb28, rgb29, rgb30, rgb31)
+							.find { it.id == "rgb%02d".format(device.key.toInt()) }
+							?.fill = value
+							.split(",")
+							.mapNotNull { it.toIntOrNull() }
+							.takeIf { it.size >= 4 }
+							?.let { (_, r, g, b) -> Color.rgb(r, g, b) }
+							?: Color.BLACK
+
+					if (device.kind == DeviceKind.LCD && device.key == LcdKey.MESSAGE.key) lcd.text = value
+							.replace("\\n", "\n")
+				}
+
 	}
 
 	private fun saveConfig() {
@@ -725,7 +716,7 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 			variables = tableVariables.items.filterNotNull()
 			devices = tableDevices.items.filterNotNull()
 			actions = tableActions.items.filterNotNull()
-			stateMachine = treeStateMachine.getStateMachine()
+			stateMachine = treeStateMachine.toStateMachine()
 		}
 
 		// Save config
@@ -751,7 +742,6 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 	}
 
 	private fun <Entry> TableColumn<Entry, String>.initEditableText(propertyName: String,
-																	itemProvider: (String) -> Entry,
 																	itemUpdater: (Entry, String) -> Unit) {
 		cellValueFactory = PropertyValueFactory<Entry, String>(propertyName)
 		cellFactory = Callback<TableColumn<Entry, String>, TableCell<Entry, String>> {
@@ -806,14 +796,7 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 		setOnEditCommit { event ->
 			event?.tableView?.items?.also { items ->
 				val item = items[event.tablePosition.row]
-				if (item == null) {
-//					while (items.remove(null)) {
-//					}
-//					event.newValue?.also { items.add(itemProvider(it)) }
-//					items.add(null)
-				} else {
-					itemUpdater(item, event.newValue)
-				}
+				if (item != null) itemUpdater(item, event.newValue)
 				saveConfig()
 			}
 		}
@@ -823,14 +806,8 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 																		 itemsProvider: (Entry?) -> Array<Type>,
 																		 toString: (Type?) -> String,
 																		 fromString: (String?) -> Type?,
-																		 itemProvider: (Type) -> Entry,
 																		 itemUpdater: (Entry, Type) -> Unit) {
 		cellValueFactory = PropertyValueFactory<Entry, Type>(propertyName)
-//		cellFactory = ComboBoxTableCell.forTableColumn(object : StringConverter<Type>() {
-//			override fun toString(item: Type): String = toString(item)
-//			override fun fromString(string: String?): Type? = fromString(string)
-//		}, *itemsProvider())
-
 		cellFactory = Callback<TableColumn<Entry, Type>, TableCell<Entry, Type>> {
 			object : TableCell<Entry, Type>() {
 				private var comboBox: ComboBox<Type>? = null
@@ -888,14 +865,7 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 		setOnEditCommit { event ->
 			event?.tableView?.items?.also { items ->
 				val item = items[event.tablePosition.row]
-				if (item == null) {
-//					while (items.remove(null)) {
-//					}
-//					event.newValue?.also { items.add(itemProvider(it)) }
-//					items.add(null)
-				} else {
-					itemUpdater(item, event.newValue)
-				}
+				if (item != null) itemUpdater(item, event.newValue)
 				saveConfig()
 			}
 		}
@@ -904,7 +874,7 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 	private fun TableColumn<Variable, String>.initEditableVariableValue(propertyName: String,
 																		itemUpdater: (Variable) -> Unit) {
 		cellValueFactory = PropertyValueFactory<Variable, String>(propertyName)
-		cellFactory = Callback<TableColumn<Variable, String>, TableCell<Variable, String>> {
+		cellFactory = Callback<TableColumn<Variable, String>, TableCell<Variable, String>> { _ ->
 			object : TableCell<Variable, String>() {
 				private var checkBox: CheckBox? = null
 				private var textField: TextField? = null
@@ -1057,7 +1027,7 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 	}
 
 	private fun TreeView<StateMachineItem>.initEditable() {
-		cellFactory = Callback<TreeView<StateMachineItem>, TreeCell<StateMachineItem>> {
+		cellFactory = Callback<TreeView<StateMachineItem>, TreeCell<StateMachineItem>> { _ ->
 			object : TreeCell<StateMachineItem>() {
 				private var textField: TextField? = null
 				private var hBox: HBox? = null
@@ -1148,7 +1118,6 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 							is Action -> {
 								comboBox2 = ComboBox()
 								comboBox1 = ComboBox(FXCollections.observableArrayList(tableDevices.items
-										.map { it }
 										.toMutableList()
 										.apply { add(Device("GOTO", DeviceKind.VIRTUAL, "goto")) }
 										.filter { it.kind != DeviceKind.MCP23017 || it.key.toInt() >= 32 }))
@@ -1157,7 +1126,6 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 												if (oldValue == null || oldValue.type != newValue?.type) {
 													comboBox2?.items?.clear()
 													comboBox2?.items?.addAll(tableVariables.items
-															.map { it }
 															.toMutableList()
 															.apply {
 																addAll(treeStateMachine.root.children
@@ -1185,7 +1153,6 @@ class ConfigWindowController : BluetoothEmbeddedListener {
 
 					comboBox1?.focusedProperty()?.addListener { _, _, newValue -> if (newValue) save() }
 					comboBox2?.focusedProperty()?.addListener { _, _, newValue -> if (!newValue) save() }
-
 
 					val submitButton = javafx.scene.control.Button("Submit").apply {
 						setOnAction {
