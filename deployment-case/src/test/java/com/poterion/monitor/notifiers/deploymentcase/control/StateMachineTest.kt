@@ -43,7 +43,7 @@ class StateMachineTest {
 
 	@Test
 	fun toByteArray() {
-		val stateMachineBin = testData!!.stateMachine!!.toByteArray()
+		val stateMachineBin = testData!!.stateMachine!!.toData().toByteArray()
 		val stateMachineDump = dumpBinary(stateMachineBin).split("\n")
 		InputStreamReader(StateMachineTest::class.java.getResourceAsStream("/sample-state-machine.bin"))
 				.useLines { lines ->
@@ -60,11 +60,15 @@ class StateMachineTest {
 
 	@Test
 	fun toStateMachine() {
-		val stateMachine = testData!!.stateMachine!!.toByteArray().toStateMachine()
+		val stateMachine = testData!!.stateMachine!!
+				.toData()
+				.toByteArray()
+				.toIntList()
+				.toStateMachine(testData!!.devices!!, testData!!.variables!!)
 
 		assertStateMachine(testData!!.stateMachine!!, stateMachine)
 
-		val stateMachineBin = stateMachine.toByteArray()
+		val stateMachineBin = stateMachine.toData().toByteArray()
 		val stateMachineDump = dumpBinary(stateMachineBin).split("\n")
 		InputStreamReader(StateMachineTest::class.java.getResourceAsStream("/sample-state-machine.bin"))
 				.useLines { lines ->

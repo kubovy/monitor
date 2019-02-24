@@ -1,9 +1,15 @@
 package com.poterion.monitor.api.communication
 
 /**
+ * Bluetooth listener interface.
+ *
  * @author Jan Kubovy <jan@kubovy.eu>
  */
 interface BluetoothEmbeddedListener {
+	/** On connecting callback */
+	fun onConnecting() {
+	}
+
 	/** On connection established callback */
 	fun onConnect() {
 	}
@@ -15,15 +21,8 @@ interface BluetoothEmbeddedListener {
 	/**
 	 * On message callback
 	 *
-	 * @param kind Message kind
 	 * @param message Received message
 	 */
-	fun onMessage(kind: BluetoothMessageKind, message: ByteArray) {
-	}
-
-	fun onProgress(progress: Int, count: Int, disable: Boolean) {
-	}
-
-	fun onStateMachine(stateMachine: ByteArray) {
+	fun onMessage(message: ByteArray) {
 	}
 }

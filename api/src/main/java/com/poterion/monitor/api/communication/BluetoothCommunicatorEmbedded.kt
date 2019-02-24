@@ -6,24 +6,28 @@ import org.slf4j.LoggerFactory
 import java.io.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
-import javax.bluetooth.UUID
 import javax.microedition.io.Connector
 import javax.microedition.io.StreamConnection
 
 /**
+ * Bluetooth communicator, embedded version.
+ *
+ * @param address Address of the target bluetooth device to connect to.
+ * @param shouldConnect Whether connection should be established or not.
+ *
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-class BluetoothCommunicatorEmbedded(private var address: String, var shouldConnect: Boolean) {
+class BluetoothCommunicatorEmbedded(private var address: String,
+									var shouldConnect: Boolean) {
 
 	companion object {
-		val LOGGER: Logger = LoggerFactory.getLogger(BluetoothCommunicatorEmbedded::class.java)
+		private val LOGGER: Logger = LoggerFactory.getLogger(BluetoothCommunicatorEmbedded::class.java)
 	}
 
 	private val url: String
 		get() = "btspp://${address.replace(":", "")}:6;authenticate=false;encrypt=false;master=false"
 
 	private val messageQueue: ConcurrentLinkedQueue<ByteArray> = ConcurrentLinkedQueue()
-	private var messageQueueProgressSize = 0
 	private val chksumQueue: ConcurrentLinkedQueue<Byte> = ConcurrentLinkedQueue()
 	private var lastChecksum: Int? = null
 	private val listeners = mutableListOf<BluetoothEmbeddedListener>()
@@ -41,9 +45,10 @@ class BluetoothCommunicatorEmbedded(private var address: String, var shouldConne
 	private var connectorThread: Thread? = null
 	private var inboundThread: Thread? = null
 	private var outboundThread: Thread? = null
-	private var stateMachineBuffer: ByteArray = ByteArray(32_768)
 
+	/** Whether the target bluetooth device is connected or not. */
 	var isConnected = false
+		private set
 
 	//private val interrupted: AtomicBoolean = AtomicBoolean(false)
 
@@ -60,7 +65,7 @@ class BluetoothCommunicatorEmbedded(private var address: String, var shouldConne
 
 			while (streamConnection == null) try {
 				//Create a UUID for SPP
-				val uuid = UUID("1101", true) // 1101
+				//val uuid = UUID("1101", true) // 1101
 				//open server url
 				streamConnection = Connector.open(url) as StreamConnection //StreamConnectionNotifier //StreamConnection
 				isConnected = true
@@ -77,7 +82,6 @@ class BluetoothCommunicatorEmbedded(private var address: String, var shouldConne
 				outputStream = streamConnection?.openOutputStream()
 				inputStream = streamConnection?.openInputStream()
 				isConnected = true
-				listeners.forEach { Platform.runLater(it::onConnect) }
 
 				inboundThread?.takeIf { !it.isInterrupted }?.interrupt()
 				outboundThread?.takeIf { !it.isInterrupted }?.interrupt()
@@ -87,7 +91,7 @@ class BluetoothCommunicatorEmbedded(private var address: String, var shouldConne
 
 				inboundExecutor.execute(inboundThread)
 				outboundExecutor.execute(outboundThread)
-				listeners.forEach { Platform.runLater { it.onProgress(0, 0, false) } }
+				listeners.forEach { Platform.runLater(it::onConnect) }
 			} catch (e: IOException) {
 				LOGGER.error(e.message, e)
 				Thread.sleep(10_000L)
@@ -111,7 +115,6 @@ class BluetoothCommunicatorEmbedded(private var address: String, var shouldConne
 						outputStream?.flush()
 						LOGGER.debug("ACK CRC: ${"0x%02X".format(chksum)}")
 					} else if (messageQueue.isNotEmpty()) {
-						if (messageQueueProgressSize < messageQueue.size) messageQueueProgressSize = messageQueue.size
 						val message = messageQueue.peek()
 						var correctlyReceived = false
 						var retries = 0
@@ -134,8 +137,6 @@ class BluetoothCommunicatorEmbedded(private var address: String, var shouldConne
 						if (correctlyReceived) {
 							messageQueue.poll()
 							Thread.sleep(1_000L)
-							listeners.forEach { Platform.runLater { it.onProgress(messageQueueProgressSize - messageQueue.size, messageQueueProgressSize, false) } }
-							if (messageQueueProgressSize == messageQueue.size) messageQueueProgressSize = 0
 							lastChecksum = null
 						}
 					}
@@ -169,61 +170,10 @@ class BluetoothCommunicatorEmbedded(private var address: String, var shouldConne
 
 						when (messageKind) {
 							BluetoothMessageKind.CRC -> lastChecksum = (buffer[2].toInt() and 0xFF)
-							BluetoothMessageKind.PUSH_STATE_MACHINE -> {
-								val length = ((buffer[2].toInt() shl 8) and 0xFF00) or (buffer[3].toInt() and 0xFF)
-								val addr = ((buffer[4].toInt() shl 8) and 0xFF00) or (buffer[5].toInt() and 0xFF)
-								if (addr == 0) (0 until stateMachineBuffer.size)
-										.forEach { stateMachineBuffer[it] = 0xFF.toByte() }
-
-								(0 until (read - 6)).forEach {
-									stateMachineBuffer[it + addr] = buffer[it + 6]
-								}
-
-								listeners.forEach { Platform.runLater { it.onProgress(addr + read - 6, length, true) } }
-								LOGGER.debug("State Machine address: 0x%02X - 0x%02X, size: %d bytes, transfered: %d bytes, total: %d bytes"
-										.format(addr, addr + read - 7, read - 6, addr + read - 6, length))
-
-								if (addr + read - 6 == length) listeners
-										.forEach { Platform.runLater { it.onStateMachine(stateMachineBuffer) } }
-
-								BufferedWriter(FileWriter("sm.bin")).use { writer ->
-									var chars = ""
-									stateMachineBuffer.forEachIndexed { i, b ->
-										if (i % 8 == 0) writer.write("%04x: ".format(i))
-										chars += if (b in 32..126) b.toChar() else '.'
-										writer.write("0x%02X%s".format(b, if (b > 255) "!" else " "))
-										if (i % 8 == 7) {
-											writer.write(" ${chars} |\n")
-											chars = ""
-										}
-									}
-								}
-							}
-							BluetoothMessageKind.SET_VALUE -> {
-								val length = buffer[2].toInt() and 0xFF
-								(0 until length).forEach {
-
-								}
-							}
 							else -> {
+								listeners.forEach { it.onMessage(buffer.copyOfRange(0, read)) }
 							}
 						}
-//						else -> {
-						//						val lengthUpper = inputStream?.read() ?: 0
-						//						val lengthLower = inputStream?.read() ?: 0
-						//						val length = lengthUpper * 256 + lengthLower
-						//						val message = ByteArray(length)
-						//						inputStream?.read(message)
-						//						val checksum = message.calculateChecksum()
-						//						messageQueue.add(listOf(BluetoothMessageKind.CRC.byteCode, checksum).toByteArray())
-						//
-						//						LOGGER.info("Inbound[${"0x%02X".format(messageKind)}]:" +
-						//								" ${message.map { "0x%02X".format(it) }.joinToString(" ")}" +
-						//								" \"${message.map { if (it in 32..126) it.toChar() else '.' }}\"" +
-						//								" (checksum: ${"0x%02X".format(checksum)})")
-						//
-						//						listeners.forEach { it.onMessage(messageKind, message) }
-//						}
 					}
 				}
 			}
@@ -233,9 +183,14 @@ class BluetoothCommunicatorEmbedded(private var address: String, var shouldConne
 		disconnect()
 	}
 
+	/**
+	 * Connect to a bluetooth device.
+	 *
+	 * @param address Address of the target device. Optional, overrides the cached value.
+	 */
 	fun connect(address: String? = null) {
 		if (shouldConnect && (address == null || address != this.address || !isConnected)) {
-			listeners.forEach { Platform.runLater { it.onProgress(-1, 0, false) } }
+			listeners.forEach { Platform.runLater(it::onConnecting) }
 			if (address != null) this.address = address
 			if (connectorThread?.isAlive != true) {
 				connectorThread = Thread(connectorRunnable)
@@ -244,8 +199,8 @@ class BluetoothCommunicatorEmbedded(private var address: String, var shouldConne
 		}
 	}
 
+	/** Disconnects from a bluetooth device. */
 	fun disconnect() {
-		//isChanging = true
 		LOGGER.debug("Disconnecting from ${address}...")
 		listeners.forEach { Platform.runLater(it::onDisconnect) }
 		try {
@@ -264,10 +219,15 @@ class BluetoothCommunicatorEmbedded(private var address: String, var shouldConne
 			//set false and change bluetooth label to alert the entire program
 			isConnected = false
 		}
-		//isChanging = false
 	}
 
-	fun send(kind: BluetoothMessageKind, message: ByteArray = emptyArray<Byte>().toByteArray()) = message
+	/**
+	 * Queues a new message to be sent to target bluetooth device.
+	 *
+	 * @param kind Message kind.
+	 * @param message Message.
+	 */
+	fun send(kind: MessageKind, message: ByteArray = emptyArray<Byte>().toByteArray()) = message
 			.let { data ->
 				ByteArray(data.size + 1) { i ->
 					when (i) {
@@ -276,14 +236,20 @@ class BluetoothCommunicatorEmbedded(private var address: String, var shouldConne
 					}
 				}.also { messageQueue.offer(it) }
 			}
-			.also { listeners.forEach { Platform.runLater { it.onProgress(-1, 1, false) } } }
 
+	/**
+	 * Register a new bluetooth listener.
+	 *
+	 * @param listener Listener to register.
+	 */
 	fun register(listener: BluetoothEmbeddedListener) {
 		if (!listeners.contains(listener)) listeners.add(listener)
 	}
 
+	/**
+	 * Unregister an existing bluetooth listener.
+	 *
+	 * @param listener Listener to unregister.
+	 */
 	fun unregister(listener: BluetoothEmbeddedListener) = listeners.remove(listener)
-
-	private fun ByteArray.calculateChecksum() = (map { it.toInt() }.takeIf { it.isNotEmpty() }?.reduce { acc, i -> acc + i }
-			?: 0) and 0xFF
 }

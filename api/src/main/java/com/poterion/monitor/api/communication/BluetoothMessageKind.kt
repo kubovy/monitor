@@ -1,16 +1,20 @@
 package com.poterion.monitor.api.communication
 
-enum class BluetoothMessageKind(var code: Int) {
+/**
+ * Bluetooth message kind.
+ *
+ * @param code Code of the message type.
+ * @author Jan Kubovy <jan@kubovy.eu>
+ */
+enum class BluetoothMessageKind(override var code: Int): MessageKind {
+	/** Cyclic redundancy check message */
 	CRC(0x00),
+	/** ID of device message */
 	IDD(0x01),
-	PULL_STATE_MACHINE(0x80),
-	PUSH_STATE_MACHINE(0x81),
-	VALUE_CHANGED(0x82),
-	SET_VALUE(0x83),
-	GET_STATE(0x84),
-	CURRENT_STATE(0x85),
+	/** Plain message */
 	PLAIN(0xFE),
+	/** Unknown message */
 	UNKNOWN(0xFF);
 
-	val byteCode = code.toByte()
+	override val byteCode = code.toByte()
 }
