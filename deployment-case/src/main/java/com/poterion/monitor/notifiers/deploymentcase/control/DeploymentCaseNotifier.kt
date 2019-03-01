@@ -123,6 +123,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 					config.configurations
 							.find { it.stateMachine.toData().toByteArray().calculateChecksum() == receivedChecksum }
 							?.isActive = true
+					controller.saveConfig()
 				} else if (receivedChecksum != calculatedChecksum) { // Selected state machine does not match
 					config.configurations
 							.find { it.isActive }
@@ -179,7 +180,8 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		}
 	}
 
-	internal fun sendStateMachine(stateMachine: List<State>) = stateMachine.toData()
+	internal fun sendStateMachine(stateMachine: List<State>) = stateMachine
+			.toData()
 			.toByteArray()
 			.toList()
 			.chunked(61)

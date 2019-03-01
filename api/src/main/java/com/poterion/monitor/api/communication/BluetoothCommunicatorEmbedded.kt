@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory
 import java.io.*
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
+import javax.bluetooth.DiscoveryAgent
+import javax.bluetooth.LocalDevice
 import javax.microedition.io.Connector
 import javax.microedition.io.StreamConnection
 
@@ -49,6 +51,8 @@ class BluetoothCommunicatorEmbedded(private var address: String,
 	/** Whether the target bluetooth device is connected or not. */
 	var isConnected = false
 		private set
+	var isConnecting = false
+		private set
 
 	//private val interrupted: AtomicBoolean = AtomicBoolean(false)
 
@@ -63,12 +67,11 @@ class BluetoothCommunicatorEmbedded(private var address: String,
 			inboundThread?.takeIf { it.isAlive }?.interrupt()
 			outboundThread?.takeIf { it.isAlive }?.interrupt()
 
-			while (streamConnection == null) try {
+			while (streamConnection == null && isConnecting) try {
 				//Create a UUID for SPP
 				//val uuid = UUID("1101", true) // 1101
 				//open server url
 				streamConnection = Connector.open(url) as StreamConnection //StreamConnectionNotifier //StreamConnection
-				isConnected = true
 
 				//Wait for client connection
 				println("\nServer Started. Waiting for clients to connect...")
@@ -82,6 +85,7 @@ class BluetoothCommunicatorEmbedded(private var address: String,
 				outputStream = streamConnection?.openOutputStream()
 				inputStream = streamConnection?.openInputStream()
 				isConnected = true
+				isConnecting = false
 
 				inboundThread?.takeIf { !it.isInterrupted }?.interrupt()
 				outboundThread?.takeIf { !it.isInterrupted }?.interrupt()
@@ -183,13 +187,23 @@ class BluetoothCommunicatorEmbedded(private var address: String,
 		disconnect()
 	}
 
+	fun devices() = LocalDevice
+			.getLocalDevice()
+			.discoveryAgent
+			.retrieveDevices(DiscoveryAgent.PREKNOWN)
+			//.retrieveDevices(DiscoveryAgent.CACHED)
+			.toList()
+			.map { it.getFriendlyName(false) to it.bluetoothAddress }
+
 	/**
 	 * Connect to a bluetooth device.
 	 *
 	 * @param address Address of the target device. Optional, overrides the cached value.
 	 */
 	fun connect(address: String? = null) {
-		if (shouldConnect && (address == null || address != this.address || !isConnected)) {
+		if (shouldConnect && (address == null && !isConnected || address != null && address != this.address)) {
+			if (isConnected) disconnect()
+			isConnecting = true
 			listeners.forEach { Platform.runLater(it::onConnecting) }
 			if (address != null) this.address = address
 			if (connectorThread?.isAlive != true) {
@@ -219,6 +233,11 @@ class BluetoothCommunicatorEmbedded(private var address: String,
 			//set false and change bluetooth label to alert the entire program
 			isConnected = false
 		}
+	}
+
+	fun cancel() {
+		isConnecting = false
+		listeners.forEach { Platform.runLater(it::onDisconnect) }
 	}
 
 	/**

@@ -1,5 +1,6 @@
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
+import com.poterion.monitor.api.communication.BluetoothCommunicatorEmbedded
 import com.poterion.monitor.api.communication.BluetoothEmbeddedListener
 import com.poterion.monitor.notifiers.deploymentcase.*
 import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageKind
@@ -28,9 +29,8 @@ import javafx.util.StringConverter
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-
 /**
- * Deployment case configuration window controller.
+ * Deployment case configuration window notifier.
  *
  * @author Jan Kubovy <jan@kubovy.eu>
  */
@@ -45,15 +45,30 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 						.let { it.load<Parent>() to it.getController<ConfigWindowController>() }
 						.let { (root, ctrl) ->
 							ctrl.config = config
-							ctrl.controller = controller
+							ctrl.notifier = controller
 							ctrl.load()
 							root
 						}
 	}
 
 	@FXML private lateinit var rootPane: SplitPane
-	@FXML private lateinit var textBluetoothAddress: TextField
+	@FXML private lateinit var comboBluetoothAddress: ComboBox<Pair<String, String>>
 	@FXML private lateinit var listConfigurations: ListView<Configuration>
+
+	@FXML private lateinit var tabPane: TabPane
+	@FXML private lateinit var tabLayout: Tab
+	@FXML private lateinit var tabConfiguration: Tab
+	@FXML private lateinit var tabVariables: Tab
+	@FXML private lateinit var tabDevices: Tab
+	@FXML private lateinit var tabActions: Tab
+	@FXML private lateinit var tabStateMachine: Tab
+	@FXML private lateinit var tabLog: Tab
+
+	@FXML private lateinit var btnPull: Button
+	@FXML private lateinit var btnPush: Button
+	@FXML private lateinit var btnClear: Button
+	@FXML private lateinit var btnLcdReset: Button
+	@FXML private lateinit var btnReconnect: Button
 
 	@FXML private lateinit var lcd: TextArea
 	@FXML private lateinit var led0: Circle
@@ -159,13 +174,26 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 	@FXML private lateinit var additionalButtons: HBox
 
 	private var config: DeploymentCaseConfig? = null
-	private var controller: DeploymentCaseNotifier? = null
+	private var notifier: DeploymentCaseNotifier? = null
 	private var clipboardStateMachineItem: TreeItem<StateMachineItem>? = null
 
 	@FXML
 	fun initialize() {
 		additionalButtons.children.clear()
-		textBluetoothAddress.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
+		comboBluetoothAddress.converter = object : StringConverter<Pair<String, String>>() {
+			override fun toString(device: Pair<String, String>?): String = device
+					?.let { (name, addr) -> "${name} [${addr}]" }
+					?: ""
+
+			override fun fromString(string: String?): Pair<String, String>? = string
+					?.let { "(.*) \\[([0-9a-fA-F:]+)]".toRegex().find(it) }
+					?.let { it.groupValues[1] to it.groupValues[2] }
+		}
+		comboBluetoothAddress.focusedProperty().addListener { _, _, focuesed -> if (!focuesed) saveConfig() }
+		comboBluetoothAddress.selectionModel.selectedItemProperty().addListener { _, _, selected ->
+			config?.deviceAddress = selected.second
+			saveConfig()
+		}
 		listConfigurations.apply {
 			setCellFactory {
 				object : ListCell<Configuration>() {
@@ -177,6 +205,10 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 				}
 			}
 			selectionModel.selectedItemProperty().addListener { _, _, configuration ->
+				treeStateMachine.isShowRoot = false
+				treeStateMachine.root = TreeItem<StateMachineItem>(Placeholder())
+				treeStateMachine.setStateMachine(configuration.stateMachine)
+
 				checkboxActive.isSelected = configuration.isActive
 				textName.text = configuration.name
 				comboboxMethod.selectionModel.select(configuration.method)
@@ -208,10 +240,6 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 				tableActions.items.clear()
 				tableActions.items.addAll(configuration.actions)
 				//tableActions.items.add(null)
-
-				treeStateMachine.isShowRoot = false
-				treeStateMachine.root = TreeItem<StateMachineItem>(Placeholder())
-				treeStateMachine.setStateMachine(configuration.stateMachine)
 			}
 		}
 
@@ -223,7 +251,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 				listConfigurations.items
 						.filter { it != listConfigurations.selectionModel.selectedItem }
 						.forEach { it.isActive = false }
-				selectedConfig?.also { controller?.sendStateMachine(it.stateMachine) }
+				selectedConfig?.also { notifier?.sendStateMachine(it.stateMachine) }
 			}
 			selectedConfig?.isActive = selected
 			saveConfig()
@@ -300,7 +328,19 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 	}
 
 	private fun load() {
-		textBluetoothAddress.text = config?.deviceAddress ?: ""
+		val remoteDevices = notifier?.communicator
+				?.takeIf { notifier?.controller?.config?.btDiscovery == true }
+				?.devices()
+				?.toMutableList()
+				?: mutableListOf()
+		config?.deviceAddress
+				?.takeIf { addr -> remoteDevices.none { (_, a) -> a == addr } }
+				?.also { addr -> remoteDevices.add("" to addr) }
+		comboBluetoothAddress.items.clear()
+		comboBluetoothAddress.items.addAll(remoteDevices)
+		remoteDevices.find { (_, addr) -> addr == config?.deviceAddress }
+				?.also { comboBluetoothAddress.selectionModel.select(it) }
+
 		comboboxName.items.clear()
 		comboboxValue.items.clear()
 		listConfigurations.items.clear()
@@ -310,12 +350,9 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 		if (listConfigurations.items.isNotEmpty()) listConfigurations.selectionModel.select(0)
 
 		// Status
-		iconConnected.image = Image(
-				if (controller?.communicator?.isConnected == true) DeploymentCaseIcon.CONNECTED.inputStream
-				else DeploymentCaseIcon.DISCONNECTED.inputStream)
-
-		controller?.communicator?.register(this)
-		controller?.register(this)
+		updateConnected()
+		notifier?.communicator?.register(this)
+		notifier?.register(this)
 	}
 
 	@FXML
@@ -341,13 +378,13 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 	@FXML
 	fun onPull() {
 		rootPane.isDisable = true
-		controller?.communicator?.send(DeploymentCaseMessageKind.PULL_STATE_MACHINE)
+		notifier?.communicator?.send(DeploymentCaseMessageKind.PULL_STATE_MACHINE)
 	}
 
 	@FXML
 	fun onPush() {
 		rootPane.isDisable = true
-		controller?.sendStateMachine(treeStateMachine.toStateMachine())
+		notifier?.sendStateMachine(treeStateMachine.toStateMachine())
 	}
 
 	@FXML
@@ -357,7 +394,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 
 	@FXML
 	fun onResetLCD() {
-		controller?.communicator?.send(DeploymentCaseMessageKind.SET_STATE,
+		notifier?.communicator?.send(DeploymentCaseMessageKind.SET_STATE,
 				Action(device = Device(kind = DeviceKind.LCD, key = LcdKey.RESET.key),
 						value = Variable(type = VariableType.BOOLEAN, value = true.toString()))
 						.toData(treeStateMachine.toStateMachine())
@@ -367,8 +404,13 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 
 	@FXML
 	fun onReconnect() {
-		controller?.communicator?.disconnect()
-		controller?.communicator?.connect()
+		notifier?.communicator?.also { communicator ->
+			when {
+				communicator.isConnected -> communicator.disconnect()
+				communicator.isConnecting -> communicator.cancel()
+				else -> communicator.connect(config?.deviceAddress)
+			}
+		}
 	}
 
 	@FXML
@@ -384,7 +426,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 		while (comboboxValue.items.size > 20) comboboxValue.items.removeAt(comboboxValue.items.size - 1)
 
 		LOGGER.debug("Message: ${type},${name},${value}")
-		//controller?.communicator?.send("${type},${name},${value}")
+		//notifier?.communicator?.send("${type},${name},${value}")
 		saveConfig()
 	}
 
@@ -410,7 +452,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 						.map { it.toData(treeStateMachine.toStateMachine()).toByteArray() }
 						.reduce { acc, bytes -> acc.plus(bytes) }
 						.let { byteArrayOf(2).plus(it) }
-				controller?.communicator?.send(DeploymentCaseMessageKind.SET_STATE, data)
+				notifier?.communicator?.send(DeploymentCaseMessageKind.SET_STATE, data)
 			} else if (id.startsWith("btn")) {
 				val data = Device(kind = DeviceKind.MCP23017, key = "${id.substring(3, 5).toInt()}")
 						.let { device -> device to (event.source as? ToggleButton)?.isSelected }
@@ -418,7 +460,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 						.let { (device, value) -> Action(device = device, value = value) }
 						.let { it.toData(treeStateMachine.toStateMachine()).toByteArray() }
 						.let { byteArrayOf(1).plus(it) }
-				controller?.communicator?.send(DeploymentCaseMessageKind.SET_STATE, data)
+				notifier?.communicator?.send(DeploymentCaseMessageKind.SET_STATE, data)
 			}
 		}
 	}
@@ -631,22 +673,18 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 
 	override fun onConnecting() {
 		super.onConnecting()
+		updateConnected()
 		progress.progress = ProgressIndicator.INDETERMINATE_PROGRESS
-		iconConnected.image = Image(DeploymentCaseIcon.DISCONNECTED.inputStream)
 	}
 
 	override fun onConnect() {
 		super.onConnect()
-		progress.progress = 0.0
-		rootPane.isDisable = false
-		iconConnected.image = Image(DeploymentCaseIcon.CONNECTED.inputStream)
+		updateConnected()
 	}
 
 	override fun onDisconnect() {
 		super.onDisconnect()
-		progress.progress = 0.0
-		rootPane.isDisable = false
-		iconConnected.image = Image(DeploymentCaseIcon.DISCONNECTED.inputStream)
+		updateConnected()
 	}
 
 	override fun onMessage(message: ByteArray) {
@@ -702,9 +740,32 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 
 	}
 
+	private fun updateConnected() {
+		val connected = notifier?.communicator?.isConnected == true
+		val connecting = notifier?.communicator?.isConnecting == true
+		progress.progress = 0.0
+		rootPane.isDisable = false
+
+		val icon = if (connected) DeploymentCaseIcon.CONNECTED else DeploymentCaseIcon.DISCONNECTED
+		iconConnected.image = Image(icon.inputStream)
+
+		progress.progress = 0.0
+		rootPane.isDisable = false
+		iconConnected.image = Image(DeploymentCaseIcon.DISCONNECTED.inputStream)
+
+		tabLayout.isDisable = !connected
+		if (tabPane.selectionModel.selectedIndex == 0 && !connected) tabPane.selectionModel.select(1)
+		tabPane.tabs.remove(tabActions)
+		btnPull.isDisable = !connected
+		btnPush.isDisable = !connected
+		btnLcdReset.isDisable = !connected
+
+		btnReconnect.text = if (connected) "Disconnect [F5]" else if (connecting) "Cancel [F5]" else "Connect [F5]"
+	}
+
 	private fun saveConfig() {
 		// Save selected configuration
-		listConfigurations.selectionModel.selectedItem.apply {
+		listConfigurations.selectionModel.selectedItem?.apply {
 			isActive = checkboxActive.isSelected
 			name = textName.text
 			method = comboboxMethod.selectionModel.selectedItem
@@ -720,13 +781,13 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 		}
 
 		// Save config
-		config?.deviceAddress = textBluetoothAddress.text ?: ""
+		config?.deviceAddress = comboBluetoothAddress.selectionModel.selectedItem?.second ?: ""
 		config?.testNameHistory = comboboxName.items
 		config?.testValueHistory = comboboxValue.items
 		config?.configurations = listConfigurations.items
 
-		controller?.controller?.saveConfig()
-		controller?.communicator?.connect(config?.deviceAddress)
+		notifier?.controller?.saveConfig()
+		notifier?.communicator?.takeIf(BluetoothCommunicatorEmbedded::isConnected)?.connect(config?.deviceAddress)
 	}
 
 	private fun <Entry, Type> TableColumn<Entry, Type>.init(propertyName: String, transformer: (Type?) -> String) {
