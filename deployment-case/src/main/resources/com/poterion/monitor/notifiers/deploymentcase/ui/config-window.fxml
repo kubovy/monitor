@@ -31,11 +31,11 @@
 <?import javafx.scene.shape.Circle?>
 <?import javafx.scene.text.Font?>
 
-<SplitPane fx:id="rootPane" centerShape="false" dividerPositions="0.2" onKeyPressed="#onKeyPressed" prefHeight="580.0" prefWidth="801.0" scaleShape="false" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController">
+<SplitPane fx:id="rootPane" centerShape="false" dividerPositions="0.2" onKeyPressed="#onKeyPressed" prefHeight="580.0" prefWidth="1036.0" scaleShape="false" xmlns="http://javafx.com/javafx/8.0.191" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController">
 	<items>
 		<VBox maxWidth="1.7976931348623157E308">
 			<children>
-				<TextField fx:id="textBluetoothAddress" maxHeight="1.7976931348623157E308" promptText="00:00:00:00:00:00" />
+            <ComboBox fx:id="comboBluetoothAddress" editable="true" maxWidth="1.7976931348623157E308" promptText="00:00:00:00:00:00" />
 				<ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS">
 					<content>
 						<ListView fx:id="listConfigurations" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" />
@@ -51,9 +51,9 @@
 		</VBox>
 		<VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
 			<children>
-				<TabPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" side="RIGHT" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
+				<TabPane fx:id="tabPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" side="RIGHT" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
 					<tabs>
-                  <Tab text="Layout">
+                  <Tab fx:id="tabLayout" text="Layout">
                     <content>
                       <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
                            <children>
@@ -212,7 +212,7 @@
                         </AnchorPane>
                     </content>
                   </Tab>
-						<Tab closable="false" text="Configuration">
+						<Tab fx:id="tabConfiguration" closable="false" text="Configuration">
 							<content>
 								<VBox>
 									<children>
@@ -313,7 +313,7 @@
 								</VBox>
 							</content>
 						</Tab>
-						<Tab closable="false" text="Variables">
+						<Tab fx:id="tabVariables" closable="false" text="Variables">
 							<content>
 								<AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
 									<children>
@@ -331,7 +331,7 @@
 								</AnchorPane>
 							</content>
 						</Tab>
-						<Tab closable="false" text="Devices">
+						<Tab fx:id="tabDevices" closable="false" text="Devices">
 							<content>
 								<AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
 									<children>
@@ -349,7 +349,7 @@
 								</AnchorPane>
 							</content>
 						</Tab>
-                  <Tab closable="false" disable="true" text="Actions">
+                  <Tab fx:id="tabActions" closable="false" disable="true" text="Actions">
                     <content>
                       <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
                            <children>
@@ -367,7 +367,7 @@
                         </AnchorPane>
                     </content>
                   </Tab>
-						<Tab closable="false" text="State Machine">
+						<Tab fx:id="tabStateMachine" closable="false" text="State Machine">
 							<content>
 								<AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
                            <children>
@@ -376,7 +376,7 @@
 								</AnchorPane>
 							</content>
 						</Tab>
-						<Tab closable="false" text="Log">
+						<Tab fx:id="tabLog" closable="false" text="Log">
 							<content>
 								<AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
 									<children>
@@ -392,11 +392,11 @@
 						<ImageView fx:id="iconConnected" fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true" />
                   <ProgressBar fx:id="progress" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" progress="0.0" HBox.hgrow="ALWAYS" />
                   <HBox fx:id="additionalButtons" alignment="CENTER_RIGHT" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS" />
-						<Button mnemonicParsing="false" onAction="#onPull" text="Pull [F2]" />
-						<Button mnemonicParsing="false" onAction="#onPush" text="Push [F3]" />
-						<Button mnemonicParsing="false" onAction="#onClear" text="Clear [F8]" />
-						<Button mnemonicParsing="false" onAction="#onResetLCD" text="LCD Reset" />
-						<Button mnemonicParsing="false" onAction="#onReconnect" text="Reconnect [F5]" />
+						<Button fx:id="btnPull" mnemonicParsing="false" onAction="#onPull" text="Pull [F2]" />
+						<Button fx:id="btnPush" mnemonicParsing="false" onAction="#onPush" text="Push [F3]" />
+						<Button fx:id="btnClear" mnemonicParsing="false" onAction="#onClear" text="Clear [F8]" />
+						<Button fx:id="btnLcdReset" mnemonicParsing="false" onAction="#onResetLCD" text="LCD Reset" />
+						<Button fx:id="btnReconnect" mnemonicParsing="false" onAction="#onReconnect" text="Reconnect [F5]" />
 					</children>
 				</HBox>
 			</children>
