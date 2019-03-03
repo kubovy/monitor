@@ -12,4 +12,6 @@ data class Evaluation(var conditions: List<Condition> = listOf(),
 	override val icon: DeploymentCaseIcon?
 		@JsonIgnore
 		get() = DeploymentCaseIcon.EVALUATION
+
+	override fun isBinarySame(other: StateMachineItem): Boolean = true
 }

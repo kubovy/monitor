@@ -6,6 +6,7 @@ import com.poterion.monitor.notifiers.raspiw2812.RaspiW2812Module
 import com.poterion.monitor.notifiers.tray.SystemTrayModule
 import com.poterion.monitor.sensors.jenkins.JenkinsModule
 import com.poterion.monitor.sensors.sonar.SonarModule
+import com.poterion.monitor.ui.ConfigurationController
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.stage.Stage
@@ -65,6 +66,7 @@ class Main : Application() {
 			registerModule(SystemTrayModule)
 		}
 		controller.start()
+		if (controller.config.showOnStartup) ConfigurationController.create(controller)
 	}
 }
 

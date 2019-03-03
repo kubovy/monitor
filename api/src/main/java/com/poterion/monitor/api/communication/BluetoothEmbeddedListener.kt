@@ -25,4 +25,12 @@ interface BluetoothEmbeddedListener {
 	 */
 	fun onMessage(message: ByteArray) {
 	}
+
+	/**
+	 * On message sent callback.
+	 *
+	 * @param remaining Remaining message count in the queue.
+	 */
+	fun onMessageSent(remaining: Int) {
+	}
 }

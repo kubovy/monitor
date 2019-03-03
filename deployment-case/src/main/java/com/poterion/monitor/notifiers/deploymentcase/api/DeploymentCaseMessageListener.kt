@@ -25,4 +25,12 @@ interface DeploymentCaseMessageListener {
 	 */
 	fun onAction(action: Action) {
 	}
+
+	/**
+	 * On verification callback.
+	 *
+	 * @param verified Whether state machine was verified or not.
+	 */
+	fun onVerification(verified: Boolean) {
+	}
 }

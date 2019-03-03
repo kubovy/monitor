@@ -8,5 +8,6 @@ import com.poterion.monitor.data.services.ServiceConfig
  */
 data class Config(
 		var btDiscovery: Boolean = false,
+		var showOnStartup: Boolean = false,
 		var services: List<ServiceConfig> = emptyList(),
 		var notifiers: List<NotifierConfig> = emptyList())

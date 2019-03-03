@@ -1,37 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.CheckBox?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ListView?>
-<?import javafx.scene.control.PasswordField?>
-<?import javafx.scene.control.ProgressBar?>
-<?import javafx.scene.control.RadioButton?>
-<?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.control.Separator?>
-<?import javafx.scene.control.SplitPane?>
-<?import javafx.scene.control.Tab?>
-<?import javafx.scene.control.TabPane?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.TableView?>
-<?import javafx.scene.control.TextArea?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.control.ToggleButton?>
-<?import javafx.scene.control.ToggleGroup?>
-<?import javafx.scene.control.TreeView?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
 <?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.RowConstraints?>
-<?import javafx.scene.layout.VBox?>
-<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.*?>
 <?import javafx.scene.text.Font?>
-
-<SplitPane fx:id="rootPane" centerShape="false" dividerPositions="0.2" onKeyPressed="#onKeyPressed" prefHeight="580.0" prefWidth="1036.0" scaleShape="false" xmlns="http://javafx.com/javafx/8.0.191" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController">
+<SplitPane fx:id="rootPane" centerShape="false" dividerPositions="0.2" onKeyPressed="#onKeyPressed" prefHeight="580.0"
+		   prefWidth="1036.0" scaleShape="false" xmlns="http://javafx.com/javafx/10.0.1"
+		   xmlns:fx="http://javafx.com/fxml/1"
+		   fx:controller="com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController">
 	<items>
 		<VBox maxWidth="1.7976931348623157E308">
 			<children>
@@ -390,11 +368,16 @@
 				<HBox alignment="CENTER_RIGHT" spacing="5.0">
 					<children>
 						<ImageView fx:id="iconConnected" fitHeight="32.0" fitWidth="32.0" pickOnBounds="true" preserveRatio="true" />
+						<ImageView fx:id="iconVerified" fitHeight="32.0" fitWidth="32.0" pickOnBounds="true"
+								   preserveRatio="true"/>
                   <ProgressBar fx:id="progress" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" progress="0.0" HBox.hgrow="ALWAYS" />
                   <HBox fx:id="additionalButtons" alignment="CENTER_RIGHT" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS" />
-						<Button fx:id="btnPull" mnemonicParsing="false" onAction="#onPull" text="Pull [F2]" />
-						<Button fx:id="btnPush" mnemonicParsing="false" onAction="#onPush" text="Push [F3]" />
-						<Button fx:id="btnClear" mnemonicParsing="false" onAction="#onClear" text="Clear [F8]" />
+						<Button fx:id="btnDownload" mnemonicParsing="false" onAction="#onDownload"
+								text="Download [F2]"/>
+						<Button fx:id="btnUpload" mnemonicParsing="false" onAction="#onUpload" text="Upload [F3]"/>
+						<Button fx:id="btnSynchronize" mnemonicParsing="false" onAction="#onSynchronize"
+								text="Sync [F4]"/>
+						<Button mnemonicParsing="false" onAction="#onClear" text="Clear [F8]"/>
 						<Button fx:id="btnLcdReset" mnemonicParsing="false" onAction="#onResetLCD" text="LCD Reset" />
 						<Button fx:id="btnReconnect" mnemonicParsing="false" onAction="#onReconnect" text="Reconnect [F5]" />
 					</children>
