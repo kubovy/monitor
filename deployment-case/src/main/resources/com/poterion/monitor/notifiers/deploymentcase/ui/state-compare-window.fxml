@@ -2,17 +2,24 @@
 
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TreeView?>
-<?import javafx.scene.layout.AnchorPane?>
-
-<SplitPane dividerPositions="0.5" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="840.0" prefWidth="1463.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/10.0.1" fx:controller="com.poterion.monitor.notifiers.deploymentcase.ui.StateCompareWindowController">
+<?import javafx.scene.layout.*?>
+<SplitPane fx:id="splitPane" dividerPositions="0.5" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+		   minHeight="-Infinity" minWidth="-Infinity" prefHeight="840.0" prefWidth="1463.0"
+		   xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1"
+		   fx:controller="com.poterion.monitor.notifiers.deploymentcase.ui.StateCompareWindowController">
   <items>
-    <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="838.0" prefWidth="1009.0">
+	  <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
          <children>
-            <TreeView fx:id="treeViewLeft" layoutX="174.0" layoutY="273.0" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+			 <TreeView fx:id="treeViewLeft" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+					   showRoot="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+					   AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
          </children></AnchorPane>
-    <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="160.0" prefWidth="100.0">
+	  <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
          <children>
-            <TreeView fx:id="treeViewRight" layoutX="87.0" layoutY="250.0" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
-         </children></AnchorPane>
+			 <TreeView fx:id="treeViewRight" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+					   showRoot="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+					   AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
+		 </children>
+	  </AnchorPane>
   </items>
 </SplitPane>

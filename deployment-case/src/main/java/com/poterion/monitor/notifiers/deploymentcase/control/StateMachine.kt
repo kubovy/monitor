@@ -100,10 +100,10 @@ fun List<State>.toData(): List<Int> {
 							&& it.value?.value == action.value?.value
 				}
 				if (index == -1) {
-					stateResult.addAll(actions.size.to2Byte()) // New action index
+					stateResult.addAll(actions.size.to2ByteInt()) // New action index
 					actions.add(action)
 				} else {
-					stateResult.addAll(index.to2Byte())        // Existing action index
+					stateResult.addAll(index.to2ByteInt())        // Existing action index
 				}
 			}
 		}
@@ -113,13 +113,13 @@ fun List<State>.toData(): List<Int> {
 	}
 
 	val result = mutableListOf<Int>()
-	result.addAll(statesLength.size.to2Byte()) // State count
+	result.addAll(statesLength.size.to2ByteInt()) // State count
 	var position = 4
 	statesLength.forEach { length ->
-		result.addAll((position + statesLength.size * 2).to2Byte()) // Start of state x
+		result.addAll((position + statesLength.size * 2).to2ByteInt()) // Start of state x
 		position += length
 	}
-	result.addAll((position + statesLength.size * 2).to2Byte()) // Actions start
+	result.addAll((position + statesLength.size * 2).to2ByteInt()) // Actions start
 	position++
 	result.addAll(statesResult) // States
 
@@ -131,23 +131,23 @@ fun List<State>.toData(): List<Int> {
 		actionsResult.addAll(actionResult)
 	}
 
-	result.addAll(actionsLength.size.to2Byte()) // All action count
+	result.addAll(actionsLength.size.to2ByteInt()) // All action count
 	position = result.size
 	actionsLength.forEach { length ->
-		result.addAll((position + actionsLength.size * 2).to2Byte()) // Start of action y
+		result.addAll((position + actionsLength.size * 2).to2ByteInt()) // Start of action y
 		position += length
 	}
 	result.addAll(actionsResult) // Actions
 	return result
 }
 
-fun List<Int>.toStateMachine(devices: List<Device>, variables: List<Variable>): List<State> {
+fun List<Int>.toStateMachine(states: List<State>, devices: List<Device>, variables: List<Variable>): List<State> {
 	val stateCount = (this[0] * 256) + this[1] // 2 bytes
 	val stateStarts = (0 until stateCount).map { it * 2 + 2 }.map { this[it] * 256 + this[it + 1] }
 	val actionsStart = (stateCount * 2 + 2).let { this[it] * 256 + this[it + 1] }
 	val actionCount = this[actionsStart] * 256 + this[actionsStart + 1]
 	val actionStarts = (0 until actionCount).map { it * 2 + actionsStart + 2 }.map { this[it] * 256 + this[it + 1] }
-	val actions = actionStarts.map { start -> this.toAction(start, devices, variables) }
+	val actions = actionStarts.map { start -> this.toAction(start, states, devices, variables) }
 
 	return stateStarts.mapIndexed { stateId, stateStart ->
 		val evaluationCount = this[stateStart]
@@ -178,11 +178,11 @@ fun List<Int>.toStateMachine(devices: List<Device>, variables: List<Variable>): 
 			val evalActionCount = this[evaluationStart + 5 * 2]
 			val evalActions = (0 until evalActionCount)
 					.map { this[evaluationStart + 5 * 2 + it * 2 + 1] * 256 + this[evaluationStart + 5 * 2 + it * 2 + 2] }
-					.map { actions[it] }
+					.mapNotNull { actions.getOrNull(it) }
 			evaluationStart += 5 * 2 + evalActionCount * 2 + 1
 			Evaluation(conditions = evalConditions, actions = evalActions)
 		}
-		State("${stateId}", evaluations)
+		State(states.getOrNull(stateId)?.name ?: "${stateId}", evaluations)
 	}
 }
 
@@ -193,33 +193,17 @@ fun Action.toData(states: List<State>): List<Int> = device
 
 			// Action Device kind-key
 			result.add(device.toData())
-
-			// Action value length
-			result.add(when (value.type) {
-				VariableType.BOOLEAN -> 1                 // 0x01
-				VariableType.STRING -> value.value.length // 0x01 - 0xFF
-				VariableType.COLOR_PATTERN -> 4           // 0x04
-				VariableType.STATE -> 1                   // 0x01
-			})
-
-			// Action value
-			result.addAll(when (value.type) {
-				VariableType.BOOLEAN -> listOf(if (value.value.toBoolean()) 1 else 0)
-				VariableType.STRING -> value.value.toCharArray().map { it.toInt() }
-				VariableType.COLOR_PATTERN -> value.value.split(",").map { it.toInt() }
-				VariableType.STATE -> listOf(states.map { it.name }.indexOf(value.value))
-			})
-
+			result.addAll(value.toData(states))
 			result
 		}
 		?: emptyList()
 
-fun List<Int>.toAction(start: Int = 0, devices: List<Device>, variables: List<Variable>): Action = start
+fun List<Int>.toAction(start: Int = 0, states: List<State>, devices: List<Device>, variables: List<Variable>): Action = start
 		.let { position -> (position + 1) to this[position].toDevice(devices) }
-		.let { (position, device) -> device to this.subList(position, this.size).toVariable(device, variables) }
+		.let { (position, device) -> device to this.subList(position, this.size).toVariable(states, device, variables) }
 		.let { (device, variable) -> Action(device, variable) }
 
-fun List<Int>.toActions(devices: List<Device>, variables: List<Variable>): List<Action> {
+fun List<Int>.toActions(states: List<State>, devices: List<Device>, variables: List<Variable>): List<Action> {
 	var position = 0
 	val size = this[position++]
 	val actions = mutableListOf<Action>()
@@ -228,7 +212,7 @@ fun List<Int>.toActions(devices: List<Device>, variables: List<Variable>): List<
 		val device = this[position++].toDevice(devices)
 		val length = this[position++]
 		val data = this.subList(position, position + length)
-		val variable = data.toVariable(device, variables)
+		val variable = data.toVariable(states, device, variables)
 		actions.add(Action(device = device, value = variable))
 		position += length
 	}
@@ -269,62 +253,71 @@ fun Int.toDevice(devices: List<Device>) = when (this) {
 	else -> Device(kind = DeviceKind.VIRTUAL, key = "unknown")
 }.findName(devices)
 
-fun Variable.toData(states: List<State>): List<Int> = listOf(when (type) { // Action value length
+fun Variable.toData(states: List<State>): List<Int> = listOf(when (type) { // Variable value length
 	VariableType.BOOLEAN -> 1           // 0x01
 	VariableType.STRING -> value.length // 0x01 - 0xFF
 	VariableType.COLOR_PATTERN -> 4     // 0x04
 	VariableType.STATE -> 1             // 0x01
-}, *when (type) {
+}, *when (type) { // Variable value
 	VariableType.BOOLEAN -> arrayOf(if (value.toBoolean()) 1 else 0)
 	VariableType.STRING -> value.toCharArray().map { it.toInt() }.toTypedArray()
 	VariableType.COLOR_PATTERN -> value.split(",").map { it.toInt() }.toTypedArray()
 	VariableType.STATE -> arrayOf(states.map { it.name }.indexOf(value))
 })
 
-fun List<Int>.toVariable(device: Device, variables: List<Variable>) = toVariable(device.kind, device.key, variables)
+fun List<Int>.toVariable(states: List<State>, device: Device, variables: List<Variable>) = toVariable(states, device.kind, device.key, variables)
 
-fun List<Int>.toVariable(deviceKind: DeviceKind, deviceKey: String, variables: List<Variable>) = this[0]
+fun List<Int>.toVariable(states: List<State>, deviceKind: DeviceKind, deviceKey: String, variables: List<Variable>) = this[0]
 		.let { len -> (1..len).map { this[it] } }
 		.let { data ->
 			when (deviceKind) {
 				DeviceKind.MCP23017 -> Variable(
 						type = VariableType.BOOLEAN,
-						value = if (data[0] > 0) "true" else "false")
+						value = if ((data.getOrNull(0) ?: 0) > 0) "true" else "false")
 				DeviceKind.WS281x -> Variable(
 						type = VariableType.COLOR_PATTERN,
-						value = "${data[0]},${data[1]},${data[2]},${data[3]}")
+						value = data.takeIf { it.size >= 4 }?.let { "${it[0]},${it[1]},${it[2]},${it[3]}" }
+								?: "0,0,0,0")
 				DeviceKind.LCD -> when (LcdKey.get(deviceKey)) {
-					LcdKey.MESSAGE -> data
-							.map { it.toChar() }
-							.toCharArray()
-							.let { String(it) }
-							.let { Variable(type = VariableType.STRING, value = it) }
+					LcdKey.MESSAGE -> Variable(
+							type = VariableType.STRING,
+							value = data
+									.map { it.toChar() }
+									.toCharArray()
+									.let { String(it) })
 					else -> Variable(
 							type = VariableType.BOOLEAN,
-							value = if (data[0] > 0) "true" else "false")
+							value = if ((data.getOrNull(0) ?: 0) > 0) "true" else "false")
 				}
 				DeviceKind.BLUETOOTH -> Variable(
 						type = VariableType.BOOLEAN,
-						value = if (data[0] > 0) "true" else "false")
+						value = if ((data.getOrNull(0) ?: 0) > 0) "true" else "false")
 				DeviceKind.VIRTUAL -> when (VirtualKey.get(deviceKey)) {
 					VirtualKey.GOTO -> Variable(
 							type = VariableType.STATE,
-							value = "${data[0]}")
+							value = data.getOrNull(0)?.let { states.getOrNull(it)?.name ?: "${it}" } ?: "0")
 					else -> Variable(
 							type = VariableType.BOOLEAN,
-							value = if (data[0] > 0) "true" else "false")
+							value = if ((data.getOrNull(0) ?: 0) > 0) "true" else "false")
 				}
 			}
 		}
 		.findName(variables)
 
 fun Device.findName(devices: List<Device>) = apply {
-	name = devices.find { it.kind == kind && it.key == key }?.name ?: ""
+	name = when {
+		kind == DeviceKind.VIRTUAL && key == VirtualKey.GOTO.key -> "GOTO"
+		else -> devices.find { it.kind == kind && it.key == key }?.name ?: ""
+	}
 }
 
 fun Variable.findName(variables: List<Variable>) = apply {
 	name = variables.find { it.type == type && it.value == value }?.name ?: ""
 }
 
-private fun Int.to2Byte() = listOf(Math.floor(this / 256.0).toInt(), this % 256)
+fun Int.to2ByteInt() = listOf(Math.floor(this / 256.0).toInt(), this % 256)
 //.also { println("${this} -> ${it[0]}, ${it[1]} | ${"%02X".format(this)} -> ${"%02X".format(it[0])}, ${"%02X".format(it[1])}")  }
+
+fun Int.to2Byte() = to2ByteInt().map { it.toByte() }
+
+fun Int.to2ByteArray() = to2Byte().toByteArray()

@@ -13,4 +13,10 @@ data class Action(var device: Device? = null,
 	override val icon: DeploymentCaseIcon?
 		@JsonIgnore
 		get() = DeploymentCaseIcon.ACTION
+
+	override fun isBinarySame(other: StateMachineItem): Boolean = other is Action
+			&& device?.kind == other.device?.kind
+			&& device?.key == other.device?.key
+			&& value?.type == other.value?.type
+			&& value?.value == other.value?.value
 }

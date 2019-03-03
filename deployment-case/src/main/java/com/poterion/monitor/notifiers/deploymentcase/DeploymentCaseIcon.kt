@@ -13,6 +13,9 @@ enum class DeploymentCaseIcon(private val file: String) : Icon {
 	BLUETOOTH("/icons/bluetooth.png"),
 	CONNECTED("/icons/connected.png"),
 	DISCONNECTED("/icons/disconnected.png"),
+	VERIFIED("/icons/verified.png"),
+	MISMATCH("/icons/mismatch.png"),
+	UNVERIFIED("/icons/unverified.png"),
 
 	STATE("/icons/state.png"),
 	EVALUATION("/icons/evaluation.png"),
@@ -20,6 +23,7 @@ enum class DeploymentCaseIcon(private val file: String) : Icon {
 	CONDITION("/icons/condition.png"),
 	ACTIONS("/icons/actions.png"),
 	ACTION("/icons/action.png");
+
 
 	override val inputStream: InputStream
 		get() = DeploymentCaseIcon::class.java.getResourceAsStream(file)

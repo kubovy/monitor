@@ -13,7 +13,9 @@ import com.poterion.monitor.notifiers.deploymentcase.data.*
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
+import java.io.FileOutputStream
 import java.io.InputStreamReader
+import java.io.OutputStreamWriter
 
 class StateMachineTest {
 
@@ -45,6 +47,9 @@ class StateMachineTest {
 	fun toByteArray() {
 		val stateMachineBin = testData!!.stateMachine!!.toData().toByteArray()
 		val stateMachineDump = dumpBinary(stateMachineBin).split("\n")
+		OutputStreamWriter(FileOutputStream("StateMachineTest-toByteArray.bin")).use {
+			it.write(dumpBinary(stateMachineBin))
+		}
 		InputStreamReader(StateMachineTest::class.java.getResourceAsStream("/sample-state-machine.bin"))
 				.useLines { lines ->
 					lines.forEachIndexed { i, line ->
@@ -64,12 +69,15 @@ class StateMachineTest {
 				.toData()
 				.toByteArray()
 				.toIntList()
-				.toStateMachine(testData!!.devices!!, testData!!.variables!!)
+				.toStateMachine(testData!!.stateMachine!!, testData!!.devices!!, testData!!.variables!!)
 
 		assertStateMachine(testData!!.stateMachine!!, stateMachine)
 
 		val stateMachineBin = stateMachine.toData().toByteArray()
 		val stateMachineDump = dumpBinary(stateMachineBin).split("\n")
+		OutputStreamWriter(FileOutputStream("StateMachineTest-toStateMachine.bin")).use {
+			it.write(dumpBinary(stateMachineBin))
+		}
 		InputStreamReader(StateMachineTest::class.java.getResourceAsStream("/sample-state-machine.bin"))
 				.useLines { lines ->
 					lines.forEachIndexed { i, line ->

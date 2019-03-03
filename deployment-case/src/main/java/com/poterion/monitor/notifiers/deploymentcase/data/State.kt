@@ -11,4 +11,6 @@ data class State(var name: String = "0", var evaluations: List<Evaluation> = lis
 	override val icon: DeploymentCaseIcon?
 		@JsonIgnore
 		get() = DeploymentCaseIcon.STATE
+
+	override fun isBinarySame(other: StateMachineItem) = other is State && name == other.name
 }

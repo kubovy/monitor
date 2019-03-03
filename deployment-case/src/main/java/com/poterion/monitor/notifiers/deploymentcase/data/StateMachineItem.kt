@@ -16,4 +16,6 @@ interface StateMachineItem {
 	val getImageView: ImageView?
 		@JsonIgnore
 		get() = icon?.let { ImageView(it.image(16, 16)) }
+
+	fun isBinarySame(other: StateMachineItem): Boolean
 }
