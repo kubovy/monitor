@@ -5,10 +5,11 @@ import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import com.poterion.monitor.notifiers.deploymentcase.getDisplayName
 
 data class Action(var device: Device? = null,
-				  var value: Variable? = null) : StateMachineItem {
+				  var value: Variable? = null,
+				  var includingEnteringState: Boolean = false) : StateMachineItem {
 	override val title: String
 		@JsonIgnore
-		get() = "${device.getDisplayName()} = ${value?.getDisplayName()}"
+		get() = "${device.getDisplayName()} = ${value?.getDisplayName()}${if (includingEnteringState) " (including entering state)" else ""}"
 
 	override val icon: DeploymentCaseIcon?
 		@JsonIgnore
@@ -19,4 +20,5 @@ data class Action(var device: Device? = null,
 			&& device?.key == other.device?.key
 			&& value?.type == other.value?.type
 			&& value?.value == other.value?.value
+			&& includingEnteringState == other.includingEnteringState
 }

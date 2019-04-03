@@ -7,10 +7,12 @@ import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageKi
 import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageListener
 import com.poterion.monitor.notifiers.deploymentcase.control.*
 import com.poterion.monitor.notifiers.deploymentcase.data.*
+import javafx.beans.Observable
 import javafx.collections.FXCollections
 import javafx.event.ActionEvent
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
+import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.*
@@ -22,6 +24,7 @@ import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.scene.layout.HBox
+import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.scene.shape.Circle
 import javafx.util.Callback
@@ -60,7 +63,6 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 	@FXML private lateinit var tabConfiguration: Tab
 	@FXML private lateinit var tabVariables: Tab
 	@FXML private lateinit var tabDevices: Tab
-	@FXML private lateinit var tabActions: Tab
 	@FXML private lateinit var tabStateMachine: Tab
 	@FXML private lateinit var tabLog: Tab
 
@@ -145,6 +147,19 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 	@FXML private lateinit var textJobName: TextField
 	@FXML private lateinit var textParameters: TextArea
 
+	@FXML private lateinit var comboboxJobStatusColorNotExecuted: ComboBox<Variable?>
+	@FXML private lateinit var comboboxJobStatusColorPending: ComboBox<Variable?>
+	@FXML private lateinit var comboboxJobStatusColorInProgress: ComboBox<Variable?>
+	@FXML private lateinit var comboboxJobStatusColorNotBuilt: ComboBox<Variable?>
+	@FXML private lateinit var comboboxJobStatusColorSuccess: ComboBox<Variable?>
+	@FXML private lateinit var comboboxJobStatusColorUnstable: ComboBox<Variable?>
+	@FXML private lateinit var comboboxJobStatusColorAborted: ComboBox<Variable?>
+	@FXML private lateinit var comboboxJobStatusColorFailure: ComboBox<Variable?>
+	@FXML private lateinit var comboboxJobStatusColorUnknown: ComboBox<Variable?>
+
+	@FXML private lateinit var comboboxPipelineStatusTargetStateSuccess: ComboBox<State?>
+	@FXML private lateinit var comboboxPipelineStatusTargetStateFailure: ComboBox<State?>
+
 	@FXML private lateinit var tableVariables: TableView<Variable>
 	@FXML private lateinit var columnVariableName: TableColumn<Variable, String>
 	@FXML private lateinit var columnVariableType: TableColumn<Variable, VariableType>
@@ -155,11 +170,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 	@FXML private lateinit var columnDevicesName: TableColumn<Device, String>
 	@FXML private lateinit var columnDevicesKind: TableColumn<Device, DeviceKind>
 	@FXML private lateinit var columnDevicesKey: TableColumn<Device, String>
-
-	@FXML private lateinit var tableActions: TableView<Action>
-	@FXML private lateinit var columnActionsId: TableColumn<Action, Int>
-	@FXML private lateinit var columnActionsDevice: TableColumn<Action, Device>
-	@FXML private lateinit var columnActionsValue: TableColumn<Action, Variable>
+	@FXML private lateinit var columnDevicesId: TableColumn<Device, String>
 
 	@FXML private lateinit var treeStateMachine: TreeView<StateMachineItem>
 
@@ -177,6 +188,20 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 	private var config: DeploymentCaseConfig? = null
 	private var notifier: DeploymentCaseNotifier? = null
 	private var clipboardStateMachineItem: TreeItem<StateMachineItem>? = null
+	private val jobStatusColors = mutableMapOf<String, ComboBox<Variable?>>()
+	private val pipelineStatusTartgetStates = mutableMapOf<String, ComboBox<State?>>()
+	private var isUpdateInProgress = false
+
+	private val saveConfigListener = { _: Observable, _: Any?, _: Any? -> if (!isUpdateInProgress) saveConfig() }
+
+	private val maxColorComponent: Int
+		get() = tableVariables.items.asSequence()
+				.filter { it.type == VariableType.COLOR_PATTERN }
+				.map { it.value.split(",").subList(1, 4) }
+				.flatten()
+				.map { it.toInt() }
+				.max()
+				?: 255
 
 	@FXML
 	fun initialize() {
@@ -237,9 +262,8 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 						.map { key -> key to configuration.devices.find { it.kind == DeviceKind.LCD && it.key == key }?.name }
 						.map { (key, name) -> Device(name ?: "lcd_${key}", DeviceKind.LCD, key) })
 
-				tableActions.items.clear()
-				tableActions.items.addAll(configuration.actions)
-				//tableActions.items.add(null)
+				refreshJobStatusColors()
+				refreshPipelineStatusTargetStates()
 			}
 		}
 
@@ -268,15 +292,18 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 		textJobName.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 		textParameters.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 
-		columnVariableName.initEditableText("name") { variable, name ->
-			variable.name = name
-			tableActions.items.filter { it.value?.name == name }.forEach { it.value = variable }
-			tableActions.refresh()
-		}
+		columnVariableName.initEditableText("name", { variable ->
+			when {
+				jobStatusColors.values.mapNotNull { it.value }.find { it.name == variable?.name } != null -> "-fx-font-weight: bold; -fx-font-style: italic;"
+				findInStateMachine({ it is Action && it.value?.name == variable?.name }).isNotEmpty() -> "-fx-font-weight: bold;"
+				else -> null
+			}
+		}) { variable, name -> variable.name = name }
 		columnVariableType.initEditableCombo("type",
 				{ VariableType.values() },
 				{ it?.description ?: "" },
 				{ str -> VariableType.values().find { it.description == str } },
+				{ variable -> jobStatusColors.values.mapNotNull { it.value }.find { it.name == variable.name } == null },
 				{ variable, type ->
 					if (variable.type != type) {
 						variable.value = when (type) {
@@ -285,42 +312,38 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 							VariableType.COLOR_PATTERN -> "0,0,0,0"
 							VariableType.STATE -> ""
 						}
-						tableActions.items.filter { it.value?.name == variable.name }.forEach { it.value = variable }
 						tableVariables.refresh()
 					}
 					variable.type = type
 				})
-		columnVariableValue.initEditableVariableValue("value") { variable ->
-			tableActions.items.filter { it.value?.name == variable.name }.forEach { it.value = variable }
-			tableActions.refresh()
-		}
-		tableVariables.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
+		columnVariableValue.initEditableVariableValue("value")
+		//tableVariables.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 		tableVariables.sortOrder.setAll(columnVariableName)
 		tableVariables.isEditable = true
 
-		columnDevicesName.initEditableText("name") { device, name ->
-			device.name = name
-			tableActions.refresh()
-		}
-		columnDevicesKind.init("kind") { it?.description ?: "" }
-		columnDevicesKey.init("key") { it ?: "" }
-		tableDevices.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
+		columnDevicesName.initEditableText("name") { device, name -> device.name = name }
+		columnDevicesKind.init("kind") { _, kind -> kind?.description ?: "" }
+		columnDevicesKey.init("key") { _, key -> key ?: "" }
+		columnDevicesId.init("key") { device, _ -> device?.toData()?.let { "0x%02X".format(it) } ?: "" }
+		//tableDevices.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 		tableDevices.sortOrder.setAll(columnDevicesName)
 
-		columnActionsId.init("id") { value -> value?.let { "%02X".format(it) } ?: "" }
-		columnActionsDevice.initEditableCombo("device",
-				{ tableDevices.items.toTypedArray() },
-				{ value -> value.getDisplayName() },
-				{ str -> str?.toDevice(tableDevices.items) },
-				{ action, device -> action.device = device })
-		columnActionsValue.initEditableCombo("value",
-				{ entry -> tableVariables.items.filter { it?.type == entry?.device?.type }.toTypedArray() },
-				{ it?.getDisplayNameValue() ?: "" },
-				{ str -> str?.toVariable(tableVariables.items) },
-				{ action, variable -> action.value = variable })
-		tableActions.sortOrder.setAll(columnActionsId)
-
 		treeStateMachine.initEditable()
+		treeStateMachine.selectionModel.selectedItemProperty().addListener { _, _, _ -> treeStateMachine.refresh() }
+
+
+		comboboxJobStatusColorNotExecuted.initJobStatus("not_executed")
+		comboboxJobStatusColorPending.initJobStatus("pending")
+		comboboxJobStatusColorInProgress.initJobStatus("in_progress")
+		comboboxJobStatusColorNotBuilt.initJobStatus("not_built")
+		comboboxJobStatusColorSuccess.initJobStatus("success")
+		comboboxJobStatusColorUnstable.initJobStatus("unstable")
+		comboboxJobStatusColorAborted.initJobStatus("aborted")
+		comboboxJobStatusColorFailure.initJobStatus("failure")
+		comboboxJobStatusColorUnknown.initJobStatus("unknown")
+
+		comboboxPipelineStatusTargetStateSuccess.initPipelineStatus("success")
+		comboboxPipelineStatusTargetStateFailure.initPipelineStatus("failure")
 
 		// Test
 		comboboxType.items.addAll("State", "Action", "Transit")
@@ -503,7 +526,8 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 			}
 			KeyCode.DELETE -> tableVariables.selectionModel.selectedItem
 					.takeIf { it != null }
-					.takeIf { variable -> tableActions.items.none { it.value?.name == variable?.name } }
+					?.takeIf { variable -> findInStateMachine({ it is Action && it.value?.name == variable.name }).isEmpty() }
+					?.takeIf { variable -> jobStatusColors.values.mapNotNull { it.value }.find { it.name == variable.name } == null }
 					?.takeIf { _ ->
 						Alert(AlertType.CONFIRMATION).apply {
 							title = "Delete confirmation"
@@ -512,55 +536,6 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 					}
 					?.also { tableVariables.items.remove(it) }
 					?.also { saveConfig() }
-			else -> {
-			}
-		}
-	}
-
-	@FXML
-	fun onActionsTableKeyPressed(keyEvent: KeyEvent) {
-		when (keyEvent.code) {
-			KeyCode.INSERT -> {
-				if (tableActions.items.size < 256) {
-					tableActions.items.add(Action())
-					saveConfig()
-				}
-			}
-			KeyCode.DELETE -> tableActions.selectionModel.selectedIndex
-					.takeIf { _ ->
-						Alert(AlertType.CONFIRMATION).apply {
-							title = "Delete confirmation"
-							headerText = "Do you want to delete selected row?"
-						}.showAndWait().filter { it === ButtonType.OK }.isPresent
-					}
-					?.also { tableActions.items.removeAt(it) }
-					?.also {
-						//tableActions.items.sortBy { it.id }
-						//tableActions.items.forEachIndexed { id, action -> action.id = id }
-					}
-					?.also { saveConfig() }
-			KeyCode.UP -> if (keyEvent.isControlDown) {
-				val index = tableActions.selectionModel.selectedIndex
-				if (index > 0) {
-					//tableActions.items.sortBy { it.id }
-					val before = tableActions.items[index - 1]
-					tableActions.items[index - 1] = tableActions.items[index]
-					tableActions.items[index] = before
-					//tableActions.items.forEachIndexed { id, action -> action.id = id }
-					saveConfig()
-				}
-			}
-			KeyCode.DOWN -> if (keyEvent.isControlDown) {
-				val index = tableActions.selectionModel.selectedIndex
-				if (index < tableActions.items.size - 2) {
-					//tableActions.items.sortBy { it.id }
-					val after = tableActions.items[index + 1]
-					tableActions.items[index + 1] = tableActions.items[index]
-					tableActions.items[index] = after
-					//tableActions.items.forEachIndexed { id, action -> action.id = id }
-					saveConfig()
-				}
-			}
 			else -> {
 			}
 		}
@@ -686,6 +661,8 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 			KeyCode.DELETE -> {
 				treeStateMachine.selectionModel.selectedItem
 						?.takeUnless { it.value is Placeholder }
+						?.takeIf { item -> item.value.let { it !is State || findStateReferences(it).isEmpty() } }
+						?.takeIf { item -> pipelineStatusTartgetStates.values.mapNotNull { it.value }.find { it.name == (item.value as? State)?.name } == null }
 						?.takeIf { _ ->
 							Alert(AlertType.CONFIRMATION).apply {
 								title = "Delete confirmation"
@@ -746,14 +723,14 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 				//?.takeIf { (device, _) -> device.kind == DeviceKind.MCP23017 }
 				?.let { (device, variable) -> device to variable.value }
 				?.also { (device, value) ->
-					if (device.kind == DeviceKind.MCP23017 && device.key.toInt() < 32) listOf(btn00, btn01, btn02,
+					if (device.kind == DeviceKind.MCP23017 && device.key.toInt() < 0x20) listOf(btn00, btn01, btn02,
 							btn03, btn04, btn05, btn06, btn07, btn08, btn09, btn10, btn11, btn12, btn13, btn14, btn15,
 							btn16, btn17, btn18, btn19, btn20, btn21, btn22, btn23, btn24, btn25)
 							.find { it.id == "btn%02d".format(device.key.toInt()) }
 							?.isSelected = value.toBoolean()
 
-					if (device.kind == DeviceKind.MCP23017 && device.key.toInt() >= 32) listOf(led0, led1, led2, led3)
-							.find { it.id == "led%d".format(device.key.toInt() - 32) }
+					if (device.kind == DeviceKind.MCP23017 && device.key.toInt() >= 0x20) listOf(led0, led1, led2, led3)
+							.find { it.id == "led%d".format(device.key.toInt() - 0x20) }
 							?.fill = if (value.toBoolean()) Color.RED else Color.BLACK
 
 					if (device.kind == DeviceKind.WS281x) listOf(rgb00, rgb01, rgb02, rgb03, rgb04, rgb05, rgb06, rgb07,
@@ -764,7 +741,9 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 							.split(",")
 							.mapNotNull { it.toIntOrNull() }
 							.takeIf { it.size >= 4 }
-							?.let { (_, r, g, b) -> Color.rgb(r, g, b) }
+							?.let { (_, r, g, b) ->
+								Color.rgb(r, g, b).adjust(maxColorComponent)
+							}
 							?: Color.BLACK
 
 					if (device.kind == DeviceKind.LCD && device.key == LcdKey.MESSAGE.key) lcd.text = value
@@ -793,7 +772,6 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 
 		tabLayout.isDisable = !connected
 		if (tabPane.selectionModel.selectedIndex == 0 && !connected) tabPane.selectionModel.select(1)
-		tabPane.tabs.remove(tabActions)
 		btnDownload.isDisable = !connected
 		btnUpload.isDisable = !connected
 		btnSynchronize.isDisable = !connected
@@ -815,7 +793,17 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 			parameters = textParameters.text
 			variables = tableVariables.items.filterNotNull()
 			devices = tableDevices.items.filterNotNull()
-			actions = tableActions.items.filterNotNull()
+			jobStatus = jobStatusColors
+					.map { (status, combobox) -> status to combobox.selectionModel.selectedItem }
+					.filter { (_, color) -> color != null }
+					.map { (status, color) -> status to color!! }
+					.toMap()
+			pipelineStatus = pipelineStatusTartgetStates
+					.map { (status, combobox) -> status to combobox.selectionModel.selectedItem }
+					.map { (status, state) -> status to state?.name }
+					.filter { (_, stateName) -> stateName != null }
+					.map { (status, stateName) -> status to stateName!! }
+					.toMap()
 			stateMachine = treeStateMachine.toStateMachine()
 		}
 
@@ -827,21 +815,71 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 
 		notifier?.controller?.saveConfig()
 		notifier?.communicator?.takeIf(BluetoothCommunicatorEmbedded::isConnected)?.connect(config?.deviceAddress)
+
+		refreshJobStatusColors()
+		refreshPipelineStatusTargetStates()
+		tableVariables.refresh()
+		treeStateMachine.refresh()
 	}
 
-	private fun <Entry, Type> TableColumn<Entry, Type>.init(propertyName: String, transformer: (Type?) -> String) {
+	private fun ComboBox<Variable?>.initJobStatus(status: String) {
+		converter = object : StringConverter<Variable?>() {
+			override fun toString(device: Variable?) = device?.getDisplayNameValue() ?: "-- Not selected --"
+			override fun fromString(string: String?) = string?.toVariable(tableVariables.items)
+		}
+		selectionModel.selectedItemProperty().addListener(saveConfigListener)
+		jobStatusColors[status] = this
+	}
+
+	private fun refreshJobStatusColors() {
+		isUpdateInProgress = true
+		jobStatusColors.forEach { status, combobox ->
+			combobox.items.clear()
+			combobox.items.add(null)
+			combobox.items.addAll(tableVariables.items.filter { it.type == VariableType.COLOR_PATTERN }.sortedBy { it.name })
+			combobox.selectionModel.select(listConfigurations.selectionModel.selectedItem?.jobStatus?.get(status))
+		}
+		isUpdateInProgress = false
+	}
+
+	private fun ComboBox<State?>.initPipelineStatus(status: String) {
+		converter = object : StringConverter<State?>() {
+			override fun toString(state: State?) = state?.name ?: "-- Not selected --"
+			override fun fromString(string: String?) = treeStateMachine
+					.root
+					.children
+					.mapNotNull { it.value as? State }
+					.firstOrNull { it.name == string }
+		}
+		selectionModel.selectedItemProperty().addListener(saveConfigListener)
+		pipelineStatusTartgetStates[status] = this
+	}
+
+	private fun refreshPipelineStatusTargetStates() {
+		isUpdateInProgress = true
+		pipelineStatusTartgetStates.forEach { status, combobox ->
+			combobox.items.clear()
+			combobox.items.add(null)
+			combobox.items.addAll(treeStateMachine.root.children.mapNotNull { it.value as? State })
+			combobox.selectionModel.select(combobox.items.find { listConfigurations.selectionModel.selectedItem?.pipelineStatus?.get(status) == it?.name })
+		}
+		isUpdateInProgress = false
+	}
+
+	private fun <Entry, Type> TableColumn<Entry, Type>.init(propertyName: String, transformer: (Entry?, Type?) -> String) {
 		cellValueFactory = PropertyValueFactory<Entry, Type>(propertyName)
 		setCellFactory {
 			object : TableCell<Entry, Type>() {
 				override fun updateItem(item: Type?, empty: Boolean) {
 					super.updateItem(item, empty)
-					text = transformer(item)
+					text = transformer(tableRow.item as? Entry, item)
 				}
 			}
 		}
 	}
 
 	private fun <Entry> TableColumn<Entry, String>.initEditableText(propertyName: String,
+																	styler: (Entry?) -> String? = { null },
 																	itemUpdater: (Entry, String) -> Unit) {
 		cellValueFactory = PropertyValueFactory<Entry, String>(propertyName)
 		cellFactory = Callback<TableColumn<Entry, String>, TableCell<Entry, String>> {
@@ -870,15 +908,14 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 					if (empty) {
 						text = null
 						graphic = null
+					} else if (isEditing) {
+						textField?.text = item
+						text = null
+						graphic = textField
 					} else {
-						if (isEditing) {
-							textField?.text = item
-							text = null
-							graphic = textField
-						} else {
-							text = item
-							graphic = null
-						}
+						text = item
+						graphic = null
+						style = styler(tableRow.item as? Entry)
 					}
 				}
 
@@ -906,6 +943,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 																		 itemsProvider: (Entry?) -> Array<Type>,
 																		 toString: (Type?) -> String,
 																		 fromString: (String?) -> Type?,
+																		 updateable: (Entry) -> Boolean,
 																		 itemUpdater: (Entry, Type) -> Unit) {
 		cellValueFactory = PropertyValueFactory<Entry, Type>(propertyName)
 		cellFactory = Callback<TableColumn<Entry, Type>, TableCell<Entry, Type>> {
@@ -945,15 +983,18 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 				}
 
 				private fun createComboBox(): ComboBox<Type>? {
-					comboBox = ComboBox(FXCollections.observableArrayList(itemsProvider(tableView.items[index]).toList()))
-					comboBox?.minWidth = width - graphicTextGap * 2
-					comboBox?.selectionModel?.select(item)
-					comboBox?.converter = object : StringConverter<Type>() {
-						override fun toString(item: Type) = toString(item)
-						override fun fromString(string: String?) = fromString(string)
+					comboBox = ComboBox(FXCollections.observableArrayList(itemsProvider(tableView.items[index]).toList())).apply {
+						isDisable = !updateable(tableRow.item as Entry)
+						minWidth = width - graphicTextGap * 2
+						selectionModel?.select(item)
+						converter = object : StringConverter<Type>() {
+							override fun toString(item: Type) = toString(item)
+							override fun fromString(string: String?) = fromString(string)
+						}
+						focusedProperty()?.addListener { _, _, newValue -> if (!newValue) commitEdit(save()) }
+						selectionModel?.selectedItemProperty()?.addListener { _, _, newValue -> commitEdit(newValue) }
 					}
-					comboBox?.focusedProperty()?.addListener { _, _, newValue -> if (!newValue) commitEdit(save()) }
-					comboBox?.selectionModel?.selectedItemProperty()?.addListener { _, _, newValue -> commitEdit(newValue) }
+
 					return comboBox
 				}
 
@@ -971,8 +1012,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 		}
 	}
 
-	private fun TableColumn<Variable, String>.initEditableVariableValue(propertyName: String,
-																		itemUpdater: (Variable) -> Unit) {
+	private fun TableColumn<Variable, String>.initEditableVariableValue(propertyName: String) {
 		cellValueFactory = PropertyValueFactory<Variable, String>(propertyName)
 		cellFactory = Callback<TableColumn<Variable, String>, TableCell<Variable, String>> { _ ->
 			object : TableCell<Variable, String>() {
@@ -991,7 +1031,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 									?.split(",")
 									?.takeIf { it.size == 4 }
 									?.let { it.subList(1, it.size) }
-									?.map { it.toInt() }
+									?.map { it.toInt().adjustColor(maxColorComponent) }
 									?.joinToString("") { "%02X".format(it) }
 									?.let {
 										"-fx-background-color: #%s".format(it)
@@ -1119,7 +1159,6 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 				val item = items[event.tablePosition.row]
 				if (item != null) {
 					item.value = event.newValue
-					itemUpdater(item)
 					saveConfig()
 				}
 			}
@@ -1130,9 +1169,10 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 		cellFactory = Callback<TreeView<StateMachineItem>, TreeCell<StateMachineItem>> { _ ->
 			object : TreeCell<StateMachineItem>() {
 				private var textField: TextField? = null
-				private var hBox: HBox? = null
+				private var vBox: VBox? = null
 				private var comboBox1: ComboBox<Device>? = null
 				private var comboBox2: ComboBox<Variable>? = null
+				private var checkbox: CheckBox? = null
 
 				override fun startEdit() {
 					super.startEdit()
@@ -1177,12 +1217,13 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 								is Condition -> {
 									comboBox1?.selectionModel?.select(item.device)
 									comboBox2?.selectionModel?.select(item.value)
-									graphic = hBox
+									graphic = vBox
 								}
 								is Action -> {
 									comboBox1?.selectionModel?.select(item.device)
 									comboBox2?.selectionModel?.select(item.value)
-									graphic = hBox
+									checkbox?.isSelected = item.includingEnteringState
+									graphic = vBox
 								}
 							}
 						}
@@ -1190,6 +1231,18 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 							text = item?.title
 							graphic = item?.getImageView
 						}
+					}
+					style = when {
+						treeView.selectionModel.selectedItem?.value == item -> null
+						treeView.selectionModel.selectedIndex == index -> null
+						item is State && pipelineStatusTartgetStates.values.mapNotNull { it.value }.find { it.name == item.name } != null -> "-fx-background-color: #FFCCFF"
+						item is State && findStateReferences(item).isEmpty() -> "-fx-background-color: #CCCCCC"
+						item is State && findStateReferences(item).isNotEmpty() -> "-fx-background-color: #CCCCFF"
+						item is Condition -> "-fx-background-color: #CCFFCC"
+						item is Action && treeItem?.parent?.parent?.children?.getOrNull(0)?.children?.isEmpty() == true -> "-fx-background-color: #FFEECC"
+						item is Action && item.includingEnteringState -> "-fx-background-color: #FFEECC"
+						item is Action && !item.includingEnteringState -> "-fx-background-color: #CCFFFF"
+						else -> null
 					}
 				}
 
@@ -1204,7 +1257,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 					return textField
 				}
 
-				private fun createDoubleComboBox(): HBox? {
+				private fun createDoubleComboBox(): VBox? {
 					item?.also { item ->
 						when (item) {
 							is Condition -> {
@@ -1218,6 +1271,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 								comboBox2 = ComboBox(FXCollections.observableArrayList(tableVariables.items
 										.filter { it?.type == VariableType.BOOLEAN }))
 										.apply { selectionModel.select(item.value) }
+								checkbox = null
 							}
 							is Action -> {
 								comboBox2 = ComboBox()
@@ -1242,6 +1296,9 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 											}
 										}
 										.apply { selectionModel.select(item.device) }
+								checkbox = CheckBox("Including entering state").apply {
+									isSelected = item.includingEnteringState
+								}
 							}
 						}
 					}
@@ -1255,8 +1312,9 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 						override fun fromString(string: String?) = string?.toVariable(tableVariables.items)
 					}
 
-					comboBox1?.focusedProperty()?.addListener { _, _, newValue -> if (newValue) save() }
+					comboBox1?.focusedProperty()?.addListener { _, _, newValue -> if (!newValue) save() }
 					comboBox2?.focusedProperty()?.addListener { _, _, newValue -> if (!newValue) save() }
+					checkbox?.selectedProperty()?.addListener { _, _, _ -> save() }
 
 					val submitButton = javafx.scene.control.Button("Submit").apply {
 						setOnAction {
@@ -1264,9 +1322,28 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 						}
 					}
 
-					hBox = HBox(comboBox1, Label("="), comboBox2, submitButton)
-					hBox?.minWidth = width - graphicTextGap * 2
-					return hBox
+					val hBox1 = HBox(1.0).apply {
+						minWidth = width - graphicTextGap * 2
+						alignment = Pos.CENTER_LEFT
+
+						children.addAll(comboBox1, Label("="), comboBox2)
+					}
+
+					val hBox2 = HBox(1.0).apply {
+						minWidth = width - graphicTextGap * 2
+						alignment = Pos.CENTER_LEFT
+
+						if (item is Action && checkbox != null) children.add(checkbox)
+						children.add(submitButton)
+					}
+
+					vBox = VBox(1.0).apply {
+						minWidth = width - graphicTextGap * 2
+						alignment = Pos.CENTER_LEFT
+						children.addAll(hBox1, hBox2)
+					}
+
+					return vBox
 				}
 
 				private fun save() = item?.also { item ->
@@ -1281,6 +1358,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 						is Action -> {
 							item.device = comboBox1?.selectionModel?.selectedItem
 							item.value = comboBox2?.selectionModel?.selectedItem
+							item.includingEnteringState = checkbox?.isSelected ?: false
 						}
 					}
 				}
@@ -1292,4 +1370,16 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 			saveConfig()
 		}
 	}
+
+	private fun findStateReferences(state: State): List<Action> = findInStateMachine({
+		it is Action
+				&& it.device?.kind == DeviceKind.VIRTUAL
+				&& it.device?.key == VirtualKey.GOTO.key
+				&& (it.value?.value == state.name || it.value?.value == "${treeStateMachine.selectionModel.selectedIndex}")
+	}).map { it as Action }
+
+	private fun findInStateMachine(filter: (StateMachineItem) -> Boolean, current: TreeItem<StateMachineItem> = treeStateMachine.root): List<StateMachineItem> =
+			listOfNotNull(
+					if (filter(current.value)) current.value else null,
+					*current.children.map { findInStateMachine(filter, it) }.flatten().toTypedArray())
 }

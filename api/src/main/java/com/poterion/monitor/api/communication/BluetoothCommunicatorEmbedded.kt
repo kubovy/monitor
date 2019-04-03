@@ -148,7 +148,7 @@ class BluetoothCommunicatorEmbedded(private var address: String,
 	private val inboundRunnable: () -> Unit = {
 		try {
 			while (!Thread.interrupted()) {
-				val buffer = ByteArray(96)
+				val buffer = ByteArray(256)
 				val read = inputStream?.read(buffer) ?: 0
 
 				if (read > 0) {

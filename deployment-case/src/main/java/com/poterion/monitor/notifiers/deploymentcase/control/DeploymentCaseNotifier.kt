@@ -149,8 +149,10 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 							Alert(Alert.AlertType.CONFIRMATION).apply {
 								title = "Wrong State Machine"
 								headerText = "State machine configuration does not match deployment football's ones!"
-								contentText = "Do you want to download the state machine from the deployment football or upload it there?"
-								buttonTypes.setAll(BUTTON_DOWNLOAD, BUTTON_UPLOAD, BUTTON_REPAIR, ButtonType.CANCEL)
+								contentText = "Do you want to upload the state machine to the deployment football?"
+								//contentText = "Do you want to download the state machine from the deployment football or upload it there?"
+								//buttonTypes.setAll(BUTTON_DOWNLOAD, BUTTON_UPLOAD, BUTTON_REPAIR, ButtonType.CANCEL)
+								buttonTypes.setAll(BUTTON_UPLOAD, ButtonType.CANCEL)
 							}.showAndWait().ifPresent { button ->
 								when (button) {
 									BUTTON_DOWNLOAD -> pullStateMachine(repair = false)
@@ -339,6 +341,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 								listeners.forEach { Platform.runLater { it.onProgress(-1, 1, true) } }
 							}
 							?.forEach { communicator.send(DeploymentCaseMessageKind.PUSH_STATE_MACHINE, it) }
+							?.also { communicator.send(DeploymentCaseMessageKind.CONFIGURATION) }
 				}
 	}
 }
