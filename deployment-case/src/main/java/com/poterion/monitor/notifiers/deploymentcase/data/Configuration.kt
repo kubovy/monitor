@@ -13,5 +13,6 @@ data class Configuration(var name: String = "",
 						 var parameters: String = "",
 						 var variables: List<Variable> = listOf(),
 						 var devices: List<Device> = listOf(),
-						 var actions: List<Action> = listOf(),
+						 var jobStatus: Map<String, Variable> = emptyMap(),
+						 var pipelineStatus: Map<String, String> = emptyMap(),
 						 var stateMachine: List<State> = listOf())

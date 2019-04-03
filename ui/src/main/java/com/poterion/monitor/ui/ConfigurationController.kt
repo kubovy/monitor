@@ -44,8 +44,8 @@ class ConfigurationController {
 				title = "Configuration"
 				//stage.isResizable = false
 				minWidth = 1200.0
-				minHeight = 800.0
-				scene = Scene(root, 1200.0, 800.0)
+				minHeight = 1000.0
+				scene = Scene(root, 1200.0, 1000.0)
 				show()
 			}
 		}
