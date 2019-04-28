@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.TreeView?>
+<?import javafx.scene.layout.AnchorPane?>
+<AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="550.0" prefWidth="546.0" xmlns="http://javafx.com/javafx/8.0.201"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowTabStateMachine">
+    <children>
+        <TreeView fx:id="treeStateMachine" editable="true" maxHeight="1.7976931348623157E308"
+                  maxWidth="1.7976931348623157E308" onKeyPressed="#onStateMachineTreeKeyPressed"
+                  AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+                  AnchorPane.topAnchor="0.0"/>
+    </children>
+</AnchorPane>
