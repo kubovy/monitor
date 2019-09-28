@@ -2,7 +2,7 @@ package com.poterion.monitor
 
 import com.poterion.monitor.control.Controller
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
-import com.poterion.monitor.notifiers.raspiw2812.RaspiW2812Module
+import com.poterion.monitor.notifiers.raspi.ws281x.RaspiWS281xModule
 import com.poterion.monitor.notifiers.tray.SystemTrayModule
 import com.poterion.monitor.sensors.jenkins.JenkinsModule
 import com.poterion.monitor.sensors.sonar.SonarModule
@@ -61,8 +61,8 @@ class Main : Application() {
 		val controller = Controller(primaryStage).apply {
 			registerModule(JenkinsModule)
 			registerModule(SonarModule)
-			registerModule(RaspiW2812Module)
 			registerModule(DeploymentCaseModule)
+			registerModule(RaspiWS281xModule)
 			registerModule(SystemTrayModule)
 		}
 		controller.start()
