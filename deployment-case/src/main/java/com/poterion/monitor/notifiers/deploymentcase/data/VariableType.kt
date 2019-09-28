@@ -7,5 +7,6 @@ enum class VariableType(val description: String) {
 	STRING("String"),
 	//COLOR("Color"),
 	COLOR_PATTERN("Color & Pattern"),
-	STATE("State")
+	STATE("State"),
+	ENTER("Enter")
 }

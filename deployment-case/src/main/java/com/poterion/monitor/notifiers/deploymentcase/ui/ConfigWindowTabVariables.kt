@@ -34,14 +34,10 @@ class ConfigWindowTabVariables : ConfigurationContributer {
     }
 
 
-    @FXML
-    private lateinit var tableVariables: TableView<Variable>
-    @FXML
-    private lateinit var columnVariableName: TableColumn<Variable, String>
-    @FXML
-    private lateinit var columnVariableType: TableColumn<Variable, VariableType>
-    @FXML
-    private lateinit var columnVariableValue: TableColumn<Variable, String>
+    @FXML private lateinit var tableVariables: TableView<Variable>
+    @FXML private lateinit var columnVariableName: TableColumn<Variable, String>
+    @FXML private lateinit var columnVariableType: TableColumn<Variable, VariableType>
+    @FXML private lateinit var columnVariableValue: TableColumn<Variable, String>
 
     private lateinit var saveConfig: () -> Unit
 
@@ -69,6 +65,7 @@ class ConfigWindowTabVariables : ConfigurationContributer {
                             VariableType.STRING -> ""
                             VariableType.COLOR_PATTERN -> "0,0,0,0"
                             VariableType.STATE -> ""
+                            VariableType.ENTER -> "0|Enter Version|##.##.##"
                         }
                         tableVariables.refresh()
                     }
@@ -95,6 +92,7 @@ class ConfigWindowTabVariables : ConfigurationContributer {
     @FXML
     fun onVariableTableKeyPressed(keyEvent: KeyEvent) {
         when (keyEvent.code) {
+            KeyCode.HELP, // MacOS mapping of INSERT key
             KeyCode.INSERT -> {
                 tableVariables.items.add(Variable())
                 saveConfig()
@@ -154,6 +152,7 @@ class ConfigWindowTabVariables : ConfigurationContributer {
                             VariableType.STRING -> createTextField()
                             VariableType.COLOR_PATTERN -> createColorPicker()
                             VariableType.STATE -> null
+                            VariableType.ENTER -> createTextField()
                         }
                         style = null
                         textField?.selectAll()
@@ -254,6 +253,7 @@ class ConfigWindowTabVariables : ConfigurationContributer {
                             p?.let { c?.let { "${p},${c}" } } ?: ""
                         }
                         VariableType.STATE -> null
+                        VariableType.ENTER -> textField?.text ?: "0|Enter Version|##.##.##"
                     }
                 }
             }

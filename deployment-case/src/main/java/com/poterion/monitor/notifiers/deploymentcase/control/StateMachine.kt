@@ -239,6 +239,7 @@ fun Device.toData() : Int = when (kind) {
 	}
 	DeviceKind.VIRTUAL -> when (VirtualKey.get(key)) {
 		VirtualKey.GOTO -> 112            // 0x70
+		VirtualKey.ENTER -> 113           // 0x71
 		else -> 127                       // 0x7F
 	}
 }
@@ -252,7 +253,8 @@ fun Int.toDevice(devices: List<Device>) = when (this) {
 	83 -> Device(kind = DeviceKind.LCD, key = LcdKey.CLEAR.key)                 // 0x53
 	96 -> Device(kind = DeviceKind.BLUETOOTH, key = BluetoothKey.CONNECTED.key) // 0x60
 	97 -> Device(kind = DeviceKind.BLUETOOTH, key = BluetoothKey.TRIGGER.key)   // 0x61
-	192 -> Device(kind = DeviceKind.VIRTUAL, key = VirtualKey.GOTO.key)         // 0xC0
+	112 -> Device(kind = DeviceKind.VIRTUAL, key = VirtualKey.GOTO.key)         // 0x70
+	113 -> Device(kind = DeviceKind.VIRTUAL, key = VirtualKey.ENTER.key)        // 0x71
 	else -> Device(kind = DeviceKind.VIRTUAL, key = "unknown")
 }.findName(devices)
 
@@ -261,11 +263,18 @@ fun Variable.toData(states: List<State>): List<Int> = listOf(when (type) { // Va
 	VariableType.STRING -> value.replace("\\n", "\n").length // 0x01 - 0xFF
 	VariableType.COLOR_PATTERN -> 4     // 0x04
 	VariableType.STATE -> 1             // 0x01
+	VariableType.ENTER -> value.split("|", limit = 3)
+			.mapIndexed { i, s -> if (i == 0) 1 else s.length }
+			.reduce { acc, i -> acc + i } + 2
 }, *when (type) { // Variable value
 	VariableType.BOOLEAN -> arrayOf(if (value.toBoolean()) 1 else 0)
 	VariableType.STRING -> value.replace("\\n", "\n").toCharArray().map { it.toInt() }.toTypedArray()
 	VariableType.COLOR_PATTERN -> value.split(",").map { it.toInt() }.toTypedArray()
 	VariableType.STATE -> arrayOf(states.map { it.name }.indexOf(value))
+	VariableType.ENTER -> value.split("|", limit = 3)
+			.mapIndexed { i, s -> if (i == 0) listOf(s.toInt()) else (listOf(0x1E) + s.toCharArray().map { it.toInt() }) }
+			.flatten()
+			.toTypedArray()
 })
 
 fun List<Int>.toVariable(states: List<State>, device: Device, variables: List<Variable>) = toVariable(states, device.kind, device.key, variables)
@@ -300,6 +309,10 @@ fun List<Int>.toVariable(states: List<State>, deviceKind: DeviceKind, deviceKey:
 					VirtualKey.GOTO -> Variable(
 							type = VariableType.STATE,
 							value = data.getOrNull(0)?.let { states.getOrNull(it)?.name ?: "${it}" } ?: "0")
+					VirtualKey.ENTER -> Variable(
+							type = VariableType.ENTER,
+							value = data.toEnterString()
+					)
 					else -> Variable(
 							type = VariableType.BOOLEAN,
 							value = if ((data.getOrNull(0) ?: 0) > 0) "true" else "false")
@@ -307,6 +320,19 @@ fun List<Int>.toVariable(states: List<State>, deviceKind: DeviceKind, deviceKey:
 			}
 		}
 		?.findName(variables)
+
+private fun List<Int>.toEnterString(): String {
+	var title = ""
+	var pattern = ""
+
+	assert(this[1] == 0x1E)
+	var i = 2
+	while (this[i] != 0x1E) title += this[i++].toChar()
+	assert(this[i++] == 0x1E)
+	while (i < this.size) pattern += this[i++].toChar()
+	return "${this[0]}|${title}|${pattern}"
+}
+
 
 fun Device.findName(devices: List<Device>) = apply {
 	name = when {
