@@ -62,6 +62,7 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 		VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS)
 		setOnKeyReleased { event ->
 			when (event.code) {
+				KeyCode.HELP, // MacOS mapping of INSERT key
 				KeyCode.INSERT -> newJobName.requestFocus()
 				KeyCode.DELETE -> selectionModel.selectedItem?.also { removeJob(it) }
 				else -> {

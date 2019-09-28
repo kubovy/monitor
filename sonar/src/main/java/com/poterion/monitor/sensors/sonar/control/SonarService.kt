@@ -66,6 +66,7 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 		VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS)
 		setOnKeyReleased { event ->
 			when (event.code) {
+				KeyCode.HELP, // MacOS mapping of INSERT key
 				KeyCode.INSERT -> newProjectName.requestFocus()
 				KeyCode.DELETE -> selectionModel.selectedItem?.also { remoteJob(it) }
 				else -> {
