@@ -21,7 +21,7 @@
         <module>sonar</module>
         <!-- Notifiers -->
         <module>deployment-case</module>
-        <module>raspi-w2812</module>
+        <module>raspi-ws281x</module>
         <module>system-tray</module>
     </modules>
 
@@ -75,7 +75,7 @@
             </dependency>
             <dependency>
                 <groupId>com.poterion.monitor</groupId>
-                <artifactId>raspi-w2812</artifactId>
+                <artifactId>raspi-ws281x</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

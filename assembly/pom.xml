@@ -56,7 +56,7 @@
         </dependency>
         <dependency>
             <groupId>com.poterion.monitor</groupId>
-            <artifactId>raspi-w2812</artifactId>
+            <artifactId>raspi-ws281x</artifactId>
         </dependency>
         <dependency>
             <groupId>com.poterion.monitor</groupId>
