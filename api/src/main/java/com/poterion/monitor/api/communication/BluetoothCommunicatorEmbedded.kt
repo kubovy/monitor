@@ -26,6 +26,7 @@ class BluetoothCommunicatorEmbedded(private var address: String,
 
 	companion object {
 		private val LOGGER: Logger = LoggerFactory.getLogger(BluetoothCommunicatorEmbedded::class.java)
+		const val MAX_PACKET_SIZE = 32
 	}
 
 	private val url: String

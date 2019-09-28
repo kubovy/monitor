@@ -16,11 +16,12 @@ data class Device(var name: String = "",
 			DeviceKind.WS281x -> VariableType.COLOR_PATTERN
 			DeviceKind.BLUETOOTH -> VariableType.BOOLEAN
 			DeviceKind.LCD -> when (key) {
-				"message" -> VariableType.STRING
+				LcdKey.MESSAGE.key -> VariableType.STRING
 				else -> VariableType.BOOLEAN
 			}
 			DeviceKind.VIRTUAL -> when (key) {
-				"goto" -> VariableType.STATE
+				VirtualKey.GOTO.key -> VariableType.STATE
+				VirtualKey.ENTER.key -> VariableType.ENTER
 				else -> VariableType.BOOLEAN
 			}
 		}

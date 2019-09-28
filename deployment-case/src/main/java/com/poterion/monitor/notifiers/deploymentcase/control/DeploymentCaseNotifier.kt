@@ -35,7 +35,8 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		private val BUTTON_DOWNLOAD = ButtonType("Download")
 		private val BUTTON_UPLOAD = ButtonType("Upload")
 		private val BUTTON_REPAIR = ButtonType("Repair")
-		private const val CHUNK_SIZE = 32 //52
+		// Chunk contains 2 bytes SM size, 2 bytes address and data
+		private const val CHUNK_SIZE = BluetoothCommunicatorEmbedded.MAX_PACKET_SIZE - 4
 	}
 
 	/** Bluetooth communicator */

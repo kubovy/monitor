@@ -309,7 +309,8 @@ class ConfigWindowTabStateMachine : ConfigurationContributer {
                                 comboBox1 = ComboBox(FXCollections.observableArrayList(SharedUiData
                                         .devices
                                         .toMutableList()
-                                        .apply { add(Device("GOTO", DeviceKind.VIRTUAL, "goto")) }
+                                        .apply { add(Device("GOTO", DeviceKind.VIRTUAL, VirtualKey.GOTO.key)) }
+                                        .apply { add(Device("ENTER", DeviceKind.VIRTUAL, VirtualKey.ENTER.key)) }
                                         .filter { it.kind != DeviceKind.MCP23017 || it.key.toInt() >= 32 }))
                                         .apply {
                                             selectionModel.selectedItemProperty().addListener { _, oldValue, newValue ->
