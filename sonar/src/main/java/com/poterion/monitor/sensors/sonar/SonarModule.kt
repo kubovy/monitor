@@ -2,9 +2,11 @@ package com.poterion.monitor.sensors.sonar
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.ServiceModule
-import com.poterion.monitor.data.Config
+import com.poterion.monitor.api.ui.Icon
+import com.poterion.monitor.data.ApplicationConfiguration
 import com.poterion.monitor.sensors.sonar.control.SonarService
 import com.poterion.monitor.sensors.sonar.data.SonarConfig
+import com.poterion.monitor.sensors.sonar.ui.SonarIcon
 import kotlin.reflect.KClass
 
 /**
@@ -12,8 +14,16 @@ import kotlin.reflect.KClass
  */
 object SonarModule : ServiceModule<SonarConfig, SonarService> {
 	override val configClass: KClass<SonarConfig> = SonarConfig::class
-	override fun createControllers(controller: ControllerInterface, config: Config): Collection<SonarService> = config.services
-			.filter { it is SonarConfig }
-			.map { it as SonarConfig }
+
+	override val title: String
+		get() = "Sonar"
+
+	override val icon: Icon = SonarIcon.SONAR
+
+	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration): SonarService =
+			SonarService(controller, SonarConfig(name = title).also { applicationConfiguration.services.add(it) })
+
+	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration): Collection<SonarService> = applicationConfiguration.services
+			.filterIsInstance<SonarConfig>()
 			.map { SonarService(controller, it) }
 }

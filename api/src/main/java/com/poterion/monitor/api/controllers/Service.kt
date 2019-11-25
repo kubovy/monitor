@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-abstract class Service<out Config : ServiceConfig>(override val config: Config) : ModuleInterface<Config> {
+abstract class Service<out Config : ServiceConfig>(override val config: Config) : ModuleInstanceInterface<Config> {
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(Service::class.java)
 	}
@@ -27,34 +27,39 @@ abstract class Service<out Config : ServiceConfig>(override val config: Config) 
 	override val navigationRoot: NavigationItem
 		get() = NavigationItem(
 				title = config.name,
-				icon = icon,
+				icon = definition.icon,
 				update = { entry, _ -> (entry as MenuItem).text = config.name },
 				sub = mutableListOf())
 
-	protected val retrofit: Retrofit
-		get() = Retrofit.Builder()
-				.baseUrl(config.url)
-				.client(OkHttpClient.Builder()
-						.connectTimeout(config.connectTimeout ?: 10_000L, TimeUnit.MILLISECONDS)
-						.readTimeout(config.readTimeout ?: 10_000L, TimeUnit.MILLISECONDS)
-						.writeTimeout(config.writeTimeout ?: 10_000L, TimeUnit.MILLISECONDS)
-						.addInterceptor { chain ->
-							val requestBuilder = chain.request().newBuilder()
-							val auth = config.auth
+	protected val retrofit: Retrofit?
+		get() = try {
+			Retrofit.Builder()
+					.baseUrl(config.url)
+					.client(OkHttpClient.Builder()
+							.connectTimeout(config.connectTimeout ?: 10_000L, TimeUnit.MILLISECONDS)
+							.readTimeout(config.readTimeout ?: 10_000L, TimeUnit.MILLISECONDS)
+							.writeTimeout(config.writeTimeout ?: 10_000L, TimeUnit.MILLISECONDS)
+							.addInterceptor { chain ->
+								val requestBuilder = chain.request().newBuilder()
+								val auth = config.auth
 
-							if (auth is BasicAuthConfig) requestBuilder.header("Authorization",
-									Base64.getEncoder()
-											.encodeToString("${auth.username}:${auth.password}".toByteArray())
-											.let { "Basic ${it}" })
+								if (auth is BasicAuthConfig) requestBuilder.header("Authorization",
+										Base64.getEncoder()
+												.encodeToString("${auth.username}:${auth.password}".toByteArray())
+												.let { "Basic ${it}" })
 
-							val request = requestBuilder.build()
-							LOGGER.debug("${request.method()} ${request.url()}...")
-							chain.proceed(request)
-						}.build())
-				.addConverterFactory(JacksonConverterFactory.create(ObjectMapper(JsonFactory()).apply {
-					disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-				}))
-				.build()
+								val request = requestBuilder.build()
+								LOGGER.debug("${request.method()} ${request.url()}...")
+								chain.proceed(request)
+							}.build())
+					.addConverterFactory(JacksonConverterFactory.create(ObjectMapper(JsonFactory()).apply {
+						disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+					}))
+					.build()
+		} catch (e: IllegalArgumentException) {
+			LOGGER.error(e.message)
+			null
+		}
 
 	/**
 	 * Check implementation.

@@ -80,7 +80,7 @@ node {
                         userRemoteConfigs                : [
                                 [
                                         credentialsId: 'poterion-git',
-                                        url          : 'ssh://git@bitbucket.intra:7999/monitor/application.git'
+                                        url          : 'ssh://git@bitbucket.intra:22999/monitor/application.git'
                                 ]
                         ]
                 ])

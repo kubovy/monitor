@@ -1,15 +1,16 @@
 package com.poterion.monitor.sensors.sonar.control
 
 import com.poterion.monitor.api.controllers.ControllerInterface
+import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Service
-import com.poterion.monitor.api.ui.Icon
+import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
+import com.poterion.monitor.sensors.sonar.SonarModule
 import com.poterion.monitor.sensors.sonar.data.SonarConfig
 import com.poterion.monitor.sensors.sonar.data.SonarProjectConfig
 import com.poterion.monitor.sensors.sonar.data.SonarProjectResponse
-import com.poterion.monitor.sensors.sonar.ui.SonarIcon
 import javafx.beans.binding.Bindings
 import javafx.collections.FXCollections
 import javafx.scene.Node
@@ -36,12 +37,12 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 		val LOGGER: Logger = LoggerFactory.getLogger(SonarService::class.java)
 	}
 
+	override val definition: Module<SonarConfig, ModuleInstanceInterface<SonarConfig>> = SonarModule
 	private val service
-		get() = retrofit.create(SonarRestService::class.java)
+		get() = retrofit?.create(SonarRestService::class.java)
 	private val projects = config.projects.map { it.name to it }.toMap()
 	private var lastFoundProjectNames: Collection<String> = projects.keys
 
-	override val icon: Icon = SonarIcon.SONAR
 	override val configurationRows: List<Pair<Node, Node>>?
 		get() = listOf(Label("Filter") to TextField(config.filter).apply {
 			textProperty().addListener { _, _, filter -> config.filter = filter }
@@ -122,7 +123,7 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		try {
-			service.check().enqueue(object : Callback<Collection<SonarProjectResponse>> {
+			service?.check()?.enqueue(object : Callback<Collection<SonarProjectResponse>> {
 				override fun onResponse(call: Call<Collection<SonarProjectResponse>>?, response: Response<Collection<SonarProjectResponse>>?) {
 					LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}: ${response?.code()} ${response?.message()}")
 
