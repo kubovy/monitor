@@ -2,11 +2,14 @@ package com.poterion.monitor.notifiers.deploymentcase.control
 
 import com.poterion.monitor.api.communication.*
 import com.poterion.monitor.api.controllers.ControllerInterface
+import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
+import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.Icon
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
+import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
 import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageKind
 import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageListener
 import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
@@ -14,9 +17,12 @@ import com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController
 import com.poterion.monitor.notifiers.deploymentcase.ui.StateCompareWindowController
 import dorkbox.systemTray.MenuItem
 import javafx.application.Platform
+import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.Alert
 import javafx.scene.control.ButtonType
+import javafx.scene.control.Label
+import javafx.scene.control.TextField
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.BufferedWriter
@@ -39,6 +45,8 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		private const val CHUNK_SIZE = BluetoothCommunicatorEmbedded.MAX_PACKET_SIZE - 4
 	}
 
+	override val definition: Module<DeploymentCaseConfig, ModuleInstanceInterface<DeploymentCaseConfig>> = DeploymentCaseModule
+
 	/** Bluetooth communicator */
 	val communicator: BluetoothCommunicatorEmbedded = BluetoothCommunicatorEmbedded(config.deviceAddress, config.enabled)
 	private val listeners = mutableListOf<DeploymentCaseMessageListener>()
@@ -49,7 +57,6 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	private var repairStateMachine = false
 	private var lastStateMachineConfigurationCheck = 0L
 
-	override val icon: Icon = DeploymentCaseIcon.NUCLEAR_FOOTBALL
 	private val connectedIcon: Icon
 		get() = if (communicator.isConnected)
 			DeploymentCaseIcon.CONNECTED else DeploymentCaseIcon.DISCONNECTED
@@ -66,6 +73,12 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 					}
 			))
 		}
+
+	override val configurationRows: List<Pair<Node, Node>>?
+		get() = listOf(Label("Bluetooth Address") to TextField(config.deviceAddress).apply {
+			textProperty().addListener { _, _, address -> config.deviceAddress = address }
+			focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+		})
 
 	override val configurationTab: Parent?
 		get() = ConfigWindowController.getRoot(config, this)
@@ -168,8 +181,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 			DeploymentCaseMessageKind.PUSH_STATE_MACHINE -> {
 				val length = ((message[2].toInt() shl 8) and 0xFF00) or (message[3].toInt() and 0xFF)
 				val addr = ((message[4].toInt() shl 8) and 0xFF00) or (message[5].toInt() and 0xFF)
-				if (addr == 0) (0 until stateMachineBuffer.size)
-						.forEach { stateMachineBuffer[it] = 0xFF.toByte() }
+				if (addr == 0) stateMachineBuffer.indices.forEach { stateMachineBuffer[it] = 0xFF.toByte() }
 
 				(0 until (message.size - 6)).forEach {
 					stateMachineBuffer[it + addr] = message[it + 6]
@@ -188,7 +200,8 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 					if (!matches && repairStateMachine) {
 						repairStateMachine = false
 						stateMachineChunks = 0
-						if (currentStateMachine != null && currentStateMachine.isNotEmpty()) (0 until currentStateMachine.size)
+						if (currentStateMachine != null && currentStateMachine.isNotEmpty()) currentStateMachine
+								.indices
 								.map { Triple(it, currentStateMachine[it], stateMachineBuffer.getOrNull(it)) }
 								.filter { (_, current, received) -> current != received }
 								//.intermediate { (reg, current, received) -> LOGGER.debug("%04X: 0x%02X != 0x%02X".format(reg, current, received)) }

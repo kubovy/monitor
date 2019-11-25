@@ -20,6 +20,7 @@
         <module>jenkins</module>
         <module>sonar</module>
         <!-- Notifiers -->
+        <module>devops-light</module>
         <module>deployment-case</module>
         <module>raspi-ws281x</module>
         <module>system-tray</module>
@@ -81,6 +82,11 @@
             <dependency>
                 <groupId>com.poterion.monitor</groupId>
                 <artifactId>deployment-case</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.poterion.monitor</groupId>
+                <artifactId>devops-light</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -1,16 +1,17 @@
 package com.poterion.monitor.sensors.jenkins.control
 
 import com.poterion.monitor.api.controllers.ControllerInterface
+import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Service
-import com.poterion.monitor.api.ui.Icon
+import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
+import com.poterion.monitor.sensors.jenkins.JenkinsModule
 import com.poterion.monitor.sensors.jenkins.data.JenkinsConfig
 import com.poterion.monitor.sensors.jenkins.data.JenkinsJobConfig
 import com.poterion.monitor.sensors.jenkins.data.JenkinsJobResponse
 import com.poterion.monitor.sensors.jenkins.data.JenkinsResponse
-import com.poterion.monitor.sensors.jenkins.ui.JenkinsIcon
 import javafx.beans.binding.Bindings
 import javafx.collections.FXCollections
 import javafx.scene.Node
@@ -38,11 +39,11 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 		val LOGGER: Logger = LoggerFactory.getLogger(JenkinsService::class.java)
 	}
 
+	override val definition: Module<JenkinsConfig, ModuleInstanceInterface<JenkinsConfig>> = JenkinsModule
 	private val service
-		get() = retrofit.create(JenkinsRestService::class.java)
+		get() = retrofit?.create(JenkinsRestService::class.java)
 	private val jobs = config.jobs.map { it.name to it }.toMap()
 	private var lastFoundJobNames: Collection<String> = jobs.keys
-	override val icon: Icon = JenkinsIcon.JENKINS
 	override val configurationRows: List<Pair<Node, Node>>?
 		get() = listOf(Label("Filter") to TextField(config.filter).apply {
 			textProperty().addListener { _, _, filter -> config.filter = filter }
@@ -110,7 +111,7 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		try {
-			service.check().enqueue(object : Callback<JenkinsResponse> {
+			service?.check()?.enqueue(object : Callback<JenkinsResponse> {
 				override fun onResponse(call: Call<JenkinsResponse>?, response: Response<JenkinsResponse>?) {
 					LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}: ${response?.code()} ${response?.message()}")
 

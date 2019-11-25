@@ -1,6 +1,8 @@
 package com.poterion.monitor.notifiers.raspi.ws281x.ui
 
 import com.poterion.monitor.api.communication.BluetoothRaspiListener
+import com.poterion.monitor.api.lib.toImage
+import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.ui.CommonIcon
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.raspi.ws281x.RaspiWS281xIcon
@@ -18,7 +20,6 @@ import javafx.scene.control.*
 import javafx.scene.control.Alert.AlertType
 import javafx.scene.control.ButtonType
 import javafx.scene.control.cell.PropertyValueFactory
-import javafx.scene.image.Image
 import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
@@ -164,7 +165,7 @@ class ConfigWindowController : BluetoothRaspiListener {
 					override fun updateItem(item: StateConfig?, empty: Boolean) {
 						super.updateItem(item, empty)
 						text = item?.title?.let { if (it.isEmpty()) "Default" else it }
-						graphic = item?.icon?.inputStream?.use { ImageView(Image(it, 16.0, 16.0, false, false)) }
+						graphic = item?.icon?.toImageView()
 					}
 				}
 			}
@@ -280,7 +281,7 @@ class ConfigWindowController : BluetoothRaspiListener {
 		}
 		comboConfigName.apply {
 			controller?.controller
-					?.config
+					?.applicationConfiguration
 					?.services
 					?.map { it.name }
 					?.filter { config?.items?.map { i -> i.id }?.contains(it) == false }
@@ -293,12 +294,12 @@ class ConfigWindowController : BluetoothRaspiListener {
 		}
 
 		// Status
-		iconInbound.image = Image(
-				if (controller?.communicator?.isInboundConnected == true) RaspiWS281xIcon.CONNECTED.inputStream
-				else RaspiWS281xIcon.DISCONNECTED.inputStream)
-		iconOutbound.image = Image(
-				if (controller?.communicator?.isOutboundConnected == true) RaspiWS281xIcon.CONNECTED.inputStream
-				else RaspiWS281xIcon.DISCONNECTED.inputStream)
+		iconInbound.image =
+				if (controller?.communicator?.isInboundConnected == true) RaspiWS281xIcon.CONNECTED.toImage()
+				else RaspiWS281xIcon.DISCONNECTED.toImage()
+		iconOutbound.image =
+				if (controller?.communicator?.isOutboundConnected == true) RaspiWS281xIcon.CONNECTED.toImage()
+				else RaspiWS281xIcon.DISCONNECTED.toImage()
 
 		controller?.communicator?.register(this)
 	}
@@ -478,19 +479,19 @@ class ConfigWindowController : BluetoothRaspiListener {
 	}
 
 	override fun onInboundConnect() {
-		iconInbound.image = Image(RaspiWS281xIcon.CONNECTED.inputStream)
+		iconInbound.image = RaspiWS281xIcon.CONNECTED.toImage()
 	}
 
 	override fun onInboundDisconnect() {
-		iconInbound.image = Image(RaspiWS281xIcon.DISCONNECTED.inputStream)
+		iconInbound.image = RaspiWS281xIcon.DISCONNECTED.toImage()
 	}
 
 	override fun onOutboundConnect() {
-		iconOutbound.image = Image(RaspiWS281xIcon.CONNECTED.inputStream)
+		iconOutbound.image = RaspiWS281xIcon.CONNECTED.toImage()
 	}
 
 	override fun onOutboundDisconnect() {
-		iconOutbound.image = Image(RaspiWS281xIcon.DISCONNECTED.inputStream)
+		iconOutbound.image = RaspiWS281xIcon.DISCONNECTED.toImage()
 	}
 
 	private fun selectStateConfig(stateConfig: StateConfig?) {

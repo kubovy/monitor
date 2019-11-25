@@ -93,7 +93,8 @@ class BluetoothCommunicatorRaspi(private var prefix: String,
 									val ack = data.trim().split(":", limit = 2)
 									correctlyReceived = ack.size > 1 && crc32Calculated == ack[1].toLong()
 									retries++
-									LOGGER.debug("Outbound ${ack[0]}: calculated=${crc32Calculated}, received=${ack[1]} => ${correctlyReceived}")
+									LOGGER.debug("Outbound ${ack[0]}: calculated=${crc32Calculated}," +
+											" received=${ack[1]} => ${correctlyReceived}")
 								}
 								if (correctlyReceived) queue.poll()
 							} else {
@@ -115,6 +116,8 @@ class BluetoothCommunicatorRaspi(private var prefix: String,
 			}
 			isOutboundConnected = false
 			listeners.forEach { Platform.runLater(it::onOutboundDisconnect) }
+		} catch (e: IllegalArgumentException) {
+			LOGGER.error(e.message)
 		} catch (e: IOException) {
 			LOGGER.info(e.message)
 		}
@@ -145,8 +148,8 @@ class BluetoothCommunicatorRaspi(private var prefix: String,
 							}
 
 							when {
-								idx == lines.size - 1 -> // Last is incomplete, may be empty in case of complete transmission
-									incomplete = line
+								idx == lines.size - 1 -> incomplete = line // Last is incomplete,
+								// may be empty in case of complete tx
 								line == STX -> bufferIncoming = ""
 								line == ETX -> {
 									//self.notify(self.buffer_incoming)
@@ -190,6 +193,8 @@ class BluetoothCommunicatorRaspi(private var prefix: String,
 			}
 			isInboundConnected = false
 			listeners.forEach { Platform.runLater(it::onInboundDisconnect) }
+		} catch (e: IllegalArgumentException) {
+			LOGGER.error(e.message)
 		} catch (e: IOException) {
 			LOGGER.info(e.message)
 		}

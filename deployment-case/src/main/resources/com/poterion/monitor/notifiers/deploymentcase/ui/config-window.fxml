@@ -1,27 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.ListView?>
-<?import javafx.scene.control.ProgressBar?>
-<?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.control.SplitPane?>
-<?import javafx.scene.control.Tab?>
-<?import javafx.scene.control.TabPane?>
-<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.*?>
 <?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.*?>
 <SplitPane fx:id="rootPane" centerShape="false" dividerPositions="0.2" onKeyPressed="#onKeyPressed" prefHeight="800.0"
-           prefWidth="1036.0" scaleShape="false" xmlns="http://javafx.com/javafx/8.0.201"
+           prefWidth="1036.0" scaleShape="false" xmlns="http://javafx.com/javafx/10.0.1"
            xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController">
 	<items>
 		<VBox maxWidth="1.7976931348623157E308">
 			<children>
-            <ComboBox fx:id="comboBluetoothAddress" editable="true" maxWidth="1.7976931348623157E308" promptText="00:00:00:00:00:00" />
 				<ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS">
 					<content>
 						<ListView fx:id="listConfigurations" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" />

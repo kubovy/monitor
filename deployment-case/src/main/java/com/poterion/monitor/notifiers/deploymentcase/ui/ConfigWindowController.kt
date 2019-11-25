@@ -2,6 +2,7 @@ package com.poterion.monitor.notifiers.deploymentcase.ui
 
 import com.poterion.monitor.api.communication.BluetoothCommunicatorEmbedded
 import com.poterion.monitor.api.communication.BluetoothEmbeddedListener
+import com.poterion.monitor.api.lib.toImage
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import com.poterion.monitor.notifiers.deploymentcase.api.ConfigurationContributer
 import com.poterion.monitor.notifiers.deploymentcase.api.ConfigurationWindowActionListener
@@ -15,14 +16,10 @@ import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.control.*
-import javafx.scene.image.Image
 import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.scene.layout.HBox
-import javafx.util.StringConverter
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 /**
  * Deployment case configuration window notifier.
@@ -32,7 +29,6 @@ import org.slf4j.LoggerFactory
 class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedListener {
 
 	companion object {
-		private val LOGGER: Logger = LoggerFactory.getLogger(ConfigWindowController::class.java)
 		private const val NEW_NAME = "New configuration"
 
 		internal fun getRoot(config: DeploymentCaseConfig, controller: DeploymentCaseNotifier): Parent =
@@ -47,7 +43,6 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 	}
 
 	@FXML private lateinit var rootPane: SplitPane
-	@FXML private lateinit var comboBluetoothAddress: ComboBox<Pair<String, String>>
 	@FXML private lateinit var listConfigurations: ListView<Configuration>
 
 	@FXML private lateinit var tabPane: TabPane
@@ -79,19 +74,6 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 	@FXML
 	fun initialize() {
 		additionalButtons.children.clear()
-		comboBluetoothAddress.converter = object : StringConverter<Pair<String, String>>() {
-			override fun toString(device: Pair<String, String>?): String = device
-					?.let { (name, addr) -> "${name} [${addr}]" }
-					?: ""
-
-			override fun fromString(string: String?): Pair<String, String>? = string
-					?.let { "(.*) \\[([0-9a-fA-F:]+)]".toRegex().find(it) }
-					?.let { it.groupValues[1] to it.groupValues[2] }
-		}
-		comboBluetoothAddress.focusedProperty()
-				.addListener { _, _, focused -> if (!focused) saveConfig() }
-		comboBluetoothAddress.selectionModel.selectedItemProperty()
-				.addListener { _, _, selected -> config.deviceAddress = selected.second }
 		listConfigurations.apply {
 			setCellFactory {
 				object : ListCell<Configuration>() {
@@ -120,23 +102,9 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 					tabControllers.add(ctrl)
 				}
 
-		val remoteDevices = notifier.communicator
-				.takeIf { notifier.controller.config.btDiscovery }
-				?.devices()
-				?.toMutableList()
-				?: mutableListOf()
-		config.deviceAddress
-				.takeIf { addr -> remoteDevices.none { (_, a) -> a == addr } }
-				?.also { addr -> remoteDevices.add("" to addr) }
-		comboBluetoothAddress.items.clear()
-		comboBluetoothAddress.items.addAll(remoteDevices)
-
 		listConfigurations.items.clear()
 		config.configurations.also { listConfigurations.items.addAll(it) }
 		if (listConfigurations.items.isNotEmpty()) listConfigurations.selectionModel.select(0)
-
-		remoteDevices.find { (_, addr) -> addr == config.deviceAddress }
-				?.also { comboBluetoothAddress.selectionModel.select(it) }
 
 		// Status
 		updateConnected()
@@ -183,7 +151,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 
 	@FXML
 	fun onSynchronize() {
-		iconVerified.image = Image(DeploymentCaseIcon.UNVERIFIED.inputStream)
+		iconVerified.image = DeploymentCaseIcon.UNVERIFIED.toImage()
 		notifier.synchronizeStateMachine()
 	}
 
@@ -271,7 +239,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 
 	override fun onVerification(verified: Boolean) {
 		super.onVerification(verified)
-		iconVerified.image = Image((if (verified) DeploymentCaseIcon.VERIFIED else DeploymentCaseIcon.MISMATCH).inputStream)
+		iconVerified.image = (if (verified) DeploymentCaseIcon.VERIFIED else DeploymentCaseIcon.MISMATCH).toImage()
 		tabControllers.mapNotNull { it as? DeploymentCaseMessageListener }.forEach { it.onVerification(verified) }
 	}
 
@@ -282,8 +250,8 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 		rootPane.isDisable = false
 
 		val icon = if (connected) DeploymentCaseIcon.CONNECTED else DeploymentCaseIcon.DISCONNECTED
-		iconConnected.image = Image(icon.inputStream)
-		iconVerified.image = Image(DeploymentCaseIcon.UNVERIFIED.inputStream)
+		iconConnected.image = icon.toImage()
+		iconVerified.image = DeploymentCaseIcon.UNVERIFIED.toImage()
 
 		progress.progress = 0.0
 		rootPane.isDisable = false
@@ -304,7 +272,6 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 				.forEach { it.updateConfiguration(config, listConfigurations.selectionModel.selectedItem) }
 
 		// Save config
-		config.deviceAddress = comboBluetoothAddress.selectionModel.selectedItem?.second ?: ""
 		config.configurations = listConfigurations.items
 
 		notifier.controller.saveConfig()

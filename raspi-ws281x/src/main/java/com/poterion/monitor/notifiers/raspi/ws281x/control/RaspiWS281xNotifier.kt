@@ -5,7 +5,9 @@ import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.communication.BluetoothCommunicatorRaspi
 import com.poterion.monitor.api.communication.BluetoothRaspiListener
 import com.poterion.monitor.api.controllers.ControllerInterface
+import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
+import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.CommonIcon
 import com.poterion.monitor.api.ui.Icon
 import com.poterion.monitor.api.ui.NavigationItem
@@ -13,11 +15,15 @@ import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.raspi.ws281x.RaspiWS281xIcon
+import com.poterion.monitor.notifiers.raspi.ws281x.RaspiWS281xModule
 import com.poterion.monitor.notifiers.raspi.ws281x.data.LightConfig
 import com.poterion.monitor.notifiers.raspi.ws281x.data.RaspiWS281xConfig
 import com.poterion.monitor.notifiers.raspi.ws281x.ui.ConfigWindowController
 import dorkbox.systemTray.MenuItem
+import javafx.scene.Node
 import javafx.scene.Parent
+import javafx.scene.control.Label
+import javafx.scene.control.TextField
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
@@ -32,10 +38,10 @@ class RaspiWS281xNotifier(override val controller: ControllerInterface, config: 
 		val LOGGER: Logger = LoggerFactory.getLogger(RaspiWS281xNotifier::class.java)
 	}
 
+	override val definition: Module<RaspiWS281xConfig, ModuleInstanceInterface<RaspiWS281xConfig>> = RaspiWS281xModule
 	val communicator: BluetoothCommunicatorRaspi = BluetoothCommunicatorRaspi("WS", config.deviceAddress, 5, 6, config.enabled)
 	private var lastState = emptyList<LightConfig>()
 	private val objectMapper = ObjectMapper()
-	override val icon: Icon = RaspiWS281xIcon.RASPBERRY
 	private val connectedIcon: Icon
 		get() = if (communicator.isInboundConnected && communicator.isOutboundConnected)
 			RaspiWS281xIcon.CONNECTED else RaspiWS281xIcon.DISCONNECTED
@@ -82,6 +88,12 @@ class RaspiWS281xNotifier(override val controller: ControllerInterface, config: 
 								.toMutableList()))
 			}
 		}
+
+	override val configurationRows: List<Pair<Node, Node>>?
+		get() = listOf(Label("Bluetooth Address") to TextField(config.deviceAddress).apply {
+			textProperty().addListener { _, _, address -> config.deviceAddress = address }
+			focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+		})
 
 	override val configurationTab: Parent?
 		get() = ConfigWindowController.getRoot(config, this)

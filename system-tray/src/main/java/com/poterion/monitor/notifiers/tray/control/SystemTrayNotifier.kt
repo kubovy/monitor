@@ -3,9 +3,11 @@ package com.poterion.monitor.notifiers.tray.control
 import com.poterion.monitor.api.Props
 import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
+import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.lib.open
 import com.poterion.monitor.api.lib.toIcon
+import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.CommonIcon
 import com.poterion.monitor.api.ui.Icon
 import com.poterion.monitor.api.ui.NavigationItem
@@ -15,6 +17,7 @@ import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.key
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.tray.SystemTrayIcon
+import com.poterion.monitor.notifiers.tray.SystemTrayModule
 import com.poterion.monitor.notifiers.tray.data.SystemTrayConfig
 import com.poterion.monitor.ui.ConfigurationController
 import dorkbox.systemTray.*
@@ -35,7 +38,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 		val LOGGER: Logger = LoggerFactory.getLogger(SystemTrayNotifier::class.java)
 	}
 
-	override val icon: Icon = SystemTrayIcon.TRAY
+	override val definition: Module<SystemTrayConfig, ModuleInstanceInterface<SystemTrayConfig>> = SystemTrayModule
 	private var systemTray: SystemTray = SystemTray.get() ?: throw RuntimeException("Unable to load SystemTray!")
 	private var serviceMenus = mutableMapOf<String, Menu>()
 	private var lastStatusIcon: Icon? = null

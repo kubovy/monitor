@@ -6,8 +6,8 @@ import com.poterion.monitor.data.services.ServiceConfig
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-data class Config(
+data class ApplicationConfiguration(
 		var btDiscovery: Boolean = false,
-		var showOnStartup: Boolean = false,
-		var services: List<ServiceConfig> = emptyList(),
-		var notifiers: List<NotifierConfig> = emptyList())
+		var showOnStartup: Boolean = true,
+		var services: MutableList<ServiceConfig> = mutableListOf(),
+		var notifiers: MutableList<NotifierConfig> = mutableListOf())

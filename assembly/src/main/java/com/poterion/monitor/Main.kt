@@ -1,7 +1,8 @@
 package com.poterion.monitor
 
-import com.poterion.monitor.control.Controller
+import com.poterion.monitor.control.ApplicationController
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
+import com.poterion.monitor.notifiers.devops.light.DevOpsLight
 import com.poterion.monitor.notifiers.raspi.ws281x.RaspiWS281xModule
 import com.poterion.monitor.notifiers.tray.SystemTrayModule
 import com.poterion.monitor.sensors.jenkins.JenkinsModule
@@ -23,24 +24,27 @@ import javafx.stage.Stage
  * class Jenkins <<Service>>
  * class Sonar <<Service>>
  *
- * class "System Tray" as SystemTray <<Notifier>>
+ * class "Dev/Ops Light" as DevOpsLight <<Notifier>>
  * class "Raspi W2812" as RaspiW2812 <<Notifier>>
+ * class "System Tray" as SystemTray <<Notifier>>
  *
  * Data <|-- API
  * API <|-left- Control
+ * API <|-right- UI
+ * API <|-- DevOpsLight
  * API <|-- RaspiW2812
  * API <|-- SystemTray
- * API <|-right- UI
  * API <|-- Jenkins
  * API <|-- Sonar
  *
  * UI <|-- SystemTray
  *
  * Control <|-- Assembly
+ * DevOpsLight <|-- Assembly
  * Jenkins <|-- Assembly
+ * RaspiW2812 <|-- Assembly
  * Sonar <|-- Assembly
  * SystemTray <|-- Assembly
- * RaspiW2812 <|-- Assembly
  *
  * @enduml
  */
@@ -58,15 +62,16 @@ class Main : Application() {
 	override fun start(primaryStage: Stage) {
 		Platform.setImplicitExit(false)
 
-		val controller = Controller(primaryStage).apply {
+		val controller = ApplicationController(primaryStage).apply {
 			registerModule(JenkinsModule)
 			registerModule(SonarModule)
 			registerModule(DeploymentCaseModule)
+			registerModule(DevOpsLight)
 			registerModule(RaspiWS281xModule)
 			registerModule(SystemTrayModule)
 		}
 		controller.start()
-		if (controller.config.showOnStartup) ConfigurationController.create(controller)
+		if (controller.applicationConfiguration.showOnStartup) ConfigurationController.create(controller)
 	}
 }
 

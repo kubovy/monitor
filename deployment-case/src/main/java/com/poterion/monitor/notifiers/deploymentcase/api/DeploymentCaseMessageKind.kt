@@ -18,7 +18,9 @@ enum class DeploymentCaseMessageKind(final override var code: Int, override val 
 	/** Request current state */
 	GET_STATE(0x83),
 	/** Transmission of current partial or whole current state */
-	SET_STATE(0x84);
+	SET_STATE(0x84),
+	/** Transmission of one or more actions */
+	SET_ACTION(0x85);
 
 	override val byteCode = code.toByte()
 }

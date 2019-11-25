@@ -8,12 +8,12 @@ import dorkbox.systemTray.MenuItem
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-abstract class Notifier<out Config : NotifierConfig>(override val config: Config) : ModuleInterface<Config> {
+abstract class Notifier<out Config : NotifierConfig>(override val config: Config) : ModuleInstanceInterface<Config> {
 
 	override val navigationRoot: NavigationItem
 		get() = NavigationItem(
 				title = config.name,
-				icon = icon,
+				icon = definition.icon,
 				update = { entry, _ -> (entry as? MenuItem)?.text = config.name },
 				sub = mutableListOf(
 						NavigationItem(
