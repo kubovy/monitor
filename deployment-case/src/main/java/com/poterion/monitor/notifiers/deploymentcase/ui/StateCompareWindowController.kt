@@ -1,5 +1,6 @@
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
+import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.notifiers.deploymentcase.control.setStateMachine
 import com.poterion.monitor.notifiers.deploymentcase.data.Evaluation
 import com.poterion.monitor.notifiers.deploymentcase.data.Placeholder
@@ -58,7 +59,7 @@ class StateCompareWindowController {
 						graphic = null
 					} else {
 						text = item?.title
-						graphic = item?.getImageView
+						graphic = item?.icon?.toImageView()
 						style = when {
 							treeView.selectionModel.selectedItem?.value == item -> null
 							item is Evaluation -> null

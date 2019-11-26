@@ -16,7 +16,4 @@ enum class UiIcon(private val file: String) : Icon {
 		get() = UiIcon::class.java.getResourceAsStream(file)
 				.use { it.readBytes() }
 				.let { ByteArrayInputStream(it) }
-
-	override fun image(width: Int, height: Int): Image = inputStream
-			.use { Image(it, width.toDouble(), height.toDouble(), false, true) }
 }

@@ -124,7 +124,7 @@ class ConfigurationController {
 	private fun load() {
 		tree.root = TreeItem<ModuleItem>().apply {
 			children.addAll(
-					TreeItem(ModuleItem(SimpleStringProperty("Services"), ImageView(UiIcon.SERVICES.image(16, 16)))).apply {
+					TreeItem(ModuleItem(SimpleStringProperty("Services"), UiIcon.SERVICES.toImageView())).apply {
 						controller?.services?.forEach { children.addItem(it) }
 						//?.sortedBy { it.config.name }
 						//?.map { TreeItem(ModuleItem(module = it)) }
@@ -132,7 +132,7 @@ class ConfigurationController {
 						//?.also { children.addAll(it) }
 						isExpanded = true
 					},
-					TreeItem(ModuleItem(SimpleStringProperty("Notifiers"), ImageView(UiIcon.NOTIFIERS.image(16, 16)))).apply {
+					TreeItem(ModuleItem(SimpleStringProperty("Notifiers"), UiIcon.NOTIFIERS.toImageView())).apply {
 						controller?.notifiers?.forEach { children.addItem(it) }
 						//?.sortedBy { it.config.name }?.map { TreeItem(ModuleItem(module = it)) }
 						//?.also { children.addAll(it) }

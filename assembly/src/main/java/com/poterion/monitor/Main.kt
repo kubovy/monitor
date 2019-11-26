@@ -5,6 +5,7 @@ import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
 import com.poterion.monitor.notifiers.devops.light.DevOpsLight
 import com.poterion.monitor.notifiers.raspi.ws281x.RaspiWS281xModule
 import com.poterion.monitor.notifiers.tray.SystemTrayModule
+import com.poterion.monitor.sensors.alertmanager.AlertManagerModule
 import com.poterion.monitor.sensors.jenkins.JenkinsModule
 import com.poterion.monitor.sensors.sonar.SonarModule
 import com.poterion.monitor.ui.ConfigurationController
@@ -63,6 +64,7 @@ class Main : Application() {
 		Platform.setImplicitExit(false)
 
 		val controller = ApplicationController(primaryStage).apply {
+			registerModule(AlertManagerModule)
 			registerModule(JenkinsModule)
 			registerModule(SonarModule)
 			registerModule(DeploymentCaseModule)

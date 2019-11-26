@@ -1,6 +1,7 @@
 package com.poterion.monitor.notifiers.deploymentcase.data
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import javafx.scene.image.ImageView
 
@@ -12,10 +13,6 @@ interface StateMachineItem {
 	val icon: DeploymentCaseIcon?
 		@JsonIgnore
 		get
-
-	val getImageView: ImageView?
-		@JsonIgnore
-		get() = icon?.let { ImageView(it.image(16, 16)) }
 
 	fun isBinarySame(other: StateMachineItem): Boolean
 }

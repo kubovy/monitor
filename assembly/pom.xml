@@ -44,6 +44,10 @@
     <dependencies>
         <dependency>
             <groupId>com.poterion.monitor</groupId>
+            <artifactId>alert-manager</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.poterion.monitor</groupId>
             <artifactId>control</artifactId>
         </dependency>
         <dependency>

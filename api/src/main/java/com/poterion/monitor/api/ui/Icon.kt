@@ -1,6 +1,5 @@
 package com.poterion.monitor.api.ui
 
-import javafx.scene.image.Image
 import java.io.InputStream
 
 /**
@@ -8,5 +7,4 @@ import java.io.InputStream
  */
 interface Icon {
 	val inputStream: InputStream
-	fun image(width: Int = 0, height: Int = 0): Image
 }

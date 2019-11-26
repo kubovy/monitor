@@ -24,7 +24,4 @@ enum class RaspiWS281xIcon(private val file: String) : Icon {
 		get() = RaspiWS281xIcon::class.java.getResourceAsStream(file)
 				.use { it.readBytes() }
 				.let { ByteArrayInputStream(it) }
-
-	override fun image(width: Int, height: Int): Image = inputStream
-			.use { Image(it, width.toDouble(), height.toDouble(), false, true) }
 }
