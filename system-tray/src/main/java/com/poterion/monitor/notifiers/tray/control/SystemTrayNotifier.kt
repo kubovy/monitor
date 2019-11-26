@@ -7,6 +7,7 @@ import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.lib.open
 import com.poterion.monitor.api.lib.toIcon
+import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.CommonIcon
 import com.poterion.monitor.api.ui.Icon
@@ -130,7 +131,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 					setCallback { _ ->
 						Platform.runLater {
 							Alert(Alert.AlertType.INFORMATION).apply {
-								ImageView(CommonIcon.APPLICATION.image()).also { graphic = it }
+								graphic = CommonIcon.APPLICATION.toImageView()
 								title = "About"
 								headerText = "${Props.APP_NAME}"
 								contentText = "Version: ${Props.VERSION}"

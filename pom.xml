@@ -17,6 +17,7 @@
         <module>data</module>
         <module>ui</module>
         <!-- Services -->
+        <module>alert-manager</module>
         <module>jenkins</module>
         <module>sonar</module>
         <!-- Notifiers -->
@@ -67,6 +68,11 @@
             <dependency>
                 <groupId>com.poterion.monitor</groupId>
                 <artifactId>jenkins</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.poterion.monitor</groupId>
+                <artifactId>alert-manager</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

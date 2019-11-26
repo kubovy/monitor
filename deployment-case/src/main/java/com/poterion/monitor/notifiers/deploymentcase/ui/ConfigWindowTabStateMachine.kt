@@ -1,5 +1,6 @@
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
+import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.notifiers.deploymentcase.*
 import com.poterion.monitor.notifiers.deploymentcase.api.ConfigurationContributer
 import com.poterion.monitor.notifiers.deploymentcase.control.setStateMachine
@@ -227,7 +228,7 @@ class ConfigWindowTabStateMachine : ConfigurationContributer {
                     super.cancelEdit()
                     commitEdit(save())
                     text = item?.title
-                    graphic = item?.getImageView
+                    graphic = item?.icon?.toImageView()
                 }
 
                 override fun updateItem(item: StateMachineItem?, empty: Boolean) {
@@ -260,7 +261,7 @@ class ConfigWindowTabStateMachine : ConfigurationContributer {
                         }
                         else -> {
                             text = item?.title
-                            graphic = item?.getImageView
+                            graphic = item?.icon?.toImageView()
                         }
                     }
                     style = when {
