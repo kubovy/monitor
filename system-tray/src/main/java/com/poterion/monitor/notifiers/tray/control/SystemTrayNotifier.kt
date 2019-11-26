@@ -24,7 +24,6 @@ import com.poterion.monitor.ui.ConfigurationController
 import dorkbox.systemTray.*
 import javafx.application.Platform
 import javafx.scene.control.Alert
-import javafx.scene.image.ImageView
 import javafx.stage.Modality
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -50,6 +49,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 			CommonIcon.APPLICATION.inputStream.use { ImageIO.read(it) }.also { systemTray.setImage(it) }
 			systemTray.status = "Monitor"
 			createMenu()
+			controller.registerForConfigUpdates { createMenu() }
 		} catch (e: IOException) {
 			e.printStackTrace()
 		}
@@ -94,6 +94,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 
 	private fun createMenu() {
 		try {
+			while (systemTray.menu.first != null) systemTray.menu.remove(systemTray.menu.first)
 			systemTray.menu.apply {
 				controller.services.sortedBy { it.config.order }.forEach { service ->
 					val menu = service.navigationRoot.toMenu(controller, service.config)
@@ -188,26 +189,17 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 			Menu(title).also { menu ->
 				icon?.also { icon -> icon.inputStream.use { menu.setImage(it) } }
 				sub?.forEach { subItem -> menu.add(subItem.toMenu(controller, moduleConfig)) }
-				update?.also { update ->
-					controller.registerForConfigUpdates { config -> update.invoke(menu, config) }
-				}
 			}
 		} else if (title != null && sub == null && checked == null) { // Menu Item
 			MenuItem(title) { Platform.runLater { action?.invoke() } }.also { menuItem ->
 				icon?.also { icon -> icon.inputStream.use { menuItem.setImage(it) } }
 				menuItem.enabled = enabled
-				update?.also { update ->
-					controller.registerForConfigUpdates { config -> update.invoke(menuItem, config) }
-				}
 			}
 		} else if (title != null && sub == null && checked != null) { // Checkbox
 			Checkbox(title).also { checkbox ->
 				checkbox.enabled = enabled
 				checkbox.checked = checked ?: false
 				checkbox.setCallback { Platform.runLater { action?.invoke() } }
-				update?.also { update ->
-					controller.registerForConfigUpdates { config -> update.invoke(checkbox, config) }
-				}
 			}
 		} else if (title == null) { // Separator
 			Separator()
@@ -216,11 +208,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 
 	private fun Menu.separateNonePriorityItems(index: Int, priority: Priority, prioritised: Boolean): Boolean {
 		if (priority == Priority.NONE && prioritised) {
-			if (index > 0) {
-				val separator = Separator()
-				//menuEntries[this]?.add(separator)
-				add(separator)
-			}
+			if (index > 0) add(Separator())
 			return false
 		}
 		return prioritised

@@ -1,7 +1,6 @@
 package com.poterion.monitor.notifiers.devops.light
 
 import com.poterion.monitor.api.ui.Icon
-import javafx.scene.image.Image
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 
@@ -16,7 +15,11 @@ enum class DevOpsLightIcon(private val file: String) : Icon {
 	DETECT("/icons/detect.png"),
 	USB("/icons/usb.png"),
 	CONNECTED("/icons/connected.png"),
-	DISCONNECTED("/icons/disconnected.png");
+	DISCONNECTED("/icons/disconnected.png"),
+	BLUETOOTH_CONNECTED("/icons/bluetooth-connected.png"),
+	BLUETOOTH_DISCONNECTED("/icons/bluetooth-disconnected.png"),
+	USB_CONNECTED("/icons/usb-connected.png"),
+	USB_DISCONNECTED("/icons/usb-disconnected.png");
 
 
 	override val inputStream: InputStream
