@@ -11,7 +11,6 @@
     <items>
         <VBox>
             <children>
-                <TextField fx:id="textBluetoothAddress" promptText="00:00:00:00:00:00"/>
                 <TreeView fx:id="treeConfigs" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
                           onKeyPressed="#onKeyPressedInTree" VBox.vgrow="ALWAYS"/>
                 <HBox alignment="CENTER_RIGHT" VBox.vgrow="NEVER">
@@ -221,9 +220,9 @@
                 </TableView>
                 <HBox alignment="CENTER_RIGHT" spacing="5.0">
                     <children>
-                        <ImageView fx:id="iconInbound" fitHeight="32.0" fitWidth="32.0" pickOnBounds="true"
+                        <ImageView fx:id="iconBluetooth" fitHeight="32.0" fitWidth="32.0" pickOnBounds="true"
                                    preserveRatio="true"/>
-                        <ImageView fx:id="iconOutbound" fitHeight="32.0" fitWidth="32.0" pickOnBounds="true"
+                        <ImageView fx:id="iconUSB" fitHeight="32.0" fitWidth="32.0" pickOnBounds="true"
                                    preserveRatio="true"/>
                         <Pane maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS"/>
                         <Button fx:id="buttonTestLightSequence" mnemonicParsing="false" onAction="#onTestLightSequence"
@@ -236,7 +235,7 @@
                                 text="Down [Ctrl+Down]"/>
                         <Button fx:id="buttonDeleteLight" mnemonicParsing="false" onAction="#onDeleteLight"
                                 text="Delete [DEL]"/>
-                        <Button mnemonicParsing="false" onAction="#onReconnect" text="Reconnect [F5]"/>
+                        <Button fx:id="btnConnect" mnemonicParsing="false" onAction="#onReconnect" text="Connect [F5]"/>
                     </children>
                 </HBox>
             </children>

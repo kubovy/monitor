@@ -10,12 +10,10 @@ import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
-import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageKind
 import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageListener
 import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
 import com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController
 import com.poterion.monitor.notifiers.deploymentcase.ui.StateCompareWindowController
-import dorkbox.systemTray.MenuItem
 import javafx.application.Platform
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -34,7 +32,7 @@ import java.io.FileWriter
  * @author Jan Kubovy <jan@kubovy.eu>
  */
 class DeploymentCaseNotifier(override val controller: ControllerInterface, config: DeploymentCaseConfig) :
-		Notifier<DeploymentCaseConfig>(config), BluetoothEmbeddedListener {
+		Notifier<DeploymentCaseConfig>(config), CommunicatorListener {
 
 	companion object {
 		private val LOGGER: Logger = LoggerFactory.getLogger(DeploymentCaseNotifier::class.java)
@@ -42,13 +40,12 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		private val BUTTON_UPLOAD = ButtonType("Upload")
 		private val BUTTON_REPAIR = ButtonType("Repair")
 		// Chunk contains 2 bytes SM size, 2 bytes address and data
-		private const val CHUNK_SIZE = BluetoothCommunicatorEmbedded.MAX_PACKET_SIZE - 4
 	}
 
 	override val definition: Module<DeploymentCaseConfig, ModuleInstanceInterface<DeploymentCaseConfig>> = DeploymentCaseModule
 
 	/** Bluetooth communicator */
-	val communicator: BluetoothCommunicatorEmbedded = BluetoothCommunicatorEmbedded(config.deviceAddress, config.enabled)
+	val bluetoothCommunicator: BluetoothCommunicator = BluetoothCommunicator()
 	private val listeners = mutableListOf<DeploymentCaseMessageListener>()
 
 	private var stateMachineTransfer = false
@@ -58,7 +55,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	private var lastStateMachineConfigurationCheck = 0L
 
 	private val connectedIcon: Icon
-		get() = if (communicator.isConnected)
+		get() = if (bluetoothCommunicator.isConnected)
 			DeploymentCaseIcon.CONNECTED else DeploymentCaseIcon.DISCONNECTED
 
 	override val navigationRoot: NavigationItem
@@ -66,12 +63,9 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 			sub?.add(NavigationItem(
 					title = "Reconnect",
 					icon = connectedIcon,
-					action = { communicator.connect() },
-					update = { entry, _ ->
-						(entry as? MenuItem)?.enabled = config.enabled
-						connectedIcon.inputStream.use { (entry as? MenuItem)?.setImage(it) }
-					}
-			))
+					action = {
+						bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
+					}))
 		}
 
 	override val configurationRows: List<Pair<Node, Node>>?
@@ -85,25 +79,23 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 
 	override fun initialize() {
 		super.initialize()
-		communicator.register(this)
+		bluetoothCommunicator.register(this)
 	}
 
 	override fun execute(action: NotifierAction) {
 		when (action) {
 			NotifierAction.ENABLE -> {
 				config.enabled = true
-				communicator.shouldConnect = true
-				communicator.connect()
+				bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
 				controller.saveConfig()
 			}
 			NotifierAction.DISABLE -> {
 				config.enabled = false
-				communicator.shouldConnect = false
-				communicator.disconnect()
+				bluetoothCommunicator.disconnect()
 				controller.saveConfig()
 			}
 			NotifierAction.TOGGLE -> execute(if (config.enabled) NotifierAction.DISABLE else NotifierAction.ENABLE)
-			NotifierAction.SHUTDOWN -> communicator.disconnect()
+			NotifierAction.SHUTDOWN -> bluetoothCommunicator.disconnect()
 		}
 	}
 
@@ -114,33 +106,37 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	 */
 	fun register(listener: DeploymentCaseMessageListener) = listeners.add(listener)
 
-	override fun onConnect() {
-		super.onConnect()
-		LOGGER.info("BT Connected")
-		controller.check(true)
-		controller.triggerUpdate()
-		listeners.forEach { Platform.runLater { it.onProgress(-1, 1, true) } }
-		communicator.send(DeploymentCaseMessageKind.CONFIGURATION)
+	override fun onConnecting(channel: Channel) {
 	}
 
-	override fun onDisconnect() {
-		super.onDisconnect()
-		LOGGER.info("BT Disconnected")
-		controller.check(true)
-		controller.triggerUpdate()
-		stateMachineTransfer = false
+	override fun onConnect(channel: Channel) {
+		if (channel == Channel.BLUETOOTH) {
+			LOGGER.info("${channel} Connected")
+			controller.check(true)
+			controller.triggerUpdate()
+			listeners.forEach { Platform.runLater { it.onProgress(-1, 1, true) } }
+			bluetoothCommunicator.send(MessageKind.SM_CONFIGURATION)
+		}
 	}
 
-	override fun onMessage(message: ByteArray) {
-		super.onMessage(message)
+	override fun onDisconnect(channel: Channel) {
+		if (channel == Channel.BLUETOOTH) {
+			LOGGER.info("${channel} Disconnected")
+			controller.check(true)
+			controller.triggerUpdate()
+			stateMachineTransfer = false
+		}
+	}
+
+	override fun onMessageReceived(channel: Channel, message: IntArray) {
 		//val chksumReceived = message[0].toInt() and 0xFF
 		val kind: MessageKind = message[1]
-				.let { byte -> DeploymentCaseMessageKind.values().find { it.byteCode == byte } }
-				?: BluetoothMessageKind.UNKNOWN
+				.let { kind -> MessageKind.values().find { it.code == kind } }
+				?: MessageKind.UNKNOWN
 
 		when (kind) {
-			DeploymentCaseMessageKind.CONFIGURATION -> {
-				val receivedChecksum = message[2].toInt() and 0xFF
+			MessageKind.SM_CONFIGURATION -> {
+				val receivedChecksum = message[2] and 0xFF
 				val calculatedChecksum = config.configurations
 						.find { it.isActive }
 						?.stateMachine
@@ -178,13 +174,13 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 					}
 				} else listeners.forEach { Platform.runLater { it.onVerification(true) } }
 			}
-			DeploymentCaseMessageKind.PUSH_STATE_MACHINE -> {
-				val length = ((message[2].toInt() shl 8) and 0xFF00) or (message[3].toInt() and 0xFF)
-				val addr = ((message[4].toInt() shl 8) and 0xFF00) or (message[5].toInt() and 0xFF)
+			MessageKind.SM_PUSH -> {
+				val length = ((message[2] shl 8) and 0xFF00) or (message[3] and 0xFF)
+				val addr = ((message[4] shl 8) and 0xFF00) or (message[5] and 0xFF)
 				if (addr == 0) stateMachineBuffer.indices.forEach { stateMachineBuffer[it] = 0xFF.toByte() }
 
 				(0 until (message.size - 6)).forEach {
-					stateMachineBuffer[it + addr] = message[it + 6]
+					stateMachineBuffer[it + addr] = message[it + 6].toByte()
 				}
 
 				listeners.forEach { Platform.runLater { it.onProgress(addr + message.size - 6, length, true) } }
@@ -229,9 +225,9 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 								//.intermediate { (addr, bytes) -> LOGGER.debug("%04X: ${bytes.joinToString(" ") { "0x%02X".format(it) }}".format(addr)) }
 								.map { (addr, bytes) -> addr to bytes.toList() }
 								.map { (addr, bytes) ->
-									bytes.chunked(CHUNK_SIZE)
+									bytes.chunked(channel.maxPacketSize)
 											.also { stateMachineChunks += it.size }
-											.mapIndexed { index, data -> (index * CHUNK_SIZE) to data }
+											.mapIndexed { index, data -> (index * channel.maxPacketSize) to data }
 											.map { (shift, data) -> (currentStateMachine.size.to2Byte() + (addr + shift).to2Byte() + data) }
 											.map { it.toByteArray() }
 								}
@@ -248,7 +244,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 									stateMachineTransfer = true
 									listeners.forEach { Platform.runLater { it.onProgress(-1, 1, true) } }
 								}
-								?.forEach { communicator.send(DeploymentCaseMessageKind.PUSH_STATE_MACHINE, it) }
+								?.forEach { bluetoothCommunicator.send(MessageKind.SM_PUSH, it) }
 					} else Platform.runLater {
 						conf?.also {
 							StateCompareWindowController.popup(
@@ -274,13 +270,13 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 				//	out.write(stateMachineBuffer)
 				//}
 			}
-			DeploymentCaseMessageKind.SET_STATE -> {
+			MessageKind.SM_SET_STATE -> {
 				val configuration = config.configurations.find { it.isActive }
 				val states = configuration?.stateMachine ?: emptyList()
 				val devices = configuration?.devices ?: emptyList()
 				val variables = configuration?.variables ?: emptyList()
 				message.copyOfRange(2, message.size)
-						.toIntList()
+						.toList()
 						.toActions(states, devices, variables)
 						.forEach { action -> listeners.forEach { Platform.runLater { it.onAction(action) } } }
 			}
@@ -289,8 +285,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		}
 	}
 
-	override fun onMessageSent(remaining: Int) {
-		super.onMessageSent(remaining)
+	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) {
 		if (stateMachineChunks > 0) {
 			if (remaining == 0 || remaining > stateMachineChunks) stateMachineChunks = remaining
 			listeners.forEach { Platform.runLater { it.onProgress(stateMachineChunks - remaining, stateMachineChunks, true) } }
@@ -303,33 +298,34 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	}
 
 	internal fun synchronizeStateMachine() {
-		communicator
+		bluetoothCommunicator
 				.takeIf { it.isConnected }
-				?.send(DeploymentCaseMessageKind.CONFIGURATION)
+				?.send(MessageKind.SM_CONFIGURATION)
 		listeners.forEach { Platform.runLater { it.onProgress(-1, 1, true) } }
 	}
 
 	internal fun pullStateMachine(repair: Boolean = false) {
 		repairStateMachine = repair
-		if (communicator.isConnected && !stateMachineTransfer) {
+		if (bluetoothCommunicator.isConnected && !stateMachineTransfer) {
 			stateMachineTransfer = true
-			communicator.send(DeploymentCaseMessageKind.PULL_STATE_MACHINE)
+			bluetoothCommunicator.send(MessageKind.SM_PULL)
 			listeners.forEach { Platform.runLater { it.onProgress(-1, 1, true) } }
 		}
 	}
 
 	internal fun pushStateMachine() {
+		val channel: Channel = Channel.BLUETOOTH // TODO USB
 		config.configurations
-				.takeIf { communicator.isConnected && !stateMachineTransfer }
+				.takeIf { bluetoothCommunicator.isConnected && !stateMachineTransfer }
 				?.find { it.isActive }
 				?.stateMachine
 				?.toData()
 				?.toByteArray()
 				?.toList()
 				?.also { bytes ->
-					bytes.chunked(CHUNK_SIZE)
+					bytes.chunked(channel.maxPacketSize)
 							.also { stateMachineChunks = it.size }
-							.mapIndexed { index, data -> (index * CHUNK_SIZE) to data }
+							.mapIndexed { index, data -> (index * channel.maxPacketSize) to data }
 							.map { (reg, data) -> bytes.size.to2Byte() + reg.to2Byte() + data }
 							.map { it.toByteArray() }
 							.also { chunks ->
@@ -337,7 +333,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 									var chars = ""
 									chunks.forEachIndexed { chunk, bytes ->
 										bytes.copyOfRange(4, bytes.size).forEachIndexed { x, b ->
-											val i = chunk * CHUNK_SIZE + x
+											val i = chunk * channel.maxPacketSize + x
 											if (i % 8 == 0) writer.write("%04x: ".format(i))
 											chars += if (b in 32..126) b.toChar() else '.'
 											writer.write("0x%02X%s".format(b, if (b > 255) "!" else " "))
@@ -354,8 +350,8 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 								stateMachineTransfer = true
 								listeners.forEach { Platform.runLater { it.onProgress(-1, 1, true) } }
 							}
-							?.forEach { communicator.send(DeploymentCaseMessageKind.PUSH_STATE_MACHINE, it) }
-							?.also { communicator.send(DeploymentCaseMessageKind.CONFIGURATION) }
+							?.forEach { bluetoothCommunicator.send(MessageKind.SM_PUSH, it) }
+							?.also { bluetoothCommunicator.send(MessageKind.SM_CONFIGURATION) }
 				}
 	}
 }

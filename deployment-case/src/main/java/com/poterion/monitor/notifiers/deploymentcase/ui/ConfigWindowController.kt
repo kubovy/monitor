@@ -1,12 +1,13 @@
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.poterion.monitor.api.communication.BluetoothCommunicatorEmbedded
-import com.poterion.monitor.api.communication.BluetoothEmbeddedListener
+import com.poterion.monitor.api.communication.BluetoothCommunicator
+import com.poterion.monitor.api.communication.Channel
+import com.poterion.monitor.api.communication.CommunicatorListener
+import com.poterion.monitor.api.communication.MessageKind
 import com.poterion.monitor.api.lib.toImage
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import com.poterion.monitor.notifiers.deploymentcase.api.ConfigurationContributer
 import com.poterion.monitor.notifiers.deploymentcase.api.ConfigurationWindowActionListener
-import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageKind
 import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageListener
 import com.poterion.monitor.notifiers.deploymentcase.control.DeploymentCaseNotifier
 import com.poterion.monitor.notifiers.deploymentcase.control.toByteArray
@@ -26,7 +27,7 @@ import javafx.scene.layout.HBox
  *
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedListener {
+class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListener {
 
 	companion object {
 		private const val NEW_NAME = "New configuration"
@@ -108,7 +109,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 
 		// Status
 		updateConnected()
-		notifier.communicator.register(this)
+		notifier.bluetoothCommunicator.register(this)
 		notifier.register(this)
 
 		//notifier?.config?.configurations?.find { it.isActive }?.also { config ->
@@ -162,7 +163,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 
 	@FXML
 	fun onResetLCD() {
-		notifier.communicator.send(DeploymentCaseMessageKind.SET_STATE,
+		notifier.bluetoothCommunicator.send(MessageKind.SM_SET_STATE,
 				Action(device = Device(kind = DeviceKind.LCD, key = LcdKey.RESET.key),
 						value = Variable(type = VariableType.BOOLEAN, value = true.toString()))
 						.toData(SharedUiData.stateMachine)
@@ -172,12 +173,10 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 
 	@FXML
 	fun onReconnect() {
-		notifier.communicator.also { communicator ->
-			when {
-				communicator.isConnected -> communicator.disconnect()
-				communicator.isConnecting -> communicator.cancel()
-				else -> communicator.connect(config.deviceAddress)
-			}
+		when {
+			notifier.bluetoothCommunicator.isConnected -> notifier.bluetoothCommunicator.disconnect()
+			notifier.bluetoothCommunicator.isConnecting -> notifier.bluetoothCommunicator.disconnect()
+			else -> notifier.bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
 		}
 	}
 
@@ -190,27 +189,25 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 		else -> tabControllers.mapNotNull { it as? ConfigurationWindowActionListener }.forEach { it.onKeyPressed(keyEvent) }
 	}
 
-
-
-	override fun onConnecting() {
-		super.onConnecting()
+	override fun onConnecting(channel: Channel) {
 		updateConnected()
 		progress.progress = ProgressIndicator.INDETERMINATE_PROGRESS
 	}
 
-	override fun onConnect() {
-		super.onConnect()
+	override fun onConnect(channel: Channel) {
 		updateConnected()
 	}
 
-	override fun onDisconnect() {
-		super.onDisconnect()
+	override fun onDisconnect(channel: Channel) {
 		updateConnected()
 	}
 
-	override fun onMessage(message: ByteArray) {
-		textLog.appendText("${message.joinToString(" ") { "0x%02X ".format(it) }}\n")
+	override fun onMessageReceived(channel: Channel, message: IntArray) {
+		textLog.appendText("[${channel.name}] ${message.joinToString(" ") { "0x%02X ".format(it) }}\n")
 		textLog.scrollTop = Double.MAX_VALUE
+	}
+
+	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) {
 	}
 
 	override fun onProgress(progress: Int, count: Int, disable: Boolean) {
@@ -244,8 +241,8 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 	}
 
 	private fun updateConnected() {
-		val connected = notifier.communicator.isConnected
-		val connecting = notifier.communicator.isConnecting
+		val connected = notifier.bluetoothCommunicator.isConnected
+		val connecting = notifier.bluetoothCommunicator.isConnecting
 		progress.progress = 0.0
 		rootPane.isDisable = false
 
@@ -275,6 +272,8 @@ class ConfigWindowController : DeploymentCaseMessageListener, BluetoothEmbeddedL
 		config.configurations = listConfigurations.items
 
 		notifier.controller.saveConfig()
-		notifier.communicator.takeIf(BluetoothCommunicatorEmbedded::isConnected)?.connect(config.deviceAddress)
+		notifier.bluetoothCommunicator
+				.takeIf(BluetoothCommunicator::isConnected)
+				?.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
 	}
 }

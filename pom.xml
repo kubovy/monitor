@@ -23,7 +23,6 @@
         <!-- Notifiers -->
         <module>devops-light</module>
         <module>deployment-case</module>
-        <module>raspi-ws281x</module>
         <module>system-tray</module>
     </modules>
 
@@ -78,11 +77,6 @@
             <dependency>
                 <groupId>com.poterion.monitor</groupId>
                 <artifactId>sonar</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.poterion.monitor</groupId>
-                <artifactId>raspi-ws281x</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

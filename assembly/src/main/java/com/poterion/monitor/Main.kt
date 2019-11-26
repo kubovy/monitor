@@ -3,7 +3,6 @@ package com.poterion.monitor
 import com.poterion.monitor.control.ApplicationController
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
 import com.poterion.monitor.notifiers.devops.light.DevOpsLight
-import com.poterion.monitor.notifiers.raspi.ws281x.RaspiWS281xModule
 import com.poterion.monitor.notifiers.tray.SystemTrayModule
 import com.poterion.monitor.sensors.alertmanager.AlertManagerModule
 import com.poterion.monitor.sensors.jenkins.JenkinsModule
@@ -69,7 +68,6 @@ class Main : Application() {
 			registerModule(SonarModule)
 			registerModule(DeploymentCaseModule)
 			registerModule(DevOpsLight)
-			registerModule(RaspiWS281xModule)
 			registerModule(SystemTrayModule)
 		}
 		controller.start()

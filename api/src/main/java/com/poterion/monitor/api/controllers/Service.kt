@@ -7,7 +7,6 @@ import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.auth.BasicAuthConfig
 import com.poterion.monitor.data.services.ServiceConfig
-import dorkbox.systemTray.MenuItem
 import okhttp3.OkHttpClient
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -28,7 +27,6 @@ abstract class Service<out Config : ServiceConfig>(override val config: Config) 
 		get() = NavigationItem(
 				title = config.name,
 				icon = definition.icon,
-				update = { entry, _ -> (entry as MenuItem).text = config.name },
 				sub = mutableListOf())
 
 	protected val retrofit: Retrofit?

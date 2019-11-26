@@ -1,10 +1,12 @@
 package com.poterion.monitor.notifiers.devops.light.ui
 
-import com.poterion.monitor.api.communication.BluetoothRaspiListener
+import com.poterion.monitor.api.communication.BluetoothCommunicator
+import com.poterion.monitor.api.communication.Channel
+import com.poterion.monitor.api.communication.CommunicatorListener
+import com.poterion.monitor.api.communication.USBCommunicator
 import com.poterion.monitor.api.lib.toImage
 import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.ui.CommonIcon
-import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.devops.light.DevOpsLightIcon
 import com.poterion.monitor.notifiers.devops.light.control.DevOpsLightNotifier
 import com.poterion.monitor.notifiers.devops.light.data.*
@@ -35,7 +37,7 @@ import kotlin.math.roundToInt
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-class ConfigWindowController : BluetoothRaspiListener {
+class ConfigWindowController : CommunicatorListener {
 	companion object {
 		internal fun getRoot(config: DevOpsLightConfig, controller: DevOpsLightNotifier): Parent =
 				FXMLLoader(ConfigWindowController::class.java.getResource("config-window.fxml"))
@@ -47,8 +49,6 @@ class ConfigWindowController : BluetoothRaspiListener {
 							root
 						}
 	}
-
-	@FXML private lateinit var textBluetoothAddress: TextField
 
 	@FXML private lateinit var treeConfigs: TreeView<StateConfig>
 	@FXML private lateinit var comboConfigName: ComboBox<String>
@@ -95,21 +95,32 @@ class ConfigWindowController : BluetoothRaspiListener {
 	@FXML private lateinit var buttonMoveUpLight: Button
 	@FXML private lateinit var buttonMoveDownLight: Button
 	@FXML private lateinit var buttonDeleteLight: Button
+	@FXML private lateinit var btnConnect: Button
 
-	@FXML private lateinit var iconInbound: ImageView
-	@FXML private lateinit var iconOutbound: ImageView
+	@FXML private lateinit var iconBluetooth: ImageView
+	@FXML private lateinit var iconUSB: ImageView
 
-	private var config: DevOpsLightConfig? = null
-	private var controller: DevOpsLightNotifier? = null
+	private lateinit var config: DevOpsLightConfig
+	private lateinit var controller: DevOpsLightNotifier
 	private val clipboard = mutableListOf<LightConfig>()
 
 	private val patterns = FXCollections.observableArrayList(*LightPattern.values())
 
+	private val selectedParent: TreeItem<StateConfig>?
+		get() {
+			var item = treeConfigs.selectionModel.selectedItem
+			while (item != null && item.parent != treeConfigs.root) item = item.parent
+			return item
+		}
+
+
 	@FXML
 	fun initialize() {
-		textBluetoothAddress.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
-		textServiceName.isEditable = false
-		textServiceName.isDisable = true
+		textServiceName.textProperty().addListener { _, _, value ->
+			selectedParent?.value?.title = value
+			treeConfigs.refresh()
+		}
+		textServiceName.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 
 		comboBoxPattern.apply {
 			items?.addAll(patterns)
@@ -157,7 +168,7 @@ class ConfigWindowController : BluetoothRaspiListener {
 				}
 			}
 			selectionModel.selectedItemProperty().addListener { _, _, item ->
-				selectStateConfig(item?.value)
+				selectStateConfig(item)
 				val nothingOrDefaultSelected = item == null
 						|| item.value.title.isEmpty()
 						|| item.parent.value.title.isEmpty()
@@ -170,7 +181,7 @@ class ConfigWindowController : BluetoothRaspiListener {
 
 		tableLightConfigs.apply {
 			selectionModel.selectionMode = SelectionMode.SINGLE
-			selectionModel.selectedItemProperty().addListener { _, _, newValue -> selectWS281xLightConfig(newValue) }
+			selectionModel.selectedItemProperty().addListener { _, _, newValue -> selectLightConfig(newValue) }
 		}
 
 		columnLightPattern.apply {
@@ -241,15 +252,14 @@ class ConfigWindowController : BluetoothRaspiListener {
 		}
 		treeConfigs.selectionModel.clearSelection()
 		selectStateConfig(null)
-		selectWS281xLightConfig(null)
+		selectLightConfig(null)
 	}
 
 	private fun load() {
-		textBluetoothAddress.text = config?.deviceAddress
 		treeConfigs.root = TreeItem(StateConfig("Configurations")).apply {
-			config?.items
-					?.sortedBy { it.id }
-					?.map { item ->
+			config.items
+					.sortedBy { it.id }
+					.map { item ->
 						TreeItem(StateConfig(item.id)).apply {
 							children.addAll(
 									TreeItem(StateConfig("None", CommonIcon.UNKNOWN, item.statusNone)),
@@ -262,33 +272,35 @@ class ConfigWindowController : BluetoothRaspiListener {
 									TreeItem(StateConfig("Warning", CommonIcon.WARNING, item.statusWarning)),
 									TreeItem(StateConfig("Error", CommonIcon.ERROR, item.statusError)),
 									TreeItem(StateConfig("Fatal", CommonIcon.FATAL, item.statusFatal)))
+							isExpanded = true
 						}
 					}
-					?.also { children.addAll(it) }
+					.also { children.addAll(it) }
 		}
 		comboConfigName.apply {
-			controller?.controller
-					?.applicationConfiguration
-					?.services
-					?.map { it.name }
-					?.filter { config?.items?.map { i -> i.id }?.contains(it) == false }
-					?.distinct()
-					?.sorted()
-					?.takeIf { it.isNotEmpty() }
+			controller.controller
+					.applicationConfiguration
+					.services
+					.map { it.name }
+					.filter { !config.items.map { i -> i.id }.contains(it) }
+					.distinct()
+					.sorted()
+					.takeIf { it.isNotEmpty() }
 					?.also { items?.addAll(it) }
 			selectionModel.clearSelection()
 			this.value = ""
 		}
 
 		// Status
-		iconInbound.image =
-				if (controller?.communicator?.isInboundConnected == true) DevOpsLightIcon.CONNECTED.toImage()
-				else DevOpsLightIcon.DISCONNECTED.toImage()
-		iconOutbound.image =
-				if (controller?.communicator?.isOutboundConnected == true) DevOpsLightIcon.CONNECTED.toImage()
-				else DevOpsLightIcon.DISCONNECTED.toImage()
+		iconBluetooth.image =
+				if (controller.bluetoothCommunicator.isConnected) DevOpsLightIcon.BLUETOOTH_CONNECTED.toImage()
+				else DevOpsLightIcon.BLUETOOTH_DISCONNECTED.toImage()
+		iconUSB.image =
+				if (controller.usbCommunicator.isConnected) DevOpsLightIcon.USB_CONNECTED.toImage()
+				else DevOpsLightIcon.USB_DISCONNECTED.toImage()
 
-		controller?.communicator?.register(this)
+		controller.bluetoothCommunicator.register(this)
+		controller.usbCommunicator.register(this)
 	}
 
 	@FXML
@@ -360,33 +372,17 @@ class ConfigWindowController : BluetoothRaspiListener {
 
 	@FXML
 	fun onTestLight() {
-		controller?.apply {
-			createWS281xLightConfig()?.also {
-				execute(NotifierAction.DISABLE)
-				//execute(NotifierAction.NOTIFY, objectMapper.writeValueAsString(listOf(it)))
-				changeLights(listOf(it))
-			}
-		}
+		createLightConfig()?.also { controller.changeLights(listOf(it)) }
 	}
 
 	@FXML
 	fun onTestLightSequence() {
-		controller?.apply {
-			tableLightConfigs.items.takeIf { it.isNotEmpty() }?.also {
-				execute(NotifierAction.DISABLE)
-				//execute(NotifierAction.NOTIFY, objectMapper.writeValueAsString(it))
-				changeLights(it)
-			}
-		}
+		tableLightConfigs.items.takeIf { it.isNotEmpty() }?.also { controller.changeLights(it) }
 	}
 
 	@FXML
 	fun onTurnOffLight() {
-		controller?.apply {
-			execute(NotifierAction.DISABLE)
-			//execute(NotifierAction.NOTIFY, objectMapper.writeValueAsString(listOf(WS281xLightConfig())))
-			execute(NotifierAction.SHUTDOWN)
-		}
+		controller.changeLights(listOf(LightConfig()))
 	}
 
 	@FXML
@@ -418,7 +414,7 @@ class ConfigWindowController : BluetoothRaspiListener {
 	@FXML
 	fun onSaveLight() {
 		val selectedIndex = tableLightConfigs.selectionModel.selectedIndex
-		val configuredLight = createWS281xLightConfig()
+		val configuredLight = createLightConfig()
 		if (selectedIndex < 0 && configuredLight != null) {
 			tableLightConfigs.items.add(configuredLight)
 		} else if (selectedIndex >= 0 && configuredLight != null) {
@@ -445,7 +441,16 @@ class ConfigWindowController : BluetoothRaspiListener {
 
 	@FXML
 	fun onReconnect() {
-		controller?.communicator?.connect()
+		if (controller.bluetoothCommunicator.isConnected || controller.usbCommunicator.isConnected) {
+			if (controller.bluetoothCommunicator.isConnected) controller.bluetoothCommunicator.disconnect()
+			if (controller.usbCommunicator.isConnected) controller.usbCommunicator.disconnect()
+		} else if (controller.bluetoothCommunicator.isConnecting || controller.usbCommunicator.isConnecting) {
+			if (controller.bluetoothCommunicator.isConnecting) controller.bluetoothCommunicator.disconnect()
+			if (controller.usbCommunicator.isConnecting) controller.usbCommunicator.disconnect()
+		} else {
+			controller.bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
+			controller.usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
+		}
 	}
 
 	@FXML
@@ -465,31 +470,41 @@ class ConfigWindowController : BluetoothRaspiListener {
 		else -> null
 	}
 
-	override fun onInboundConnect() {
-		iconInbound.image = DevOpsLightIcon.CONNECTED.toImage()
+	override fun onConnecting(channel: Channel) {
+		btnConnect.text = "Cancel [F5]"
 	}
 
-	override fun onInboundDisconnect() {
-		iconInbound.image = DevOpsLightIcon.DISCONNECTED.toImage()
+	override fun onConnect(channel: Channel) {
+		btnConnect.text = "Disconnect [F5]"
+		when (channel) {
+			Channel.BLUETOOTH -> iconBluetooth.image = DevOpsLightIcon.BLUETOOTH_CONNECTED.toImage()
+			Channel.USB -> iconUSB.image = DevOpsLightIcon.USB_CONNECTED.toImage()
+		}
 	}
 
-	override fun onOutboundConnect() {
-		iconOutbound.image = DevOpsLightIcon.CONNECTED.toImage()
+	override fun onDisconnect(channel: Channel) {
+		btnConnect.text = "Connect [F5]"
+		when (channel) {
+			Channel.BLUETOOTH -> iconBluetooth.image = DevOpsLightIcon.BLUETOOTH_DISCONNECTED.toImage()
+			Channel.USB -> iconUSB.image = DevOpsLightIcon.USB_DISCONNECTED.toImage()
+		}
 	}
 
-	override fun onOutboundDisconnect() {
-		iconOutbound.image = DevOpsLightIcon.DISCONNECTED.toImage()
+	override fun onMessageReceived(channel: Channel, message: IntArray) {
 	}
 
-	private fun selectStateConfig(stateConfig: StateConfig?) {
-		val lightConfigs = stateConfig?.lightConfigs?.deepCopy()
-		buttonTestLightSequence.isDisable = stateConfig?.lightConfigs == null
+	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) {
+	}
+
+	private fun selectStateConfig(treeItem: TreeItem<StateConfig>?) {
+		val lightConfigs = treeItem?.value?.lightConfigs?.deepCopy()
+		buttonTestLightSequence.isDisable = treeItem?.value?.lightConfigs == null
 		tableLightConfigs.items.clear()
 		lightConfigs?.also { tableLightConfigs.items.addAll(it) }
 		if (tableLightConfigs.items.size > 0) tableLightConfigs.selectionModel.select(0)
 	}
 
-	private fun selectWS281xLightConfig(lightConfig: LightConfig?) {
+	private fun selectLightConfig(lightConfig: LightConfig?) {
 		buttonSaveLight.text = if (lightConfig == null) "Add [Ctrl+S]" else "Save [Ctrl+S]"
 		(patterns.firstOrNull { it == lightConfig?.pattern } ?: patterns.first()).also { pattern ->
 			comboBoxPattern.selectionModel.select(pattern)
@@ -505,7 +520,7 @@ class ConfigWindowController : BluetoothRaspiListener {
 			textFade.text = "${lightConfig?.fading ?: 0}"
 			sliderMin.value = lightConfig?.min?.toDouble() ?: 0.0
 			sliderMax.value = lightConfig?.max?.toDouble() ?: 100.0
-			setWS281xLightConfigButtonsEnabled(lightConfig != null)
+			setLightConfigButtonsEnabled(lightConfig != null)
 		}
 	}
 
@@ -519,8 +534,7 @@ class ConfigWindowController : BluetoothRaspiListener {
 		textTimeout.isDisable = pattern.timeout == null
 	}
 
-	private fun setWS281xLightConfigButtonsEnabled(enabled: Boolean) {
-		//buttonSaveLight.isDisable = !enabled
+	private fun setLightConfigButtonsEnabled(enabled: Boolean) {
 		buttonMoveUpLight.isDisable = !enabled
 				|| tableLightConfigs.selectionModel.selectedIndex == 0
 		buttonMoveDownLight.isDisable = !enabled
@@ -529,7 +543,7 @@ class ConfigWindowController : BluetoothRaspiListener {
 		buttonDeleteLight.isDisable = !enabled
 	}
 
-	private fun createWS281xLightConfig(): LightConfig? {
+	private fun createLightConfig(): LightConfig? {
 		val pattern = comboBoxPattern.selectionModel.selectedItem
 		val color1 = comboBoxColor1.value?.toLightColor()
 		val color2 = comboBoxColor2.value?.toLightColor()
@@ -559,9 +573,8 @@ class ConfigWindowController : BluetoothRaspiListener {
 	}
 
 	private fun saveConfig() {
-		config?.deviceAddress = textBluetoothAddress.text
 		treeConfigs.selectionModel.selectedItem?.value?.lightConfigs = tableLightConfigs.items.deepCopy()
-		config?.items = treeConfigs.root.children
+		config.items = treeConfigs.root.children
 				.map { it.value to it.children.map { c -> c.value } }
 				.filter { (_, children) -> children.size == 10 }
 				.filter { (_, children) -> children.all { it.lightConfigs != null } }
@@ -578,8 +591,9 @@ class ConfigWindowController : BluetoothRaspiListener {
 							statusError = children[8].lightConfigs ?: emptyList(),
 							statusFatal = children[9].lightConfigs ?: emptyList())
 				}
-		controller?.controller?.saveConfig()
-		controller?.communicator?.connect(config?.deviceAddress)
+		controller.controller.saveConfig()
+		controller.bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
+		controller.usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
 	}
 
 	private fun TableColumn<LightConfig, LightColor>.init(propertyName: String) {
