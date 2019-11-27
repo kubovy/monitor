@@ -41,6 +41,8 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 	val isDisconnected: Boolean
 		get() = state == State.DISCONNECTED
 
+	private var connectionRequested = false
+
 	private var state = State.DISCONNECTED
 	private var iddState = 0x00
 	private var iddCounter = 0
@@ -63,34 +65,39 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 	protected var connectionDescriptor: ConnectionDescriptor? = null
 
 	private val connectorRunnable: () -> Unit = {
-		while (state == State.CONNECTING) {
-			LOGGER.debug("${channel} ${connectionDescriptor}> Connection attempt ...")
-			cleanUpConnection()
+		while (!Thread.interrupted()) {
+			if (state == State.CONNECTING) {
+				LOGGER.debug("${channel} ${connectionDescriptor}> Connection attempt ...")
 
-			inboundThread?.takeIf { it.isAlive }?.interrupt()
-			outboundThread?.takeIf { it.isAlive }?.interrupt()
+				inboundThread?.takeIf { it.isAlive }?.interrupt()
+				outboundThread?.takeIf { it.isAlive }?.interrupt()
+				cleanUpConnection()
 
-			while (state == State.CONNECTING) try {
-				if (createConnection()) {
-					state = State.CONNECTED
-					iddCounter = 0
-					iddState = 0x00
+				while (state == State.CONNECTING) try {
+					if (createConnection()) {
+						iddCounter = 0
+						iddState = 0x00
 
-					inboundThread?.takeIf { !it.isInterrupted }?.interrupt()
-					outboundThread?.takeIf { !it.isInterrupted }?.interrupt()
+						inboundThread?.takeIf { !it.isInterrupted }?.interrupt()
+						outboundThread?.takeIf { !it.isInterrupted }?.interrupt()
 
-					inboundThread = Thread(inboundRunnable)
-					inboundThread?.name = "${channel}-inbound"
-					outboundThread = Thread(outboundRunnable)
-					outboundThread?.name = "${channel}-outbound"
+						inboundThread = Thread(inboundRunnable)
+						inboundThread?.name = "${channel}-inbound"
+						outboundThread = Thread(outboundRunnable)
+						outboundThread?.name = "${channel}-outbound"
 
-					inboundExecutor.execute(inboundThread)
-					outboundExecutor.execute(outboundThread)
-					listeners.forEach { Platform.runLater { it.onConnect(channel) } }
+						inboundExecutor.execute(inboundThread)
+						outboundExecutor.execute(outboundThread)
+
+						state = State.CONNECTED
+						listeners.forEach { Platform.runLater { it.onConnect(channel) } }
+					}
+				} catch (e: Exception) {
+					LOGGER.error("${channel} ${connectionDescriptor}> ${e.message}", e)
+					disconnectInternal(stayDisconnected = false)
 				}
-			} catch (e: Exception) {
-				LOGGER.error("${channel} ${connectionDescriptor}> ${e.message}", e)
-				disconnect()
+			} else {
+				Thread.sleep(100)
 			}
 		}
 		LOGGER.debug("${channel} ${connectionDescriptor}> Connection thread exited")
@@ -135,11 +142,11 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 				}
 			} catch (e: Exception) {
 				LOGGER.error("${channel} ${connectionDescriptor}> ${e.message}")
-				if (state == State.CONNECTED) reconnect() else disconnect()
+				disconnectInternal(stayDisconnected = false)
 			}
 		} catch (e: Exception) {
 			LOGGER.warn("${channel} ${connectionDescriptor}> ${e.message}")
-			if (state == State.CONNECTED) reconnect() else disconnect()
+			disconnectInternal(stayDisconnected = false)
 		}
 		LOGGER.debug("${channel} ${connectionDescriptor}> Inbound thread exited")
 	}
@@ -193,7 +200,7 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 								iddCounter++
 							}
 							if (iddCounter > 4) {
-								if (state == State.CONNECTED) reconnect() else disconnect()
+								disconnectInternal(stayDisconnected = false)
 							}
 						}
 						else -> {
@@ -220,11 +227,11 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 				}
 			} catch (e: Exception) {
 				LOGGER.error("${channel} ${connectionDescriptor}> ${e.message}")
-				if (state == State.CONNECTED) reconnect() else disconnect()
+				disconnectInternal(stayDisconnected = false)
 			}
 		} catch (e: Exception) {
 			LOGGER.warn("${channel} ${connectionDescriptor}> ${e.message}")
-			if (state == State.CONNECTED) reconnect() else disconnect()
+			disconnectInternal(stayDisconnected = false)
 		}
 		LOGGER.debug("${channel} ${connectionDescriptor}> Outbound thread exited")
 	}
@@ -301,19 +308,18 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 	 * @param descriptor Descriptor of the device.
 	 */
 	fun connect(descriptor: ConnectionDescriptor): Boolean {
+		connectionRequested = true
 		if (canConnect(descriptor)) {
 			LOGGER.debug("${channel} ${connectionDescriptor}> Connecting ...")
-			if (state == State.CONNECTED) disconnect()
+			if (state == State.CONNECTED) disconnectInternal(stayDisconnected = false)
 
-			state = State.CONNECTING
 			messageQueue.clear()
 			checksumQueue.clear()
-
-			listeners.forEach { Platform.runLater { it.onConnecting(channel) } }
-
 			connectionDescriptor = descriptor
 
-			if (connectorThread?.isAlive == true) connectorThread?.interrupt()
+			state = State.CONNECTING
+			listeners.forEach { Platform.runLater { it.onConnecting(channel) } }
+
 			if (connectorThread?.isAlive != true) {
 				connectorThread = Thread(connectorRunnable)
 				connectorThread?.name = "${channel}-connector"
@@ -327,29 +333,28 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 	/**
 	 * Reconnects to a currently connected device.
 	 */
-	private fun reconnect() {
-		disconnect()
-		Thread.sleep(100L)
-		connectionDescriptor?.also { connect(it) }
-	}
+	private fun reconnect() = disconnectInternal(false)
 
 	/** Disconnects from a device. */
-	fun disconnect() {
+	fun disconnect() = disconnectInternal(true)
+
+	private fun disconnectInternal(stayDisconnected: Boolean) {
 		LOGGER.debug("${channel} ${connectionDescriptor}> Disconnecting ...")
+		if (stayDisconnected) connectionRequested = false
 		state = State.DISCONNECTING
 		messageQueue.clear()
 		checksumQueue.clear()
 
 		try {
-			if (inboundThread?.isAlive == true) inboundThread?.interrupt()
-			if (outboundThread?.isAlive == true) outboundThread?.interrupt()
-			if (connectorThread?.isAlive == true) connectorThread?.interrupt()
+			inboundThread?.takeIf { it.isAlive }?.interrupt()
+			outboundThread?.takeIf { it.isAlive }?.interrupt()
 			cleanUpConnection()
 		} catch (e: IOException) {
 			LOGGER.error("${channel} ${connectionDescriptor}> ${e.message}", e)
 		} finally {
 			state = State.DISCONNECTED
 			listeners.forEach { Platform.runLater { it.onDisconnect(channel) } }
+			if (connectionRequested) connectionDescriptor?.also { connect(it) }
 		}
 	}
 
@@ -357,7 +362,7 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 	 * Shuts the communicator down completely.
 	 */
 	open fun shutdown() {
-		disconnect()
+		disconnectInternal(stayDisconnected = true)
 		LOGGER.debug("${channel} ${connectionDescriptor}> Shutting down communicator ...")
 		connectorThread?.takeIf { it.isAlive }?.interrupt()
 		connectorExecutor.shutdown()

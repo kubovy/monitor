@@ -2,6 +2,7 @@ package com.poterion.monitor.api.communication
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import javax.microedition.io.Connector
@@ -35,7 +36,14 @@ class BluetoothCommunicator : Communicator<BluetoothCommunicator.Descriptor>(Cha
 					&& super.canConnect(descriptor)
 
 	override fun createConnection(): Boolean = url
-			?.let { Connector.open(url) as StreamConnection }
+			?.let {
+				try {
+					Connector.open(url) as StreamConnection
+				} catch (e: IOException) {
+					LOGGER.error(e.message, e)
+					null
+				}
+			}
 			?.also {
 				//val uuid = UUID("1101", true) // Create a UUID for SPP (1101)
 				streamConnection = it
