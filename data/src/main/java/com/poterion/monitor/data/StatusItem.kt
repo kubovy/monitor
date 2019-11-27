@@ -1,7 +1,5 @@
 package com.poterion.monitor.data
 
-import java.net.URI
-
 /*
  * @startuml
  * class StatusItem {
@@ -47,4 +45,4 @@ data class StatusItem(val serviceName: String,
 					  val status: Status,
 					  val label: String,
 					  val detail: String? = null,
-					  val link: URI? = null)
+					  val link: String? = null)

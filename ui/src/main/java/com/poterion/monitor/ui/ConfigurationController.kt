@@ -24,7 +24,6 @@ import javafx.geometry.VPos
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.scene.control.*
-import javafx.scene.image.ImageView
 import javafx.scene.layout.GridPane
 import javafx.scene.layout.HBox
 import javafx.scene.layout.RowConstraints
@@ -183,6 +182,7 @@ class ConfigurationController {
 
 			treeItem.value?.module?.configurationRows?.forEach { (label, content) ->
 				gridPane.addRow(rows++, label, content)
+				(label as? Label)?.alignment = Pos.CENTER_RIGHT
 				gridPane.rowConstraints.add(RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, javafx.scene.layout.Priority.ALWAYS, VPos.TOP, true))
 			}
 			treeItem.value?.module?.configurationAddition?.forEach { vboxContent.children.add(it) }
@@ -264,26 +264,30 @@ class ConfigurationController {
 						controller?.saveConfig()
 					}
 				})
+
+		val usernameField = TextField(config.auth?.username ?: "")
+		val passwordField = PasswordField()
+
 		addRow(row + 2, Label("Auth").apply { GridPane.setHalignment(this, HPos.RIGHT) },
 				HBox(
-						TextField(config.auth?.username ?: "").apply {
+						usernameField.apply {
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							textProperty().addListener { _, _, value ->
-								val usr = config.auth?.username?.takeIf { it.isNotEmpty() }
-								val pwd = value.takeIf { it.isNotEmpty() }
+								val usr = value.takeIf { it.isNotEmpty() }
+								val pwd = passwordField.text.takeIf { it.isNotEmpty() }
 								config.auth = if (usr == null && pwd == null)
-									null else (config.auth ?: BasicAuthConfig(usr ?: "", pwd ?: ""))
+									null else BasicAuthConfig(usr ?: "", pwd ?: "")
 							}
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 						},
-						PasswordField().apply {
+						passwordField.apply {
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							text = config.auth?.password ?: ""
 							textProperty().addListener { _, _, value ->
-								val usr = value.takeIf { it.isNotEmpty() }
-								val pwd = config.auth?.password?.takeIf { it.isNotEmpty() }
+								val usr = usernameField.text.takeIf { it.isNotEmpty() }
+								val pwd = value.takeIf { it.isNotEmpty() }
 								config.auth = if (usr == null && pwd == null)
-									null else (config.auth ?: BasicAuthConfig(usr ?: "", pwd ?: ""))
+									null else BasicAuthConfig(usr ?: "", pwd ?: "")
 							}
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 						}).apply { alignment = Pos.CENTER })

@@ -9,4 +9,5 @@ import com.poterion.monitor.data.notifiers.NotifierConfig
 data class SystemTrayConfig(override var type: String = SystemTrayConfig::class.java.simpleName,
 							override var name: String = "System Tray",
 							override var enabled: Boolean = true,
-							override var minPriority: Priority = Priority.LOW) : NotifierConfig
+							override var minPriority: Priority = Priority.LOW,
+							var refresh: Boolean = false) : NotifierConfig

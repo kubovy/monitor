@@ -5,7 +5,7 @@
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
 <SplitPane dividerPositions="0.2" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
-           onKeyPressed="#onKeyPressed" prefHeight="845.0" prefWidth="1220.0" xmlns="http://javafx.com/javafx/10.0.1"
+           onKeyPressed="#onKeyPressed" prefHeight="845.0" prefWidth="1220.0" xmlns="http://javafx.com/javafx/11.0.1"
            xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="com.poterion.monitor.notifiers.devops.light.ui.ConfigWindowController">
     <items>
@@ -206,8 +206,8 @@
                                              text="6"/>
                             </columns>
                         </TableColumn>
-                        <TableColumn fx:id="columnLightWait" editable="false" maxWidth="-Infinity" minWidth="70.0"
-                                     prefWidth="70.0" resizable="false" sortable="false" text="Wait [ms]"/>
+                        <TableColumn fx:id="columnLightDelay" editable="false" maxWidth="-Infinity" minWidth="80.0"
+                                     resizable="false" sortable="false" text="Delay [ms]"/>
                         <TableColumn fx:id="columnLightWidth" editable="false" maxWidth="-Infinity" minWidth="60.0"
                                      prefWidth="60.0" resizable="false" sortable="false" text="Width"/>
                         <TableColumn fx:id="columnLightFading" editable="false" maxWidth="-Infinity" minWidth="60.0"
@@ -216,6 +216,8 @@
                                      prefWidth="75.0" resizable="false" sortable="false" text="Minimum"/>
                         <TableColumn fx:id="columnLightMaximum" editable="false" maxWidth="-Infinity" minWidth="75.0"
                                      prefWidth="75.0" resizable="false" sortable="false" text="Maximum"/>
+                        <TableColumn fx:id="columnLightTimeout" editable="false" maxWidth="-Infinity" minWidth="75.0"
+                                     prefWidth="75.0" resizable="false" sortable="false" text="Timeout"/>
                     </columns>
                 </TableView>
                 <HBox alignment="CENTER_RIGHT" spacing="5.0">

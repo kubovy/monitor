@@ -5,6 +5,7 @@ import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.data.Priority
+import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.sensors.alertmanager.AlertManagerModule
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerConfig
@@ -40,22 +41,26 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 	private val service
 		get() = retrofit?.create(AlertManagerRestService::class.java)
 
-//	private val labels = config.labels.map { it.label to it }.toMap()
+	private var lastFound = listOf<Triple<String, AlertManagerLabelConfig, AlertManagerResponse>>()
 
-//	private var lastFoundJobNames: Collection<String> = labels.keys
-
-//	override val configurationRows: List<Pair<Node, Node>>?
-//		get() = listOf(Label("Filter") to TextField(config.filter).apply {
-//			textProperty().addListener { _, _, filter -> config.filter = filter }
-//			focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-//		})
+	override val configurationRows: List<Pair<Node, Node>>?
+		get() = listOf(Label("Name label") to TextField(config.nameLabel).apply {
+			textProperty().addListener { _, _, value -> config.nameLabel = value }
+			focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+		})
 
 	override val configurationAddition: List<Parent>?
-		get() = listOf(labelTable, HBox(newLabelName, Button("Add").apply {
-			setOnAction { addLabel() }
-		}))
+		get() = listOf(labelTable, HBox(
+				Label("Name"), newLabelName,
+				Label("Value"), newLabelValue,
+				Button("Add").apply { setOnAction { addLabel() } }))
 
 	private val newLabelName = TextField("").apply {
+		HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+		setOnKeyReleased { event -> if (event.code == KeyCode.ENTER) addLabel() }
+	}
+
+	private val newLabelValue = TextField("").apply {
 		HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 		setOnKeyReleased { event -> if (event.code == KeyCode.ENTER) addLabel() }
 	}
@@ -74,14 +79,45 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 	}
 
 	private val labelTableNameColumn = TableColumn<AlertManagerLabelConfig, String>("Label").apply {
-		sortType = TableColumn.SortType.ASCENDING
-		minWidth = 400.0
+		//sortType = TableColumn.SortType.ASCENDING
+		minWidth = 150.0
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Double.MAX_VALUE
+		setCellFactory {
+			val cell = TableCell<AlertManagerLabelConfig, String>()
+			val textField = TextField(cell.item)
+			textField.textProperty().bindBidirectional(cell.itemProperty())
+			textField.textProperty().addListener { _, _, value ->
+				cell.tableRow.item.let { it as? AlertManagerLabelConfig }?.also { it.name = value }
+				controller.saveConfig()
+			}
+			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(textField))
+			cell
+		}
+	}
+
+	private val labelTableValueColumn = TableColumn<AlertManagerLabelConfig, String>("Value").apply {
+		//sortType = TableColumn.SortType.ASCENDING
+		minWidth = 200.0
+		prefWidth = Region.USE_COMPUTED_SIZE
+		maxWidth = Double.MAX_VALUE
+		setCellFactory {
+			val cell = TableCell<AlertManagerLabelConfig, String>()
+			val textField = TextField(cell.item)
+			textField.textProperty().bindBidirectional(cell.itemProperty())
+			textField.textProperty().addListener { _, _, value ->
+				cell.tableRow.item.let { it as? AlertManagerLabelConfig }?.also { it.value = value }
+				controller.saveConfig()
+			}
+			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(textField))
+			cell
+		}
+
 	}
 
 	private val labelTablePriorityColumn = TableColumn<AlertManagerLabelConfig, Priority>("Priority").apply {
-		minWidth = 100.0
+		sortType = TableColumn.SortType.ASCENDING
+		minWidth = 150.0
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Region.USE_PREF_SIZE
 		setCellFactory {
@@ -91,7 +127,25 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 
 			comboBox.valueProperty().addListener { _, _, priority ->
 				cell.tableRow.item.let { it as? AlertManagerLabelConfig }?.also { it.priority = priority }
-				labelTable.items.sortWith(compareBy({-it.priority.ordinal}, {it.label}))
+				labelTable.items.sortWith(compareBy({ -it.priority.ordinal }, { it.name }, { it.value }))
+				controller.saveConfig()
+			}
+			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(comboBox))
+			cell
+		}
+	}
+
+	private val labelTableStatusColumn = TableColumn<AlertManagerLabelConfig, Status>("Status").apply {
+		minWidth = 200.0
+		prefWidth = Region.USE_COMPUTED_SIZE
+		maxWidth = Region.USE_PREF_SIZE
+		setCellFactory {
+			val cell = TableCell<AlertManagerLabelConfig, Status>()
+			val comboBox = ComboBox<Status>(FXCollections.observableList(Status.values().toList()))
+			comboBox.valueProperty().bindBidirectional(cell.itemProperty())
+
+			comboBox.valueProperty().addListener { _, _, status ->
+				cell.tableRow.item.let { it as? AlertManagerLabelConfig }?.also { it.status = status }
 				controller.saveConfig()
 			}
 			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(comboBox))
@@ -101,37 +155,46 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 
 	init {
 		labelTableNameColumn.apply {
-			cellValueFactory = PropertyValueFactory<AlertManagerLabelConfig, String>("label")
+			cellValueFactory = PropertyValueFactory<AlertManagerLabelConfig, String>("name")
+		}
+		labelTableValueColumn.apply {
+			cellValueFactory = PropertyValueFactory<AlertManagerLabelConfig, String>("value")
 		}
 		labelTablePriorityColumn.apply {
 			cellValueFactory = PropertyValueFactory<AlertManagerLabelConfig, Priority>("priority")
 		}
-		labelTable.columns.addAll(labelTableNameColumn, labelTablePriorityColumn)
-		labelTable.items.addAll(config.labels.sortedWith(compareBy({ -it.priority.ordinal }, {it.label})))
+		labelTableStatusColumn.apply {
+			cellValueFactory = PropertyValueFactory<AlertManagerLabelConfig, Status>("status")
+		}
+		labelTable.columns.addAll(labelTablePriorityColumn, labelTableNameColumn, labelTableValueColumn, labelTableStatusColumn)
+		labelTable.items.addAll(config.labels.sortedWith(compareBy({ -it.priority.ordinal }, { it.name }, { it.value })))
 	}
 
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
-		if (config.url.isNotEmpty()) try {
+		if (config.enabled && config.url.isNotEmpty()) try {
 			service?.check()?.enqueue(object : Callback<List<AlertManagerResponse>> {
 				override fun onResponse(call: Call<List<AlertManagerResponse>>?, response: Response<List<AlertManagerResponse>>?) {
 					LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}: ${response?.code()} ${response?.message()}")
 
 					if (response?.isSuccessful == true) {
-//						val foundLabels = response.body()
-//								?.map { label -> config.labels.find { label.annotations.val  } } }
-//								?.filter { job -> config.labels?.let { job.name.matches(it.toRegex()) } ?: true }
-//
-//						lastFoundJobNames = foundJobs?.map { it.name } ?: jobs.keys
-//
-//						foundJobs
-//								?.map { StatusItem(config.name, it.priority, it.severity, it.name, link = it.uri) }
-//								?.also(updater)
+						val configPairs = config.labels.map { "${it.name}:${it.value}" to it }.toMap()
+						response.body()
+								?.filter { it.status?.silencedBy?.isEmpty() != false }
+								?.filter { it.status?.inhibitedBy?.isEmpty() != false }
+								?.flatMap { item -> item.labels.map { "${it.key}:${it.value}" to item } }
+								?.filter { (pair, _) -> configPairs[pair] != null }
+								?.map { (pair, item) -> configPairs[pair]!! to item }
+								?.sortedWith(compareBy({ (c, _) -> c.status.ordinal }, { (p, _) -> p.priority.ordinal }))
+								?.associateBy { (_, i) -> i.labels[config.nameLabel] ?: "" }
+								?.map { (name, p) -> Triple(name, p.first, p.second) }
+								?.also { lastFound = it }
+								?.map { (n, c, i) -> StatusItem(config.name, c.priority, c.status, n, link = i.generatorURL) }
+								?.also(updater)
 					} else {
-//						lastFoundJobNames
-//								.mapNotNull { jobs[it] }
-//								.map { StatusItem(config.name, it.priority, Status.SERVICE_ERROR, it.name, link = URI(config.url)) }
-//								.also(updater)
+						lastFound
+								.map { (n, c, i) -> StatusItem(config.name, c.priority, Status.SERVICE_ERROR, n, link = i.generatorURL) }
+								.also(updater)
 					}
 				}
 
@@ -139,48 +202,30 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 					call?.request()
 							?.also { LOGGER.warn("${it.method()} ${it.url()}: ${response?.message}", response) }
 							?: LOGGER.warn(response?.message)
-//					lastFoundJobNames
-//							.mapNotNull { jobs[it] }
-//							.map { StatusItem(config.name, it.priority, Status.CONNECTION_ERROR, it.name, link = URI(config.url)) }
-//							.also(updater)
+					lastFound
+							.map { (n, c, i) -> StatusItem(config.name, c.priority, Status.CONNECTION_ERROR, n, link = i.generatorURL) }
+							.also(updater)
 				}
 			})
 		} catch (e: IOException) {
 			LOGGER.error(e.message, e)
-//			lastFoundJobNames
-//					.mapNotNull { jobs[it] }
-//					.map { StatusItem(config.name, it.priority, Status.CONNECTION_ERROR, it.name, link = URI(config.url)) }
-//					.also(updater)
+			lastFound
+					.map { (n, c, i) -> StatusItem(config.name, c.priority, Status.CONNECTION_ERROR, n, link = i.generatorURL) }
+					.also(updater)
 		}
 	}
 
-//	private val AlertManagerStatusResponse.priority
-//		get() = jobs[name]?.priority ?: config.priority
-
-//	private val AlertManagerStatusResponse.severity
-//		get() = (color?.toLowerCase() ?: "").let {
-//			when {
-//				it.startsWith("disabled") -> Status.OFF
-//				it.startsWith("notbuild") -> Status.NONE
-//				it.startsWith("aborted") -> Status.NOTIFICATION
-//				it.startsWith("blue") -> Status.OK
-//				it.startsWith("green") -> Status.OK
-//				it.startsWith("yellow") -> Status.WARNING
-//				it.startsWith("red") -> Status.ERROR
-//				else -> Status.UNKNOWN
-//			}
-//		}
-
-//	private val AlertManagerStatusResponse.uri
-//		get() = url?.let { URI(it) }
-
 	private fun addLabel() {
-		newLabelName.text.takeIf { it.isNotEmpty() && it.isNotBlank() }?.also { jobName ->
-			val newJob = AlertManagerLabelConfig(jobName, config.priority)
+		newLabelName.text.takeIf { it.isNotEmpty() && it.isNotBlank() }?.also { name ->
+			val newLabel = AlertManagerLabelConfig(
+					name = name,
+					value = newLabelValue.text,
+					priority = config.priority,
+					status = Status.NONE)
 			labelTable.items
-					.apply { add(newJob) }
-					.sortWith(compareBy({-it.priority.ordinal}, { it.label }))
-			config.labels.add(newJob)
+					.apply { add(newLabel) }
+			//.sortWith(compareBy({-it.priority.ordinal}, { it.name }, {it.value}))
+			config.labels.add(newLabel)
 			controller.saveConfig()
 		}
 		newLabelName.text = ""
@@ -190,11 +235,10 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 		Alert(Alert.AlertType.CONFIRMATION).apply {
 			title = "Delete confirmation"
 			headerText = "Delete confirmation"
-			contentText = "Do you really want to delete \"${jenkinsJobConfig.label}\"?"
+			contentText = "Do you really want to delete label ${jenkinsJobConfig.name}=\"${jenkinsJobConfig.value}\"?"
 			buttonTypes.setAll(ButtonType.YES, ButtonType.NO)
 		}.showAndWait().ifPresent {
 			it.takeIf { it == ButtonType.YES }?.also {
-				//val selected = jobTable.selectionModel.selectedItem
 				labelTable.items.remove(jenkinsJobConfig)
 				config.labels.remove(jenkinsJobConfig)
 				controller.saveConfig()

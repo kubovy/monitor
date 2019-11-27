@@ -23,11 +23,16 @@ import com.poterion.monitor.notifiers.tray.data.SystemTrayConfig
 import com.poterion.monitor.ui.ConfigurationController
 import dorkbox.systemTray.*
 import javafx.application.Platform
+import javafx.scene.Node
 import javafx.scene.control.Alert
+import javafx.scene.control.CheckBox
+import javafx.scene.control.Label
 import javafx.stage.Modality
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.IOException
+import java.net.URI
+import java.net.URISyntaxException
 import javax.imageio.ImageIO
 
 /**
@@ -55,6 +60,14 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 		}
 		StatusCollector.status.subscribe(::update)
 	}
+
+	override val configurationRows: List<Pair<Node, Node>>?
+		get() = listOf(Label("Refresh") to CheckBox().apply {
+			selectedProperty().addListener { _, _, value ->
+				config.refresh = value
+				controller.saveConfig()
+			}
+		})
 
 	override fun execute(action: NotifierAction): Unit = when (action) {
 		NotifierAction.ENABLE -> {
@@ -93,7 +106,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 	}
 
 	private fun createMenu() {
-		try {
+		if (systemTray.menu.first == null || config.refresh) try {
 			while (systemTray.menu.first != null) systemTray.menu.remove(systemTray.menu.first)
 			systemTray.menu.apply {
 				controller.services.sortedBy { it.config.order }.forEach { service ->
@@ -168,7 +181,18 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 					val menuItem = menuItems[statusItem.key()] ?: MenuItem().apply {
 						prioritised = separateNonePriorityItems(index, statusItem.priority, prioritised)
 						text = statusItem.label
-						setCallback { _ -> statusItem.link?.also { open(it) } }
+						setCallback { _ ->
+							statusItem.link
+									?.let {
+										try {
+											URI(it)
+										} catch (e: URISyntaxException) {
+											LOGGER.warn(e.message, e)
+											null
+										}
+									}
+									?.also { open(it) }
+						}
 						//menuEntries[this@updateSubMenu]?.add(this)
 						menuItems[statusItem.key()] = this
 						this@updateSubMenu.add(this)
