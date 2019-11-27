@@ -26,6 +26,7 @@ import javafx.stage.Stage
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.time.LocalDateTime
 import java.util.concurrent.Executors
 import kotlin.system.exitProcess
 
@@ -71,11 +72,18 @@ class ApplicationController(override val stage: Stage, configFileName: String = 
 
 	fun start() {
 		LOGGER.info("Starting with ${configFile.absolutePath} config file")
-		if (configFile.exists()) applicationConfiguration = mapper.readValue(configFile, ApplicationConfiguration::class.java)
+		if (configFile.exists()) try {
+			applicationConfiguration = mapper.readValue(configFile, ApplicationConfiguration::class.java)
+		} catch (e: Exception) {
+			configFile.copyTo(File(configFile.absolutePath + "-" + LocalDateTime.now().toString()))
+		}
 
-		for (module in modules) when (module) {
-			is ServiceModule<*, *> -> services.addAll(module.loadControllers(this, applicationConfiguration))
-			is NotifierModule<*, *> -> notifiers.addAll(module.loadControllers(this, applicationConfiguration))
+		for (module in modules) {
+			LOGGER.info("Loading ${module.title} module...")
+			when (module) {
+				is ServiceModule<*, *> -> services.addAll(module.loadControllers(this, applicationConfiguration))
+				is NotifierModule<*, *> -> notifiers.addAll(module.loadControllers(this, applicationConfiguration))
+			}
 		}
 		services.sortBy { it.config.priority }
 		notifiers.sortBy { it.config.name }

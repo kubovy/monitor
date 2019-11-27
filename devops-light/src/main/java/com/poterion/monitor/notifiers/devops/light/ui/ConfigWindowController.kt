@@ -84,11 +84,12 @@ class ConfigWindowController : CommunicatorListener {
 	@FXML private lateinit var columnLightColor4: TableColumn<LightConfig, LightColor>
 	@FXML private lateinit var columnLightColor5: TableColumn<LightConfig, LightColor>
 	@FXML private lateinit var columnLightColor6: TableColumn<LightConfig, LightColor>
-	@FXML private lateinit var columnLightWait: TableColumn<LightConfig, Long>
+	@FXML private lateinit var columnLightDelay: TableColumn<LightConfig, Int>
 	@FXML private lateinit var columnLightWidth: TableColumn<LightConfig, Int>
 	@FXML private lateinit var columnLightFading: TableColumn<LightConfig, Int>
 	@FXML private lateinit var columnLightMinimum: TableColumn<LightConfig, Int>
 	@FXML private lateinit var columnLightMaximum: TableColumn<LightConfig, Int>
+	@FXML private lateinit var columnLightTimeout: TableColumn<LightConfig, Int>
 
 	@FXML private lateinit var buttonTestLightSequence: Button
 	@FXML private lateinit var buttonTurnOffLight: Button
@@ -195,11 +196,11 @@ class ConfigWindowController : CommunicatorListener {
 		columnLightColor5.init("color5")
 		columnLightColor6.init("color6")
 
-		columnLightWait.apply {
-			cellValueFactory = PropertyValueFactory<LightConfig, Long>("wait")
+		columnLightDelay.apply {
+			cellValueFactory = PropertyValueFactory<LightConfig, Int>("delay")
 			setCellFactory { _ ->
-				object : TableCell<LightConfig, Long>() {
-					override fun updateItem(item: Long?, empty: Boolean) {
+				object : TableCell<LightConfig, Int>() {
+					override fun updateItem(item: Int?, empty: Boolean) {
 						super.updateItem(item, empty)
 						text = item?.let { "${it} ms" }
 					}
@@ -241,6 +242,17 @@ class ConfigWindowController : CommunicatorListener {
 		}
 		columnLightMaximum.apply {
 			cellValueFactory = PropertyValueFactory<LightConfig, Int>("max")
+			setCellFactory {
+				object : TableCell<LightConfig, Int>() {
+					override fun updateItem(item: Int?, empty: Boolean) {
+						super.updateItem(item, empty)
+						text = item?.toString()
+					}
+				}
+			}
+		}
+		columnLightTimeout.apply {
+			cellValueFactory = PropertyValueFactory<LightConfig, Int>("timeout")
 			setCellFactory {
 				object : TableCell<LightConfig, Int>() {
 					override fun updateItem(item: Int?, empty: Boolean) {

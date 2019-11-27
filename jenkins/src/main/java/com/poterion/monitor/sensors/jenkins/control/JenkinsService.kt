@@ -28,7 +28,6 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.io.IOException
-import java.net.URI
 
 
 /**
@@ -123,12 +122,12 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 						lastFoundJobNames = foundJobs?.map { it.name } ?: jobs.keys
 
 						foundJobs
-								?.map { StatusItem(config.name, it.priority, it.severity, it.name, link = it.uri) }
+								?.map { StatusItem(config.name, it.priority, it.severity, it.name, link = it.url) }
 								?.also(updater)
 					} else {
 						lastFoundJobNames
 								.mapNotNull { jobs[it] }
-								.map { StatusItem(config.name, it.priority, Status.SERVICE_ERROR, it.name, link = URI(config.url)) }
+								.map { StatusItem(config.name, it.priority, Status.SERVICE_ERROR, it.name, link = config.url) }
 								.also(updater)
 					}
 				}
@@ -138,7 +137,7 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 							?: LOGGER.warn(response?.message, response)
 					lastFoundJobNames
 							.mapNotNull { jobs[it] }
-							.map { StatusItem(config.name, it.priority, Status.CONNECTION_ERROR, it.name, link = URI(config.url)) }
+							.map { StatusItem(config.name, it.priority, Status.CONNECTION_ERROR, it.name, link = config.url) }
 							.also(updater)
 				}
 			})
@@ -146,7 +145,7 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 			LOGGER.error(e.message, e)
 			lastFoundJobNames
 					.mapNotNull { jobs[it] }
-					.map { StatusItem(config.name, it.priority, Status.CONNECTION_ERROR, it.name, link = URI(config.url)) }
+					.map { StatusItem(config.name, it.priority, Status.CONNECTION_ERROR, it.name, link = config.url) }
 					.also(updater)
 		}
 	}
@@ -167,9 +166,6 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 				else -> Status.UNKNOWN
 			}
 		}
-
-	private val JenkinsJobResponse.uri
-		get() = url?.let { URI(it) }
 
 	private fun addJob() {
 		newJobName.text.takeIf { it.isNotEmpty() && it.isNotBlank() }?.also { jobName ->

@@ -6,8 +6,7 @@ import com.poterion.monitor.data.Status
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-data class AlertManagerLabelConfig(var label: String = "",
-								   var priority: Priority = Priority.NONE)//,
-//								   var silencedStatus: Status = Status.OFF,
-//								   var notFiringStatus: Status = Status.OK,
-//								   var firingStatus: Status = Status.ERROR)
+data class AlertManagerLabelConfig(var name: String = "",
+								   var value: String = "",
+								   var priority: Priority = Priority.NONE,
+								   var status: Status = Status.NONE)

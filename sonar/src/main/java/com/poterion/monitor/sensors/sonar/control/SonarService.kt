@@ -27,7 +27,6 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.io.IOException
-import java.net.URI
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
@@ -134,12 +133,12 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 						lastFoundProjectNames = foundProjects?.map { it.name } ?: projects.keys
 
 						foundProjects
-								?.map { StatusItem(config.name, it.priority, it.severity, it.name, link = it.uri) }
+								?.map { StatusItem(config.name, it.priority, it.severity, it.name, link = "${config.url}dashboard/index/${it.id}") }
 								?.also(updater)
 					} else {
 						lastFoundProjectNames
 								.mapNotNull { projects[it] }
-								.map { StatusItem(config.name, it.priority, Status.SERVICE_ERROR, it.name, link = URI(config.url)) }
+								.map { StatusItem(config.name, it.priority, Status.SERVICE_ERROR, it.name, link = config.url) }
 								.also(updater)
 					}
 				}
@@ -149,7 +148,7 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 							?: LOGGER.warn(response?.message, response)
 					lastFoundProjectNames
 							.mapNotNull { projects[it] }
-							.map { StatusItem(config.name, it.priority, Status.CONNECTION_ERROR, it.name, link = URI(config.url)) }
+							.map { StatusItem(config.name, it.priority, Status.CONNECTION_ERROR, it.name, link = config.url) }
 							.also(updater)
 				}
 			})
@@ -157,7 +156,7 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 			LOGGER.error(e.message, e)
 			lastFoundProjectNames
 					.mapNotNull { projects[it] }
-					.map { StatusItem(config.name, it.priority, Status.CONNECTION_ERROR, it.name, link = URI(config.url)) }
+					.map { StatusItem(config.name, it.priority, Status.CONNECTION_ERROR, it.name, link = config.url) }
 					.also(updater)
 		}
 	}
@@ -174,9 +173,6 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 				else -> Status.UNKNOWN
 			}
 		}
-
-	private val SonarProjectResponse.uri
-		get() = URI("${config.url}dashboard/index/${id}")
 
 	private fun addJob() {
 		newProjectId.text.toIntOrNull()?.also { projectId ->
