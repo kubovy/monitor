@@ -92,8 +92,10 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 						state = State.CONNECTED
 						listeners.forEach { Platform.runLater { it.onConnect(channel) } }
 					}
+					Thread.sleep(1000)
 				} catch (e: Exception) {
 					LOGGER.error("${channel} ${connectionDescriptor}> ${e.message}", e)
+					Thread.sleep(1000)
 					disconnectInternal(stayDisconnected = false)
 				}
 			} else {
@@ -142,10 +144,12 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 				}
 			} catch (e: Exception) {
 				LOGGER.error("${channel} ${connectionDescriptor}> ${e.message}")
+				Thread.sleep(1000)
 				disconnectInternal(stayDisconnected = false)
 			}
 		} catch (e: Exception) {
 			LOGGER.warn("${channel} ${connectionDescriptor}> ${e.message}")
+			Thread.sleep(1000)
 			disconnectInternal(stayDisconnected = false)
 		}
 		LOGGER.debug("${channel} ${connectionDescriptor}> Inbound thread exited")
@@ -200,6 +204,7 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 								iddCounter++
 							}
 							if (iddCounter > 4) {
+								Thread.sleep(1000)
 								disconnectInternal(stayDisconnected = false)
 							}
 						}
@@ -227,10 +232,12 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 				}
 			} catch (e: Exception) {
 				LOGGER.error("${channel} ${connectionDescriptor}> ${e.message}")
+				Thread.sleep(1000)
 				disconnectInternal(stayDisconnected = false)
 			}
 		} catch (e: Exception) {
 			LOGGER.warn("${channel} ${connectionDescriptor}> ${e.message}")
+			Thread.sleep(1000)
 			disconnectInternal(stayDisconnected = false)
 		}
 		LOGGER.debug("${channel} ${connectionDescriptor}> Outbound thread exited")

@@ -35,7 +35,13 @@ interface ModuleInstanceInterface<out Config : ModuleConfig> {
 	val configurationTab: Parent?
 		get() = null
 
+	val exitRequest: Boolean
+		get() = true
+
 	/** Initialization of a module controller. Call after controllers are created. */
 	fun initialize() {
+	}
+
+	fun destroy() {
 	}
 }

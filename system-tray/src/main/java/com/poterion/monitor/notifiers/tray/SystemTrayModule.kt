@@ -14,13 +14,20 @@ import kotlin.reflect.KClass
 object SystemTrayModule : NotifierModule<SystemTrayConfig, SystemTrayNotifier> {
 	override val configClass: KClass<out SystemTrayConfig> = SystemTrayConfig::class
 
+	override val singleton: Boolean
+		get() = true
+
 	override val title: String
 		get() = "System Tray"
 
 	override val icon: Icon = SystemTrayIcon.TRAY
 
+	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration): SystemTrayNotifier =
+			SystemTrayNotifier(controller, SystemTrayConfig(name = title).also { applicationConfiguration.notifiers.add(it) })
+					.also { it.initialize() }
+
 	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration): Collection<SystemTrayNotifier> = applicationConfiguration
-			.services
+			.notifiers
 			.filterIsInstance<SystemTrayConfig>()
 			.map { SystemTrayNotifier(controller, it) }
 }

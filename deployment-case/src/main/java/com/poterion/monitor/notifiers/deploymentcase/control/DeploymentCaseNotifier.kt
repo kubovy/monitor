@@ -80,6 +80,9 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	override fun initialize() {
 		super.initialize()
 		bluetoothCommunicator.register(this)
+		if (config.enabled) {
+			bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
+		}
 	}
 
 	override fun execute(action: NotifierAction) {

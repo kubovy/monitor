@@ -3,6 +3,7 @@ package com.poterion.monitor.api.communication
 import jssc.SerialPort
 import jssc.SerialPortEvent
 import jssc.SerialPortEventListener
+import jssc.SerialPortException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.*
@@ -106,13 +107,17 @@ class USBCommunicator : Communicator<USBCommunicator.Descriptor>(Channel.USB) {
 			?.portName
 			?.let { SerialPort(it) }
 			?.also {
-				serialPort = it
-				it.openPort()
-				it.setParams(SerialPort.BAUDRATE_115200,
-						SerialPort.DATABITS_8,
-						SerialPort.STOPBITS_1,
-						SerialPort.PARITY_NONE)
-				it.addEventListener(serialPortEventListener)
+				try {
+					serialPort = it
+					it.openPort()
+					it.setParams(SerialPort.BAUDRATE_115200,
+							SerialPort.DATABITS_8,
+							SerialPort.STOPBITS_1,
+							SerialPort.PARITY_NONE)
+					it.addEventListener(serialPortEventListener)
+				} catch (e: SerialPortException) {
+					LOGGER.error(e.message)
+				}
 			} != null
 
 	override fun cleanUpConnection() {

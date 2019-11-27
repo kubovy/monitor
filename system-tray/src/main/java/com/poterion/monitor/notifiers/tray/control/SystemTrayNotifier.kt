@@ -44,22 +44,28 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 	}
 
 	override val definition: Module<SystemTrayConfig, ModuleInstanceInterface<SystemTrayConfig>> = SystemTrayModule
-	private var systemTray: SystemTray = SystemTray.get() ?: throw RuntimeException("Unable to load SystemTray!")
+	private var systemTray: SystemTray? = SystemTray.get()
 	private var serviceMenus = mutableMapOf<String, Menu>()
 	private var lastStatusIcon: Icon? = null
 
 	override fun initialize() {
 		try {
-			LOGGER.info("Tray image size: ${systemTray.trayImageSize}")
-			CommonIcon.APPLICATION.inputStream.use { ImageIO.read(it) }.also { systemTray.setImage(it) }
-			systemTray.status = "Monitor"
+			LOGGER.info("Tray image size: ${systemTray?.trayImageSize}")
+			CommonIcon.APPLICATION.inputStream.use { ImageIO.read(it) }.also { systemTray?.setImage(it) }
+			systemTray?.status = "Monitor"
 			createMenu()
 			controller.registerForConfigUpdates { createMenu() }
 		} catch (e: IOException) {
-			e.printStackTrace()
+			LOGGER.error(e.message, e)
 		}
 		StatusCollector.status.subscribe(::update)
 	}
+
+	override fun destroy() {
+		systemTray?.shutdown()
+	}
+
+	override val exitRequest: Boolean = false
 
 	override val configurationRows: List<Pair<Node, Node>>?
 		get() = listOf(Label("Refresh") to CheckBox().apply {
@@ -72,12 +78,12 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 	override fun execute(action: NotifierAction): Unit = when (action) {
 		NotifierAction.ENABLE -> {
 			config.enabled = true
-			lastStatusIcon?.inputStream.use { systemTray.setImage(it) }
+			lastStatusIcon?.inputStream.use { systemTray?.setImage(it) }
 			controller.saveConfig()
 		}
 		NotifierAction.DISABLE -> {
 			config.enabled = false
-			CommonIcon.APPLICATION.inputStream.use { systemTray.setImage(it) }
+			CommonIcon.APPLICATION.inputStream.use { systemTray?.setImage(it) }
 			controller.saveConfig()
 		}
 		NotifierAction.TOGGLE -> execute(if (config.enabled) NotifierAction.DISABLE else NotifierAction.ENABLE)
@@ -102,13 +108,13 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 
 		lastStatusIcon
 				?.inputStream
-				?.use { systemTray.setImage(it) }
+				?.use { systemTray?.setImage(it) }
 	}
 
 	private fun createMenu() {
-		if (systemTray.menu.first == null || config.refresh) try {
-			while (systemTray.menu.first != null) systemTray.menu.remove(systemTray.menu.first)
-			systemTray.menu.apply {
+		if (systemTray != null && (systemTray?.menu?.first == null || config.refresh)) try {
+			while (systemTray?.menu?.first != null) systemTray?.menu?.first?.also { systemTray?.menu?.remove(it) }
+			systemTray?.menu?.apply {
 				controller.services.sortedBy { it.config.order }.forEach { service ->
 					val menu = service.navigationRoot.toMenu(controller, service.config)
 					if (menu is Menu) {

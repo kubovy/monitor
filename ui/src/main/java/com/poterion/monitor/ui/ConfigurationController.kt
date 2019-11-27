@@ -73,43 +73,49 @@ class ConfigurationController {
 				object : TreeCell<ModuleItem>() {
 					override fun updateItem(item: ModuleItem?, empty: Boolean) {
 						super.updateItem(item, empty)
-						item?.module?.config?.name?.also { item.title.set(it) }
-						item?.also { textProperty().bind(it.title) }
-						when (item?.title?.value) {
-							"Services" -> controller
-									?.modules
-									?.filterNot { it.singleton }
-									?.mapNotNull { it as? ServiceModule<*, *> }
-									?.map { module ->
-										MenuItem("Add ${module.title} service", module.icon.toImageView()).apply {
-											setOnAction {
-												controller?.add(module)?.also { treeItem.children.addItem(it) }
+						if (item == null) {
+							if (textProperty().isBound) textProperty().unbind()
+							text = null
+							graphic = null
+						} else {
+							item.module?.config?.name?.also { item.title.set(it) }
+							item.also { textProperty().bind(it.title) }
+							when (item.title.value) {
+								"Services" -> controller
+										?.validModules { it.services }
+										?.mapNotNull { it as? ServiceModule<*, *> }
+										?.map { module ->
+											MenuItem("Add ${module.title} service", module.icon.toImageView()).apply {
+												setOnAction {
+													controller?.add(module)?.also { treeItem.children.addItem(it) }
+													treeView.refresh()
+												}
 											}
 										}
-									}
-									?.also { contextMenu = ContextMenu(*it.toTypedArray()) }
-							"Notifiers" -> controller
-									?.modules
-									?.filterNot { it.singleton }
-									?.mapNotNull { it as? NotifierModule<*, *> }
-									?.map { module ->
-										MenuItem("Add ${module.title} notifier", module.icon.toImageView()).apply {
-											setOnAction {
-												controller?.add(module)?.also { treeItem.children.addItem(it) }
+										?.also { contextMenu = ContextMenu(*it.toTypedArray()) }
+								"Notifiers" -> controller
+										?.validModules { it.notifiers }
+										?.mapNotNull { it as? NotifierModule<*, *> }
+										?.map { module ->
+											MenuItem("Add ${module.title} notifier", module.icon.toImageView()).apply {
+												setOnAction {
+													controller?.add(module)?.also { treeItem.children.addItem(it) }
+													treeView.refresh()
+												}
 											}
 										}
+										?.also { contextMenu = ContextMenu(*it.toTypedArray()) }
+								else -> contextMenu = ContextMenu(MenuItem("Delete").apply {
+									setOnAction {
+										treeItem.value.module?.destroy()
+										treeItem.remove()
+										treeView.refresh()
 									}
-									?.also { contextMenu = ContextMenu(*it.toTypedArray()) }
-							else -> {
-								if (item?.module?.definition?.singleton == false) {
-									contextMenu = ContextMenu(MenuItem("Delete").apply {
-										setOnAction { treeItem.remove() }
-									})
-								}
+								})
 							}
-						}
 
-						graphic = item?.graphic ?: item?.module?.definition?.icon?.toImageView()
+							graphic = item.graphic ?: item.module?.definition?.icon?.toImageView()
+						}
 					}
 				}
 			}
@@ -119,6 +125,9 @@ class ConfigurationController {
 		}
 		select(null)
 	}
+
+	private fun ControllerInterface.validModules(getter: (ControllerInterface) -> Collection<ModuleInstanceInterface<*>>) =
+			modules.filter { m -> !m.singleton || !getter(this).map { it.definition }.contains(m) }
 
 	private fun load() {
 		tree.root = TreeItem<ModuleItem>().apply {
@@ -144,7 +153,7 @@ class ConfigurationController {
 		val item = TreeItem(ModuleItem(module = module))
 		add(item)
 		FXCollections.sort<TreeItem<ModuleItem>>(this,
-				Comparator.comparing<TreeItem<ModuleItem>, String> { it.value.title.value ?: "" })
+				Comparator.comparing<TreeItem<ModuleItem>, String> { it.value.module?.config?.name ?: "" })
 
 		module.configurationTab?.let {
 			val tab = Tab(module.config.name, module.configurationTab)
@@ -159,8 +168,10 @@ class ConfigurationController {
 	}
 
 	private fun TreeItem<ModuleItem>.remove() {
-		controller?.applicationConfiguration?.services?.removeIf { it == value.module?.config }
-		controller?.applicationConfiguration?.notifiers?.removeIf { it == value.module?.config }
+		controller?.services?.removeIf { it.config == value?.module?.config }
+		controller?.notifiers?.removeIf { it.config == value?.module?.config }
+		controller?.applicationConfiguration?.services?.remove(value.module?.config)
+		controller?.applicationConfiguration?.notifiers?.remove(value.module?.config)
 		parent.children.remove(this)
 
 		tabPaneMain.tabs.removeIf { it.userData == value.module }
