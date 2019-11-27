@@ -40,7 +40,7 @@ class BluetoothCommunicator : Communicator<BluetoothCommunicator.Descriptor>(Cha
 				try {
 					Connector.open(url) as StreamConnection
 				} catch (e: IOException) {
-					LOGGER.error(e.message, e)
+					LOGGER.error(e.message)
 					null
 				}
 			}

@@ -93,6 +93,8 @@ class ApplicationController(override val stage: Stage, configFileName: String = 
 		worker?.stop()
 		worker = ControllerWorker { Platform.runLater { check() } }
 		executor.submit(worker)
+
+		stage.setOnCloseRequest { if (notifiers.map { it.exitRequest }.reduce { acc, b -> acc && b }) quit() }
 	}
 
 	override fun add(module: Module<*, *>): ModuleInstanceInterface<*>? {
