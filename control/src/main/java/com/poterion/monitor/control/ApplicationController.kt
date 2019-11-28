@@ -41,8 +41,6 @@ class ApplicationController(override val stage: Stage, configFileName: String = 
 	}
 
 	private val configFile = File(configFileName)
-	private val executor = Executors.newSingleThreadExecutor()
-	private var worker: ControllerWorker? = null
 	private val mapper
 		get() = ObjectMapper(YAMLFactory()).apply {
 			registerModule(SimpleModule("PolymorphicServiceDeserializerModule", Version.unknownVersion()).apply {
@@ -90,9 +88,7 @@ class ApplicationController(override val stage: Stage, configFileName: String = 
 
 		(services + notifiers).forEach { it.initialize() }
 
-		worker?.stop()
-		worker = ControllerWorker { Platform.runLater { check() } }
-		executor.submit(worker)
+		ControllerWorker.start { Platform.runLater { check() } }
 
 		stage.setOnCloseRequest { if (notifiers.map { it.exitRequest }.reduce { acc, b -> acc && b }) quit() }
 	}
@@ -127,9 +123,7 @@ class ApplicationController(override val stage: Stage, configFileName: String = 
 	}
 
 	override fun quit() {
-		executor.shutdown()
-		worker?.stop()
-		executor.shutdownNow()
+		ControllerWorker.stop()
 		notifiers.forEach { it.execute(NotifierAction.SHUTDOWN) }
 		saveConfig()
 		exitProcess(0) // not necessary if all non-daemon threads have stopped.
@@ -139,13 +133,8 @@ class ApplicationController(override val stage: Stage, configFileName: String = 
 		configListeners.add(listener)
 	}
 
-	override fun triggerUpdate() {
-		configListeners.forEach { it.invoke(applicationConfiguration) }
-	}
-
 	override fun saveConfig() = try {
 		configListeners.forEach { it.invoke(applicationConfiguration) }
-		check(force = true)
 		mapper.writeValue(configFile, applicationConfiguration)
 	} catch (e: Exception) {
 		LOGGER.error(e.message, e)

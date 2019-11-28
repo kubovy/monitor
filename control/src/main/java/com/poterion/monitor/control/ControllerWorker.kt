@@ -1,16 +1,31 @@
 package com.poterion.monitor.control
 
+import javafx.application.Platform
 import java.util.concurrent.Callable
+import java.util.concurrent.Executors
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
 class ControllerWorker(private val check: () -> Unit) : Callable<Boolean> {
-	private var running = true
+	companion object {
+		private var instance: ControllerWorker? = null
+		private val executor = Executors.newSingleThreadExecutor()
 
-	fun stop() {
-		running = false
+		fun start(check: () -> Unit) {
+			instance?.running = true
+			instance = ControllerWorker(check)
+			executor.submit(instance)
+		}
+
+		fun stop() {
+			executor.shutdown()
+			instance?.running = false
+			executor.shutdownNow()
+		}
 	}
+
+	private var running = true
 
 	override fun call(): Boolean {
 		while (running) try {

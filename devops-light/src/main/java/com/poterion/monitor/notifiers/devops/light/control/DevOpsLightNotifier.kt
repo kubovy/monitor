@@ -228,13 +228,9 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 	}
 
 	override fun onConnect(channel: Channel) {
-		controller.check(true)
-		controller.triggerUpdate()
 	}
 
 	override fun onDisconnect(channel: Channel) {
-		controller.check(true)
-		controller.triggerUpdate()
 	}
 
 	override fun onMessageReceived(channel: Channel, message: IntArray) {

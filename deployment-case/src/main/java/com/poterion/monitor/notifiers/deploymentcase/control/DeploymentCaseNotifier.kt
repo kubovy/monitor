@@ -121,8 +121,6 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	override fun onConnect(channel: Channel) {
 		if (channel == Channel.BLUETOOTH) {
 			LOGGER.info("${channel} Connected")
-			controller.check(true)
-			controller.triggerUpdate()
 			listeners.forEach { Platform.runLater { it.onProgress(-1, 1, true) } }
 			bluetoothCommunicator.send(MessageKind.SM_CONFIGURATION)
 		}
@@ -131,8 +129,6 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	override fun onDisconnect(channel: Channel) {
 		if (channel == Channel.BLUETOOTH) {
 			LOGGER.info("${channel} Disconnected")
-			controller.check(true)
-			controller.triggerUpdate()
 			stateMachineTransfer = false
 		}
 	}
