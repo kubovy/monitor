@@ -23,6 +23,7 @@ import com.poterion.monitor.notifiers.tray.data.SystemTrayConfig
 import com.poterion.monitor.ui.ConfigurationController
 import dorkbox.systemTray.*
 import javafx.application.Platform
+import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.control.Alert
 import javafx.scene.control.CheckBox
@@ -68,12 +69,18 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 	override val exitRequest: Boolean = false
 
 	override val configurationRows: List<Pair<Node, Node>>?
-		get() = listOf(Label("Refresh") to CheckBox().apply {
-			selectedProperty().addListener { _, _, value ->
-				config.refresh = value
-				controller.saveConfig()
-			}
-		})
+		get() = listOf(
+				Label("Refresh").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				} to CheckBox().apply {
+					maxHeight = Double.MAX_VALUE
+					selectedProperty().addListener { _, _, value ->
+						config.refresh = value
+						controller.saveConfig()
+					}
+				})
 
 	override fun execute(action: NotifierAction): Unit = when (action) {
 		NotifierAction.ENABLE -> {

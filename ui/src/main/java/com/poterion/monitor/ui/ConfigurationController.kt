@@ -30,6 +30,7 @@ import javafx.scene.layout.RowConstraints
 import javafx.scene.layout.VBox
 import java.util.*
 
+typealias Prio = javafx.scene.layout.Priority
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
@@ -188,13 +189,13 @@ class ConfigurationController {
 		if (treeItem?.value?.module != null) {
 			var rows = initializeModule(treeItem)
 			gridPane.rowConstraints.addAll((0 until rows).map {
-				RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, javafx.scene.layout.Priority.ALWAYS, VPos.TOP, true)
+				RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, Prio.ALWAYS, VPos.TOP, true)
 			})
 
 			treeItem.value?.module?.configurationRows?.forEach { (label, content) ->
 				gridPane.addRow(rows++, label, content)
 				(label as? Label)?.alignment = Pos.CENTER_RIGHT
-				gridPane.rowConstraints.add(RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, javafx.scene.layout.Priority.ALWAYS, VPos.TOP, true))
+				gridPane.rowConstraints.add(RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, Prio.ALWAYS, VPos.TOP, true))
 			}
 			treeItem.value?.module?.configurationAddition?.forEach { vboxContent.children.add(it) }
 		}
@@ -202,9 +203,14 @@ class ConfigurationController {
 
 	private fun initializeModule(treeItem: TreeItem<ModuleItem>?): Int = gridPane.run {
 		var row = 0
-		addRow(row++, Label("Type").apply { GridPane.setHalignment(this, HPos.RIGHT) },
+		addRow(row++,
+				Label("Type").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
 				ComboBox<String>().apply {
-					GridPane.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+					GridPane.setHgrow(this, Prio.ALWAYS)
 					val loader = ServiceLoader.load(ModuleConfig::class.java)
 					items.add(null)
 					items.addAll(loader.map { it::class.simpleName })
@@ -213,7 +219,12 @@ class ConfigurationController {
 						treeItem?.value?.module?.config?.type?.also(::select)
 					}
 				})
-		addRow(row++, Label("Name").apply { GridPane.setHalignment(this, HPos.RIGHT) },
+		addRow(row++,
+				Label("Name").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
 				TextField(treeItem?.value?.module?.config?.name ?: "").apply {
 					textProperty().addListener { _, _, value ->
 						treeItem?.value?.title?.set(value)
@@ -224,8 +235,14 @@ class ConfigurationController {
 					}
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				})
-		addRow(row++, Label("Enabled").apply { GridPane.setHalignment(this, HPos.RIGHT) },
+		addRow(row++,
+				Label("Enabled").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
 				CheckBox().apply {
+					maxHeight = Double.MAX_VALUE
 					isSelected = treeItem?.value?.module?.config?.enabled == true
 					selectedProperty().addListener { _, _, value ->
 						treeItem?.value?.module?.config?.enabled = value
@@ -240,9 +257,14 @@ class ConfigurationController {
 	}
 
 	private fun initializeServiceModule(row: Int, module: Service<*>): Int = gridPane.run {
-		addRow(row, Label("Default priority").apply { GridPane.setHalignment(this, HPos.RIGHT) },
+		addRow(row,
+				Label("Default priority").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
 				ComboBox<Priority>(FXCollections.observableArrayList(*Priority.values())).apply {
-					GridPane.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+					GridPane.setHgrow(this, Prio.ALWAYS)
 					selectionModel.apply {
 						select(module.config.priority)
 						selectedItemProperty().addListener { _, _, value ->
@@ -251,9 +273,14 @@ class ConfigurationController {
 						}
 					}
 				})
-		addRow(row + 1, Label("Check interval").apply { GridPane.setHalignment(this, HPos.RIGHT) },
+		addRow(row + 1,
+				Label("Check interval").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
 				HBox(TextField(module.config.checkInterval.toString()).apply {
-					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+					HBox.setHgrow(this, Prio.ALWAYS)
 					textProperty().addListener { _, _, value -> value.toLongOrNull()?.also { module.config.checkInterval = it } }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
@@ -262,13 +289,23 @@ class ConfigurationController {
 	}
 
 	private fun initializeHttpService(row: Int, config: HttpConfig): Int = gridPane.run {
-		addRow(row, Label("URL").apply { GridPane.setHalignment(this, HPos.RIGHT) },
+		addRow(row,
+				Label("URL").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
 				TextField(config.url).apply {
 					textProperty().addListener { _, _, value -> config.url = value }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				})
-		addRow(row + 1, Label("Trust certificate").apply { GridPane.setHalignment(this, HPos.RIGHT) },
+		addRow(row + 1,
+				Label("Trust certificate").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT },
 				CheckBox().apply {
+					maxHeight = Double.MAX_VALUE
 					isSelected = config.trustCertificate
 					selectedProperty().addListener { _, _, value ->
 						config.trustCertificate = value
@@ -279,10 +316,15 @@ class ConfigurationController {
 		val usernameField = TextField(config.auth?.username ?: "")
 		val passwordField = PasswordField()
 
-		addRow(row + 2, Label("Auth").apply { GridPane.setHalignment(this, HPos.RIGHT) },
+		addRow(row + 2,
+				Label("Auth").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
 				HBox(
 						usernameField.apply {
-							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+							HBox.setHgrow(this, Prio.ALWAYS)
 							textProperty().addListener { _, _, value ->
 								val usr = value.takeIf { it.isNotEmpty() }
 								val pwd = passwordField.text.takeIf { it.isNotEmpty() }
@@ -292,7 +334,7 @@ class ConfigurationController {
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 						},
 						passwordField.apply {
-							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+							HBox.setHgrow(this, Prio.ALWAYS)
 							text = config.auth?.password ?: ""
 							textProperty().addListener { _, _, value ->
 								val usr = usernameField.text.takeIf { it.isNotEmpty() }
@@ -302,21 +344,36 @@ class ConfigurationController {
 							}
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 						}).apply { alignment = Pos.CENTER })
-		addRow(row + 3, Label("Connection timeout").apply { GridPane.setHalignment(this, HPos.RIGHT) },
+		addRow(row + 3,
+				Label("Connection timeout").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
 				HBox(TextField(config.connectTimeout?.toString() ?: "").apply {
-					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+					HBox.setHgrow(this, Prio.ALWAYS)
 					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.connectTimeout = it } }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
-		addRow(row + 4, Label("Read timeout").apply { GridPane.setHalignment(this, HPos.RIGHT) },
+		addRow(row + 4,
+				Label("Read timeout").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
 				HBox(TextField(config.readTimeout?.toString() ?: "").apply {
-					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+					HBox.setHgrow(this, Prio.ALWAYS)
 					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.readTimeout = it } }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
-		addRow(row + 5, Label("Write timeout").apply { GridPane.setHalignment(this, HPos.RIGHT) },
+		addRow(row + 5,
+				Label("Write timeout").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
 				HBox(TextField(config.writeTimeout?.toString() ?: "").apply {
-					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+					HBox.setHgrow(this, Prio.ALWAYS)
 					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.writeTimeout = it } }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
@@ -324,9 +381,14 @@ class ConfigurationController {
 	}
 
 	private fun initializeNotifierModule(row: Int, module: Notifier<*>): Int = gridPane.run {
-		addRow(row, Label("Minimum priority").apply { GridPane.setHalignment(this, HPos.RIGHT) },
+		addRow(row,
+				Label("Minimum priority").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
 				ComboBox<Priority>(FXCollections.observableArrayList(*Priority.values())).apply {
-					GridPane.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+					GridPane.setHgrow(this, Prio.ALWAYS)
 					selectionModel.apply {
 						select(module.config.minPriority)
 						selectedItemProperty().addListener { _, _, value ->
