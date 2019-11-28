@@ -11,6 +11,8 @@ import com.poterion.monitor.ui.ConfigurationController
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.stage.Stage
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 /*
  * @startuml
@@ -53,6 +55,9 @@ import javafx.stage.Stage
  */
 class Main : Application() {
 	companion object {
+		private val LOGGER: Logger = LoggerFactory.getLogger(Application::class.java)
+		private const val CONFIG_FILE: String = "config.yaml"
+
 		@JvmStatic
 		fun main(args: Array<String>) {
 			launch(Main::class.java, *args)
@@ -62,7 +67,7 @@ class Main : Application() {
 	override fun start(primaryStage: Stage) {
 		Platform.setImplicitExit(false)
 
-		val controller = ApplicationController(primaryStage).apply {
+		val controller = ApplicationController(primaryStage, CONFIG_FILE).apply {
 			registerModule(AlertManagerModule)
 			registerModule(JenkinsModule)
 			registerModule(SonarModule)

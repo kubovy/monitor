@@ -18,6 +18,5 @@ interface ControllerInterface {
 	fun add(module: Module<*, *>): ModuleInstanceInterface<*>?
 	fun quit()
 	fun saveConfig()
-	fun triggerUpdate()
 	fun registerForConfigUpdates(listener: (ApplicationConfiguration) -> Unit)
 }
