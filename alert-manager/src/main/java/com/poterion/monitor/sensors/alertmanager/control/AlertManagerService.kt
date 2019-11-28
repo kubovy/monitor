@@ -11,8 +11,10 @@ import com.poterion.monitor.sensors.alertmanager.AlertManagerModule
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerConfig
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerLabelConfig
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerResponse
+import javafx.application.Platform
 import javafx.beans.binding.Bindings
 import javafx.collections.FXCollections
+import javafx.geometry.Orientation
 import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.*
@@ -27,6 +29,7 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.io.IOException
+import java.time.LocalDateTime
 
 
 /**
@@ -50,10 +53,19 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 		})
 
 	override val configurationAddition: List<Parent>?
-		get() = listOf(labelTable, HBox(
-				Label("Name"), newLabelName,
-				Label("Value"), newLabelValue,
-				Button("Add").apply { setOnAction { addLabel() } }))
+		get() = listOf(
+				SplitPane(
+						VBox(
+								HBox(
+										Label("Name"), newLabelName,
+										Label("Value"), newLabelValue,
+										Button("Add").apply { setOnAction { addLabel() } }),
+								labelTable),
+						logArea).apply {
+					orientation = Orientation.VERTICAL
+					setDividerPositions(0.8, 0.2)
+					VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS)
+				})
 
 	private val newLabelName = TextField("").apply {
 		HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
@@ -63,6 +75,14 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 	private val newLabelValue = TextField("").apply {
 		HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 		setOnKeyReleased { event -> if (event.code == KeyCode.ENTER) addLabel() }
+	}
+
+	private val logArea = TextArea("").apply {
+		isEditable = false
+		text = ""
+		textProperty().addListener { _, _, text ->
+			if (!isFocused) scrollTop = Double.MAX_VALUE
+		}
 	}
 
 	private val labelTable = TableView<AlertManagerLabelConfig>().apply {
@@ -179,7 +199,7 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 
 					if (response?.isSuccessful == true) {
 						val configPairs = config.labels.map { "${it.name}:${it.value}" to it }.toMap()
-						response.body()
+						val alerts = response.body()
 								?.filter { it.status?.silencedBy?.isEmpty() != false }
 								?.filter { it.status?.inhibitedBy?.isEmpty() != false }
 								?.flatMap { item -> item.labels.map { "${it.key}:${it.value}" to item } }
@@ -190,7 +210,16 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 								?.map { (name, p) -> Triple(name, p.first, p.second) }
 								?.also { lastFound = it }
 								?.map { (n, c, i) -> StatusItem(config.name, c.priority, c.status, n, link = i.generatorURL) }
-								?.also(updater)
+								?.takeIf { it.isNotEmpty() }
+								?: listOf(StatusItem(config.name, Priority.MAXIMUM, Status.OK, ""))
+						alerts.also(updater)
+
+						Platform.runLater {
+							logArea.text = alerts.joinToString("\n") {
+								"${LocalDateTime.now()} [${it.priority}]" +
+										" ${it.label.takeIf { it.isNotEmpty() } ?: "Default"}: ${it.status}"
+							}
+						}
 					} else {
 						lastFound
 								.map { (n, c, i) -> StatusItem(config.name, c.priority, Status.SERVICE_ERROR, n, link = i.generatorURL) }

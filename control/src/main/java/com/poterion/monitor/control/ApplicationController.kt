@@ -119,7 +119,10 @@ class ApplicationController(override val stage: Stage, configFileName: String = 
 				.filter { force || (now - (serviceLastChecked[it.config.name] ?: 0L)) > it.config.checkInterval }
 				.forEach { service ->
 					serviceLastChecked[service.config.name] = System.currentTimeMillis()
-					service.check { StatusCollector.update(it) }
+					service.check {
+						StatusCollector.update(it,
+								(service.definition as? ServiceModule)?.staticNotificationSet != false)
+					}
 				}
 	}
 
