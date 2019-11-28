@@ -14,7 +14,8 @@ object StatusCollector {
 	val status: PublishSubject<Collection<StatusItem>> = PublishSubject.create<Collection<StatusItem>>()
 
 	@Synchronized
-	fun update(items: Collection<StatusItem>) {
+	fun update(items: Collection<StatusItem>, update: Boolean) {
+		if (!update) statusItems.clear()
 		statusItems.putAll(items.map { it.key() to it })
 
 		statusItems.values.also { statusItems ->

@@ -17,6 +17,9 @@ object AlertManagerModule : ServiceModule<AlertManagerConfig, AlertManagerServic
 
 	override val icon: Icon = AlertManagerIcon.ALERT_MANAGER
 
+	override val staticNotificationSet: Boolean
+		get() = false
+
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration): AlertManagerService =
 			AlertManagerService(controller, AlertManagerConfig(name = title).also { applicationConfiguration.services.add(it) })
 
