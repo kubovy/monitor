@@ -53,7 +53,6 @@ class ApplicationController(override val stage: Stage, configFileName: String = 
 		}
 	override val modules = mutableListOf<Module<*, *>>()
 	override val services: ObservableList<Service<ServiceConfig>> = FXCollections.observableArrayList()
-	private val serviceLastChecked = mutableMapOf<String, Long>()
 	override val notifiers: ObservableList<Notifier<NotifierConfig>> = FXCollections.observableArrayList()
 
 	override var applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration()
@@ -88,7 +87,7 @@ class ApplicationController(override val stage: Stage, configFileName: String = 
 
 		(services + notifiers).forEach { it.initialize() }
 
-		ControllerWorker.start { Platform.runLater { check() } }
+		ControllerWorker.start(services)
 
 		stage.setOnCloseRequest { if (notifiers.map { it.exitRequest }.reduce { acc, b -> acc && b }) quit() }
 	}
@@ -107,19 +106,6 @@ class ApplicationController(override val stage: Stage, configFileName: String = 
 			}
 		}
 		return null
-	}
-
-	override fun check(force: Boolean) {
-		val now = System.currentTimeMillis()
-		services
-				.filter { force || (now - (serviceLastChecked[it.config.name] ?: 0L)) > it.config.checkInterval }
-				.forEach { service ->
-					serviceLastChecked[service.config.name] = System.currentTimeMillis()
-					service.check {
-						StatusCollector.update(it,
-								(service.definition as? ServiceModule)?.staticNotificationSet != false)
-					}
-				}
 	}
 
 	override fun quit() {

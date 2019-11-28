@@ -19,6 +19,7 @@ import com.poterion.monitor.notifiers.devops.light.data.DevOpsLightItemConfig
 import com.poterion.monitor.notifiers.devops.light.data.LightColor
 import com.poterion.monitor.notifiers.devops.light.data.LightConfig
 import com.poterion.monitor.notifiers.devops.light.ui.ConfigWindowController
+import javafx.application.Platform
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -132,33 +133,35 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 
 	override fun initialize() {
 		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe { statusItems ->
-			val lights = if (config.combineMultipleServices) {
-				val maxStatus = statusItems
-						.filter { it.priority >= config.minPriority }
-						.maxBy { it.status }
-						?.status
+			Platform.runLater {
+				val lights = if (config.combineMultipleServices) {
+					val maxStatus = statusItems
+							.filter { it.priority >= config.minPriority }
+							.maxBy { it.status }
+							?.status
 
-				statusItems
-						.filter { it.priority >= config.minPriority }
-						.filter { it.status == maxStatus }
-						.distinctBy { it.serviceName }
-						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
-						.mapNotNull { it.toLightConfig() }
-						.flatten()
-						.takeIf { it.isNotEmpty() }
-						?: config.items.firstOrNull { it.id == "" }?.statusOk
-			} else {
-				statusItems
-						.filter { it.priority >= config.minPriority }
-						.maxBy { it.status }
-						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
-						?.toLightConfig()
-						?: config.items.firstOrNull { it.id == "" }?.statusOk
+					statusItems
+							.filter { it.priority >= config.minPriority }
+							.filter { it.status == maxStatus }
+							.distinctBy { it.serviceName }
+							.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
+							.mapNotNull { it.toLightConfig() }
+							.flatten()
+							.takeIf { it.isNotEmpty() }
+							?: config.items.firstOrNull { it.id == "" }?.statusOk
+				} else {
+					statusItems
+							.filter { it.priority >= config.minPriority }
+							.maxBy { it.status }
+							.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
+							?.toLightConfig()
+							?: config.items.firstOrNull { it.id == "" }?.statusOk
+				}
+
+				lights?.also { lastState = it }
+						?.takeIf { config.enabled }
+						?.also { changeLights(it) }
 			}
-
-			lights?.also { lastState = it }
-					?.takeIf { config.enabled }
-					?.also { changeLights(it) }
 		}
 		bluetoothCommunicator.register(this)
 		usbCommunicator.register(this)

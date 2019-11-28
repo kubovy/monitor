@@ -59,7 +59,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 		} catch (e: IOException) {
 			LOGGER.error(e.message, e)
 		}
-		StatusCollector.status.subscribe(::update)
+		StatusCollector.status.subscribe { Platform.runLater { update(it) } }
 	}
 
 	override fun destroy() {
@@ -136,12 +136,12 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 				}
 				if (controller.notifiers.isNotEmpty()) add(Separator())
 
-				add(MenuItem().apply {
-					text = "Refresh"
-					shortcut = 'r'
-					SystemTrayIcon.REFRESH.inputStream.use { setImage(it) }
-					setCallback { Platform.runLater { controller.check(force = true) } }
-				})
+				//add(MenuItem().apply {
+				//	text = "Refresh"
+				//	shortcut = 'r'
+				//	SystemTrayIcon.REFRESH.inputStream.use { setImage(it) }
+				//	setCallback { Platform.runLater { controller.check(force = true) } }
+				//})
 				add(Separator())
 
 				add(MenuItem().apply {
