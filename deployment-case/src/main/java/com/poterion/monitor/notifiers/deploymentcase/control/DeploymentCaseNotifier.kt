@@ -15,6 +15,7 @@ import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
 import com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController
 import com.poterion.monitor.notifiers.deploymentcase.ui.StateCompareWindowController
 import javafx.application.Platform
+import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.Alert
@@ -69,10 +70,15 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		}
 
 	override val configurationRows: List<Pair<Node, Node>>?
-		get() = listOf(Label("Bluetooth Address") to TextField(config.deviceAddress).apply {
-			textProperty().addListener { _, _, address -> config.deviceAddress = address }
-			focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-		})
+		get() = listOf(
+				Label("Bluetooth Address").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				} to TextField(config.deviceAddress).apply {
+					textProperty().addListener { _, _, address -> config.deviceAddress = address }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+				})
 
 	override val configurationTab: Parent?
 		get() = ConfigWindowController.getRoot(config, this)

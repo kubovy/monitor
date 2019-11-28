@@ -14,6 +14,7 @@ import com.poterion.monitor.sensors.jenkins.data.JenkinsJobResponse
 import com.poterion.monitor.sensors.jenkins.data.JenkinsResponse
 import javafx.beans.binding.Bindings
 import javafx.collections.FXCollections
+import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.*
@@ -44,10 +45,15 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 	private val jobs = config.jobs.map { it.name to it }.toMap()
 	private var lastFoundJobNames: Collection<String> = jobs.keys
 	override val configurationRows: List<Pair<Node, Node>>?
-		get() = listOf(Label("Filter") to TextField(config.filter).apply {
-			textProperty().addListener { _, _, filter -> config.filter = filter }
-			focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-		})
+		get() = listOf(
+				Label("Filter").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				} to TextField(config.filter).apply {
+					textProperty().addListener { _, _, filter -> config.filter = filter }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+				})
 	override val configurationAddition: List<Parent>?
 		get() = listOf(jobTable, HBox(newJobName, Button("Add").apply {
 			setOnAction { addJob() }

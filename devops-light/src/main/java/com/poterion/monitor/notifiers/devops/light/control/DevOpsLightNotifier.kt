@@ -19,6 +19,7 @@ import com.poterion.monitor.notifiers.devops.light.data.DevOpsLightItemConfig
 import com.poterion.monitor.notifiers.devops.light.data.LightColor
 import com.poterion.monitor.notifiers.devops.light.data.LightConfig
 import com.poterion.monitor.notifiers.devops.light.ui.ConfigWindowController
+import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.Label
@@ -84,22 +85,36 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 
 	override val configurationRows: List<Pair<Node, Node>>?
 		get() = listOf(
-				Label("Bluetooth Address") to TextField(config.deviceAddress).apply {
+				Label("Bluetooth Address").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				} to TextField(config.deviceAddress).apply {
 					textProperty().addListener { _, _, address -> config.deviceAddress = address }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				},
-				Label("USB Port") to TextField(config.usbPort).apply {
+				Label("USB Port").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				} to TextField(config.usbPort).apply {
 					textProperty().addListener { _, _, address -> config.usbPort = address }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				},
-				Label("Color Ordering") to HBox(
+				Label("Color Ordering").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				} to HBox(
 						*ToggleGroup().let { group ->
 							listOf(
 									RadioButton("RGB").apply {
+										maxHeight = Double.MAX_VALUE
 										toggleGroup = group
 										isSelected = !config.grbColors
 									},
 									RadioButton("GRB").apply {
+										maxHeight = Double.MAX_VALUE
 										toggleGroup = group
 										isSelected = config.grbColors
 										selectedProperty().addListener { _, _, selected ->
@@ -108,7 +123,9 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 										}
 									})
 						}.toTypedArray()
-				))
+				).apply {
+					maxHeight = Double.MAX_VALUE
+				})
 
 	override val configurationTab: Parent?
 		get() = ConfigWindowController.getRoot(config, this)

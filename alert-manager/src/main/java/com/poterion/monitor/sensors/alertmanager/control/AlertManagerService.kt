@@ -15,6 +15,7 @@ import javafx.application.Platform
 import javafx.beans.binding.Bindings
 import javafx.collections.FXCollections
 import javafx.geometry.Orientation
+import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.*
@@ -31,6 +32,7 @@ import retrofit2.Response
 import java.io.IOException
 import java.time.LocalDateTime
 
+typealias Prio = javafx.scene.layout.Priority
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
@@ -47,52 +49,56 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 	private var lastFound = listOf<Triple<String, AlertManagerLabelConfig, AlertManagerResponse>>()
 
 	override val configurationRows: List<Pair<Node, Node>>?
-		get() = listOf(Label("Name label") to TextField(config.nameLabel).apply {
-			textProperty().addListener { _, _, value -> config.nameLabel = value }
-			focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-		})
+		get() = listOf(
+				Label("Name label").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				} to TextField(config.nameLabel).apply {
+					textProperty().addListener { _, _, value -> config.nameLabel = value }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+				})
 
 	override val configurationAddition: List<Parent>?
 		get() = listOf(
 				SplitPane(
 						VBox(
 								HBox(
-										Label("Name"), newLabelName,
-										Label("Value"), newLabelValue,
+										Label("Name").apply { maxHeight = Double.MAX_VALUE }, newLabelName,
+										Label("Value").apply { maxHeight = Double.MAX_VALUE }, newLabelValue,
 										Button("Add").apply { setOnAction { addLabel() } }),
 								labelTable),
 						logArea).apply {
 					orientation = Orientation.VERTICAL
 					setDividerPositions(0.8, 0.2)
-					VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS)
+					VBox.setVgrow(this, Prio.ALWAYS)
 				})
 
 	private val newLabelName = TextField("").apply {
-		HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+		HBox.setHgrow(this, Prio.ALWAYS)
 		setOnKeyReleased { event -> if (event.code == KeyCode.ENTER) addLabel() }
 	}
 
 	private val newLabelValue = TextField("").apply {
-		HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+		HBox.setHgrow(this, Prio.ALWAYS)
 		setOnKeyReleased { event -> if (event.code == KeyCode.ENTER) addLabel() }
 	}
 
 	private val logArea = TextArea("").apply {
 		isEditable = false
 		text = ""
-		textProperty().addListener { _, _, text ->
-			if (!isFocused) scrollTop = Double.MAX_VALUE
-		}
+		textProperty().addListener { _, _, _ -> if (!isFocused) scrollTop = Double.MAX_VALUE }
 	}
 
 	private val labelTable = TableView<AlertManagerLabelConfig>().apply {
-		VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS)
+		VBox.setVgrow(this, Prio.ALWAYS)
 		setOnKeyReleased { event ->
 			when (event.code) {
 				KeyCode.HELP, // MacOS mapping of INSERT key
 				KeyCode.INSERT -> newLabelName.requestFocus()
 				KeyCode.DELETE -> selectionModel.selectedItem?.also { removeLabel(it) }
 				else -> {
+					// Nothing to do
 				}
 			}
 		}
@@ -101,24 +107,16 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 	private val labelTableNameColumn = TableColumn<AlertManagerLabelConfig, String>("Label").apply {
 		//sortType = TableColumn.SortType.ASCENDING
 		minWidth = 150.0
-		prefWidth = Region.USE_COMPUTED_SIZE
-		maxWidth = Double.MAX_VALUE
-		setCellFactory {
-			val cell = TableCell<AlertManagerLabelConfig, String>()
-			val textField = TextField(cell.item)
-			textField.textProperty().bindBidirectional(cell.itemProperty())
-			textField.textProperty().addListener { _, _, value ->
-				cell.tableRow.item.let { it as? AlertManagerLabelConfig }?.also { it.name = value }
-				controller.saveConfig()
-			}
-			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(textField))
-			cell
-		}
+		setupUI()
 	}
 
 	private val labelTableValueColumn = TableColumn<AlertManagerLabelConfig, String>("Value").apply {
 		//sortType = TableColumn.SortType.ASCENDING
 		minWidth = 200.0
+		setupUI()
+	}
+
+	private fun TableColumn<AlertManagerLabelConfig, String>.setupUI() {
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Double.MAX_VALUE
 		setCellFactory {
@@ -132,7 +130,6 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(textField))
 			cell
 		}
-
 	}
 
 	private val labelTablePriorityColumn = TableColumn<AlertManagerLabelConfig, Priority>("Priority").apply {
@@ -204,7 +201,7 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 								?.filter { it.status?.inhibitedBy?.isEmpty() != false }
 								?.flatMap { item -> item.labels.map { "${it.key}:${it.value}" to item } }
 								?.filter { (pair, _) -> configPairs[pair] != null }
-								?.map { (pair, item) -> configPairs[pair]!! to item }
+								?.map { (pair, item) -> configPairs.getValue(pair) to item }
 								?.sortedWith(compareBy({ (c, _) -> c.status.ordinal }, { (p, _) -> p.priority.ordinal }))
 								?.associateBy { (_, i) -> i.labels[config.nameLabel] ?: "" }
 								?.map { (name, p) -> Triple(name, p.first, p.second) }
@@ -215,9 +212,9 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 						alerts.also(updater)
 
 						Platform.runLater {
-							logArea.text = alerts.joinToString("\n") {
-								"${LocalDateTime.now()} [${it.priority}]" +
-										" ${it.label.takeIf { it.isNotEmpty() } ?: "Default"}: ${it.status}"
+							logArea.text = alerts.joinToString("\n") { item ->
+								"${LocalDateTime.now()} [${item.priority}]" +
+										" ${item.label.takeIf { it.isNotEmpty() } ?: "Default"}: ${item.status}"
 							}
 						}
 					} else {

@@ -13,6 +13,7 @@ import com.poterion.monitor.sensors.sonar.data.SonarProjectConfig
 import com.poterion.monitor.sensors.sonar.data.SonarProjectResponse
 import javafx.beans.binding.Bindings
 import javafx.collections.FXCollections
+import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.*
@@ -43,10 +44,15 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 	private var lastFoundProjectNames: Collection<String> = projects.keys
 
 	override val configurationRows: List<Pair<Node, Node>>?
-		get() = listOf(Label("Filter") to TextField(config.filter).apply {
-			textProperty().addListener { _, _, filter -> config.filter = filter }
-			focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-		})
+		get() = listOf(
+				Label("Filter").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				} to TextField(config.filter).apply {
+					textProperty().addListener { _, _, filter -> config.filter = filter }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+				})
 	override val configurationAddition: List<Parent>?
 		get() = listOf(projectTable, HBox(newProjectId, newProjectName, Button("Add").apply {
 			setOnAction { addJob() }
