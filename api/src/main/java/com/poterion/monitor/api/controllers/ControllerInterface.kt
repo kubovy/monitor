@@ -14,7 +14,6 @@ interface ControllerInterface {
 	val services: ObservableList<Service<ServiceConfig>>
 	val notifiers: ObservableList<Notifier<NotifierConfig>>
 
-	fun check(force: Boolean = false)
 	fun add(module: Module<*, *>): ModuleInstanceInterface<*>?
 	fun quit()
 	fun saveConfig()
