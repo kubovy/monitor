@@ -2,17 +2,17 @@ package com.poterion.monitor.notifiers.deploymentcase.ui
 
 import com.poterion.communication.serial.BluetoothCommunicator
 import com.poterion.communication.serial.Channel
+import com.poterion.communication.serial.Communicator
 import com.poterion.communication.serial.CommunicatorListener
-import com.poterion.communication.serial.MessageKind
 import com.poterion.monitor.api.lib.toImage
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
-import com.poterion.monitor.notifiers.deploymentcase.api.ConfigurationContributer
 import com.poterion.monitor.notifiers.deploymentcase.api.ConfigurationWindowActionListener
 import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageListener
 import com.poterion.monitor.notifiers.deploymentcase.control.DeploymentCaseNotifier
-import com.poterion.monitor.notifiers.deploymentcase.control.toByteArray
-import com.poterion.monitor.notifiers.deploymentcase.control.toData
-import com.poterion.monitor.notifiers.deploymentcase.data.*
+import com.poterion.monitor.notifiers.deploymentcase.data.Configuration
+import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
+import com.poterion.monitor.notifiers.deploymentcase.data.Device
+import com.poterion.monitor.notifiers.deploymentcase.data.SharedUiData
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
@@ -57,6 +57,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 	@FXML private lateinit var btnDownload: Button
 	@FXML private lateinit var btnUpload: Button
 	@FXML private lateinit var btnSynchronize: Button
+	@FXML private lateinit var btnClear: Button
 	@FXML private lateinit var btnLcdReset: Button
 	@FXML private lateinit var btnReconnect: Button
 
@@ -72,8 +73,32 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 
 	private val tabControllers = mutableListOf<Any>()
 
+	private var tabsEnabled: Boolean = true
+		set(value) {
+			tabConfiguration.isDisable = !value
+			tabVariables.isDisable = !value
+			tabDevices.isDisable = !value
+			tabStateMachine.isDisable = !value
+			field = value
+		}
+
+	private var controlsEnabled: Boolean = true
+		set(value) {
+			tabLayout.isDisable = !value || !notifier.bluetoothCommunicator.isConnected
+			btnDownload.isDisable = !value
+			btnUpload.isDisable = !value
+			btnSynchronize.isDisable = !value
+			btnClear.isDisable = !value
+			btnLcdReset.isDisable = !value
+			field = value
+		}
+
 	@FXML
 	fun initialize() {
+		// TODO
+		(btnDownload.parent as? HBox)?.children?.remove(btnDownload)
+		(btnLcdReset.parent as? HBox)?.children?.remove(btnLcdReset)
+
 		additionalButtons.children.clear()
 		listConfigurations.apply {
 			setCellFactory {
@@ -86,8 +111,11 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 				}
 			}
 			selectionModel.selectedItemProperty().addListener { _, _, configuration ->
-				tabControllers.mapNotNull { it as? ConfigurationContributer }.forEach { it.notifyNewConfiguration(configuration) }
+				SharedUiData.configurationProperty.set(configuration)
+				tabsEnabled = configuration != null
 			}
+			tabsEnabled = false
+			SharedUiData.nameProperty.addListener { _, _, _ -> listConfigurations.refresh() }
 		}
 	}
 
@@ -99,8 +127,8 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 		}
 
 		listOf(tabLayout to ConfigWindowTabLayoutController.getRoot(notifier),
-				tabConfiguration to ConfigWindowTabConfigurationController.getRoot(config, notifier, this@ConfigWindowController::saveConfig) { rootPane.isDisable = !it },
-				tabVariables to ConfigWindowTabVariables.getRoot(this@ConfigWindowController::saveConfig),
+				tabConfiguration to ConfigWindowTabConfigurationController.getRoot(config, notifier, this@ConfigWindowController::saveConfig),
+				tabVariables to ConfigWindowTabVariables.getRoot(config, this@ConfigWindowController::saveConfig),
 				tabDevices to ConfigWindowTabDevices.getRoot(this@ConfigWindowController::saveConfig),
 				tabStateMachine to ConfigWindowTabStateMachine.getRoot(this@ConfigWindowController::saveConfig))
 				.forEach { (tab, result) ->
@@ -109,21 +137,13 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 					tabControllers.add(ctrl)
 				}
 
-		listConfigurations.items.clear()
 		config.configurations.also { listConfigurations.items.addAll(it) }
-		if (listConfigurations.items.isNotEmpty()) listConfigurations.selectionModel.select(0)
+		//if (listConfigurations.items.isNotEmpty()) listConfigurations.selectionModel.select(0)
 
 		// Status
 		updateConnected()
 		notifier.bluetoothCommunicator.register(this)
 		notifier.register(this)
-
-		//notifier?.config?.configurations?.find { it.isActive }?.also { config ->
-		//	FileInputStream("sm.bin").use { input ->
-		//		StateCompareWindowController.popup(config.stateMachine,
-		//				input.readBytes().toIntList().toStateMachine(config.stateMachine, config.devices, config.variables))
-		//	}
-		//}
 	}
 
 	@FXML
@@ -169,12 +189,12 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 
 	@FXML
 	fun onResetLCD() {
-		notifier.bluetoothCommunicator.send(MessageKind.SM_SET_STATE,
-				Action(device = Device(kind = DeviceKind.LCD, key = LcdKey.RESET.key),
-						value = Variable(type = VariableType.BOOLEAN, value = true.toString()))
-						.toData(SharedUiData.stateMachine)
-						.toByteArray()
-						.let { byteArrayOf(1).plus(it) })
+		// TODO notifier.bluetoothCommunicator.send(MessageKind.SM_SET_STATE,
+		//		Action(device = Device(kind = DeviceKind.LCD, key = "${LcdKey.RESET.key}").toData(),
+		//				value = Variable(type = VariableType.BOOLEAN, value = true.toString()).name) // FIXME will not woe
+		//				.toData(SharedUiData.stateMachine, SharedUiData.devices, SharedUiData.variables)
+		//				.toByteArray()
+		//				.let { byteArrayOf(1).plus(it) })
 	}
 
 	@FXML
@@ -188,25 +208,18 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 
 	@FXML
 	fun onKeyPressed(keyEvent: KeyEvent) = when (keyEvent.code) {
-		KeyCode.F2 -> onDownload()
+		//TODO KeyCode.F2 -> onDownload()
 		KeyCode.F3 -> onUpload()
 		KeyCode.F5 -> onReconnect()
 		KeyCode.F8 -> onClear()
 		else -> tabControllers.mapNotNull { it as? ConfigurationWindowActionListener }.forEach { it.onKeyPressed(keyEvent) }
 	}
 
-	override fun onConnecting(channel: Channel) {
-		updateConnected()
-		progress.progress = ProgressIndicator.INDETERMINATE_PROGRESS
-	}
+	override fun onConnecting(channel: Channel) = updateConnected()
 
-	override fun onConnect(channel: Channel) {
-		updateConnected()
-	}
+	override fun onConnect(channel: Channel) = updateConnected()
 
-	override fun onDisconnect(channel: Channel) {
-		updateConnected()
-	}
+	override fun onDisconnect(channel: Channel) = updateConnected()
 
 	override fun onMessageReceived(channel: Channel, message: IntArray) {
 		textLog.appendText("[${channel.name}] ${message.joinToString(" ") { "0x%02X ".format(it) }}\n")
@@ -219,25 +232,40 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 	override fun onProgress(progress: Int, count: Int, disable: Boolean) {
 		super.onProgress(progress, count, disable)
 		when {
-			progress >= count -> {
+			progress >= count -> { // Finished
 				this.progress.progress = 0.0
-				rootPane.isDisable = false
+				if (listConfigurations.selectionModel.selectedIndex != -1) {
+					tabsEnabled = true
+					tabLayout.isDisable = !notifier.bluetoothCommunicator.isConnected
+				}
+				controlsEnabled = when (notifier.bluetoothCommunicator.state) {
+					Communicator.State.CONNECTING,
+					Communicator.State.DISCONNECTING,
+					Communicator.State.DISCONNECTED -> false
+					Communicator.State.CONNECTED -> true
+				}
 			}
-			progress < 0 -> {
-				if (disable) rootPane.isDisable = true
+			progress < 0 -> { // Started indeterminate
+				if (disable) {
+					tabsEnabled = false
+					controlsEnabled = false
+				}
 				this.progress.progress = ProgressIndicator.INDETERMINATE_PROGRESS
 			}
-			else -> {
-				if (disable) rootPane.isDisable = true
+			else -> { // Started determinate
+				if (disable) {
+					tabsEnabled = false
+					controlsEnabled = false
+				}
 				this.progress.progress = progress.toDouble() / count.toDouble()
 			}
 		}
 		tabControllers.mapNotNull { it as? DeploymentCaseMessageListener }.forEach { it.onProgress(progress, count, disable) }
 	}
 
-	override fun onAction(action: Action) {
-		super.onAction(action)
-		tabControllers.mapNotNull { it as? DeploymentCaseMessageListener }.forEach { it.onAction(action) }
+	override fun onAction(device: Device, value: String) {
+		super.onAction(device, value)
+		tabControllers.mapNotNull { it as? DeploymentCaseMessageListener }.forEach { it.onAction(device, value) }
 	}
 
 	override fun onVerification(verified: Boolean) {
@@ -247,33 +275,38 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 	}
 
 	private fun updateConnected() {
-		val connected = notifier.bluetoothCommunicator.isConnected
-		val connecting = notifier.bluetoothCommunicator.isConnecting
-		progress.progress = 0.0
-		rootPane.isDisable = false
+		val icon: DeploymentCaseIcon
+		when (notifier.bluetoothCommunicator.state) {
+			Communicator.State.CONNECTING,
+			Communicator.State.DISCONNECTING -> {
+				onProgress(-1, 1, false)
+				controlsEnabled = false
+				tabLayout.isDisable = true
+				//if (tabPane.selectionModel.selectedIndex == 0) tabPane.selectionModel.select(1)
+				icon = DeploymentCaseIcon.DISCONNECTED
+				btnReconnect.text = "Cancel [F5]"
+			}
+			Communicator.State.CONNECTED -> {
+				onProgress(0, 0, false)
+				tabLayout.isDisable = false
+				icon = DeploymentCaseIcon.CONNECTED
+				btnReconnect.text = "Disconnect [F5]"
+			}
+			Communicator.State.DISCONNECTED -> {
+				onProgress(0, 0, false)
+				controlsEnabled = false
+				tabLayout.isDisable = true
+				//if (tabPane.selectionModel.selectedIndex == 0) tabPane.selectionModel.select(1)
+				icon = DeploymentCaseIcon.DISCONNECTED
+				btnReconnect.text = "Connect [F5]"
+			}
+		}
 
-		val icon = if (connected) DeploymentCaseIcon.CONNECTED else DeploymentCaseIcon.DISCONNECTED
 		iconConnected.image = icon.toImage()
 		iconVerified.image = DeploymentCaseIcon.UNVERIFIED.toImage()
-
-		progress.progress = 0.0
-		rootPane.isDisable = false
-
-		tabLayout.isDisable = !connected
-		if (tabPane.selectionModel.selectedIndex == 0 && !connected) tabPane.selectionModel.select(1)
-		btnDownload.isDisable = !connected
-		btnUpload.isDisable = !connected
-		btnSynchronize.isDisable = !connected
-		btnLcdReset.isDisable = !connected
-
-		btnReconnect.text = if (connected) "Disconnect [F5]" else if (connecting) "Cancel [F5]" else "Connect [F5]"
 	}
 
 	private fun saveConfig() {
-		// Save selected configuration
-		tabControllers.mapNotNull { it as? ConfigurationContributer }
-				.forEach { it.updateConfiguration(config, listConfigurations.selectionModel.selectedItem) }
-
 		// Save config
 		config.configurations.clear()
 		config.configurations.addAll(listConfigurations.items)

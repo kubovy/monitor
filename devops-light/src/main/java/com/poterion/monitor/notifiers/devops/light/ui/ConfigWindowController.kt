@@ -1,11 +1,14 @@
 package com.poterion.monitor.notifiers.devops.light.ui
 
+import com.poterion.monitor.api.data.RGBColor
+import com.poterion.monitor.api.lib.toColor
 import com.poterion.communication.serial.BluetoothCommunicator
 import com.poterion.communication.serial.Channel
 import com.poterion.communication.serial.CommunicatorListener
 import com.poterion.communication.serial.USBCommunicator
 import com.poterion.monitor.api.lib.toImage
 import com.poterion.monitor.api.lib.toImageView
+import com.poterion.monitor.api.lib.toRGBColor
 import com.poterion.monitor.api.ui.CommonIcon
 import com.poterion.monitor.api.utils.cell
 import com.poterion.monitor.api.utils.factory
@@ -13,8 +16,6 @@ import com.poterion.monitor.notifiers.devops.light.DevOpsLightIcon
 import com.poterion.monitor.notifiers.devops.light.control.DevOpsLightNotifier
 import com.poterion.monitor.notifiers.devops.light.data.*
 import com.poterion.monitor.notifiers.devops.light.deepCopy
-import com.poterion.monitor.notifiers.devops.light.toColor
-import com.poterion.monitor.notifiers.devops.light.toLightColor
 import javafx.collections.FXCollections
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
@@ -80,12 +81,12 @@ class ConfigWindowController : CommunicatorListener {
 
 	@FXML private lateinit var tableLightConfigs: TableView<LightConfig>
 	@FXML private lateinit var columnLightPattern: TableColumn<LightConfig, String>
-	@FXML private lateinit var columnLightColor1: TableColumn<LightConfig, LightColor>
-	@FXML private lateinit var columnLightColor2: TableColumn<LightConfig, LightColor>
-	@FXML private lateinit var columnLightColor3: TableColumn<LightConfig, LightColor>
-	@FXML private lateinit var columnLightColor4: TableColumn<LightConfig, LightColor>
-	@FXML private lateinit var columnLightColor5: TableColumn<LightConfig, LightColor>
-	@FXML private lateinit var columnLightColor6: TableColumn<LightConfig, LightColor>
+	@FXML private lateinit var columnLightColor1: TableColumn<LightConfig, RGBColor>
+	@FXML private lateinit var columnLightColor2: TableColumn<LightConfig, RGBColor>
+	@FXML private lateinit var columnLightColor3: TableColumn<LightConfig, RGBColor>
+	@FXML private lateinit var columnLightColor4: TableColumn<LightConfig, RGBColor>
+	@FXML private lateinit var columnLightColor5: TableColumn<LightConfig, RGBColor>
+	@FXML private lateinit var columnLightColor6: TableColumn<LightConfig, RGBColor>
 	@FXML private lateinit var columnLightDelay: TableColumn<LightConfig, Int>
 	@FXML private lateinit var columnLightWidth: TableColumn<LightConfig, Int>
 	@FXML private lateinit var columnLightFading: TableColumn<LightConfig, Int>
@@ -494,13 +495,13 @@ class ConfigWindowController : CommunicatorListener {
 
 	private fun createLightConfig(): LightConfig? {
 		val pattern = comboBoxPattern.selectionModel.selectedItem
-		val color1 = comboBoxColor1.value?.toLightColor()
-		val color2 = comboBoxColor2.value?.toLightColor()
-		val color3 = comboBoxColor3.value?.toLightColor()
-		val color4 = comboBoxColor4.value?.toLightColor()
-		val color5 = comboBoxColor5.value?.toLightColor()
-		val color6 = comboBoxColor6.value?.toLightColor()
-		val color7 = LightColor()
+		val color1 = comboBoxColor1.value?.toRGBColor()
+		val color2 = comboBoxColor2.value?.toRGBColor()
+		val color3 = comboBoxColor3.value?.toRGBColor()
+		val color4 = comboBoxColor4.value?.toRGBColor()
+		val color5 = comboBoxColor5.value?.toRGBColor()
+		val color6 = comboBoxColor6.value?.toRGBColor()
+		val color7 = RGBColor()
 		val delay = textDelay.text?.toIntOrNull() ?: 1000
 		val width = textWidth.text?.toIntOrNull() ?: 3
 		val fade = textFade.text?.toIntOrNull() ?: 0
@@ -546,7 +547,7 @@ class ConfigWindowController : CommunicatorListener {
 		notifier.usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
 	}
 
-	private fun TableColumn<LightConfig, LightColor>.init(propertyName: String) = cell(propertyName) { _, value, empty ->
+	private fun TableColumn<LightConfig, RGBColor>.init(propertyName: String) = cell(propertyName) { _, value, empty ->
 		graphic = Pane().takeUnless { empty }?.apply {
 			background = Background(BackgroundFill(value?.toColor() ?: Color.TRANSPARENT,
 					CornerRadii.EMPTY,

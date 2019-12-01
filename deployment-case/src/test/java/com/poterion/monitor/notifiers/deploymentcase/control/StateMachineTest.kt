@@ -10,7 +10,9 @@ import com.poterion.monitor.data.notifiers.NotifierDeserializer
 import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.data.services.ServiceDeserializer
 import com.poterion.monitor.notifiers.deploymentcase.data.*
+import com.poterion.monitor.notifiers.deploymentcase.toVariable
 import org.junit.Assert.assertEquals
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import java.io.FileOutputStream
@@ -45,7 +47,9 @@ class StateMachineTest {
 
 	@Test
 	fun toByteArray() {
-		val stateMachineBin = testData!!.stateMachine!!.toData().toByteArray()
+		val stateMachineBin = testData!!.stateMachine!!
+				.toData(testData?.devices ?: emptyList(), testData?.variables ?: emptyList())
+				.toByteArray()
 		val stateMachineDump = dumpBinary(stateMachineBin).split("\n")
 		OutputStreamWriter(FileOutputStream("StateMachineTest-toByteArray.bin")).use {
 			it.write(dumpBinary(stateMachineBin))
@@ -56,7 +60,8 @@ class StateMachineTest {
 						if (i < stateMachineDump.size && line == stateMachineDump[i]) {
 							println(line)
 						} else {
-							//fail("${line} != ${stateMachineDump[i]}")
+							println(line)
+							fail("${line} != ${stateMachineDump[i]}")
 						}
 						assertEquals("Dump does not match!", line, stateMachineDump[i])
 					}
@@ -66,14 +71,16 @@ class StateMachineTest {
 	@Test
 	fun toStateMachine() {
 		val stateMachine = testData!!.stateMachine!!
-				.toData()
+				.toData(testData?.devices ?: emptyList(), testData?.variables ?: emptyList())
 				.toByteArray()
 				.toIntList()
 				.toStateMachine(testData!!.stateMachine!!, testData!!.devices!!, testData!!.variables!!)
 
 		assertStateMachine(testData!!.stateMachine!!, stateMachine)
 
-		val stateMachineBin = stateMachine.toData().toByteArray()
+		val stateMachineBin = stateMachine
+				.toData(testData?.devices ?: emptyList(), testData?.variables ?: emptyList())
+				.toByteArray()
 		val stateMachineDump = dumpBinary(stateMachineBin).split("\n")
 		OutputStreamWriter(FileOutputStream("StateMachineTest-toStateMachine.bin")).use {
 			it.write(dumpBinary(stateMachineBin))
@@ -84,7 +91,8 @@ class StateMachineTest {
 						if (i < stateMachineDump.size && line == stateMachineDump[i]) {
 							println(line)
 						} else {
-							//fail("${line} != ${stateMachineDump[i]}")
+							println(line)
+							fail("${line} != ${stateMachineDump[i]}")
 						}
 						assertEquals("Dump does not match!", line, stateMachineDump[i])
 					}
@@ -130,8 +138,10 @@ class StateMachineTest {
 	private fun assertEvaluation(stateId: Int, evaluationId: Int, evaluationA: Evaluation, evaluationB: Evaluation) {
 		assertEquals("Condition count does not match in state: ${stateId}, evaluation: :${evaluationId}!",
 				evaluationA.conditions.size, evaluationB.conditions.size)
-		(0 until evaluationA.conditions.size)
-				.forEach { assertCondition(stateId, evaluationId, it, evaluationA.conditions[it], evaluationB.conditions[it]) }
+		val conditionsA = evaluationA.conditions.sortedBy { it.device }
+		val conditionsB = evaluationB.conditions.sortedBy { it.device }
+		(0 until conditionsA.size)
+				.forEach { assertCondition(stateId, evaluationId, it, conditionsA[it], conditionsB[it]) }
 
 		assertEquals("Action count does not match in state: ${stateId}, evaluation: ${evaluationId}!",
 				evaluationA.actions.size, evaluationB.actions.size)
@@ -140,13 +150,21 @@ class StateMachineTest {
 	}
 
 	private fun assertCondition(stateId: Int, evaluationId: Int, conditionId: Int, conditionA: Condition, conditionB: Condition) {
-		assertDevice(stateId, evaluationId, "condition", conditionId, conditionA.device, conditionB.device)
-		assertVariable(stateId, evaluationId, "condition", conditionId, conditionA.value, conditionB.value)
+		assertDevice(stateId, evaluationId, "condition", conditionId,
+				conditionA.device?.toDevice(testData?.devices ?: emptyList()),
+				conditionB.device?.toDevice(testData?.devices ?: emptyList()))
+		assertVariable(stateId, evaluationId, "condition", conditionId,
+				conditionA.value?.toVariable(testData?.variables ?: emptyList()),
+				conditionB.value?.toVariable(testData?.variables ?: emptyList()))
 	}
 
 	private fun assertAction(stateId: Int, evaluationId: Int, actionId: Int, actionA: Action, actionB: Action) {
-		assertDevice(stateId, evaluationId, "action", actionId, actionA.device, actionB.device)
-		assertVariable(stateId, evaluationId, "action", actionId, actionA.value, actionB.value)
+		assertDevice(stateId, evaluationId, "action", actionId,
+				actionA.device?.toDevice(testData?.devices ?: emptyList()),
+				actionB.device?.toDevice(testData?.devices ?: emptyList()))
+		assertVariable(stateId, evaluationId, "action", actionId,
+				actionA.value?.toVariable(testData?.variables ?: emptyList()),
+				actionB.value?.toVariable(testData?.variables ?: emptyList()))
 	}
 
 	private fun assertDevice(stateId: Int, evaluationId: Int, type: String, id: Int, deviceA: Device?, deviceB: Device?) {

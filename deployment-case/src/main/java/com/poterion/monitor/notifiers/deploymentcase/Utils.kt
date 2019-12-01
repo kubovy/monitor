@@ -5,17 +5,30 @@ import com.poterion.monitor.notifiers.deploymentcase.data.LightPattern
 import com.poterion.monitor.notifiers.deploymentcase.data.Variable
 import com.poterion.monitor.notifiers.deploymentcase.data.VariableType
 
-fun Device?.getDisplayName() = this?.name?.takeUnless { it.isEmpty() } ?: this?.let { "${it.kind} [${it.key}]" } ?: ""
+fun Device.getDisplayName() = this.name.takeUnless { it.isEmpty() } ?: this.let { "${it.kind} [${it.key}]" } ?: ""
 
-fun String?.toDevice(devices: List<Device>) = devices.find { it.name == this || "${it.kind} [${it.key}]" == this }
+fun String.toDevice(devices: List<Device>) = devices.find { it.name == this || "${it.kind} [${it.key}]" == this }
 
 fun getDisplayString(value: String?, type: VariableType) = when (type) {
 	VariableType.COLOR_PATTERN -> value
 			?.split(",")
-			?.mapNotNull { it.toIntOrNull() }
-			?.takeIf { it.size == 4 }
-			?.mapIndexed { i, v -> if (i == 0) LightPattern.values()[v].description else "%02x".format(v) }
-			?.let { "${it[0]} (#${it[1]}${it[2]}${it[3]})" }
+			?.takeIf { it.size == 5 }
+			?.mapIndexed { i, v ->
+				when (i) {
+					0 -> v.toIntOrNull()?.let { LightPattern.values()[it].description }
+					in (1..2) -> v // color hex, delay
+					in (3..4) -> "${v.split("x").getOrNull(1)?.toInt(16)}" // min, max
+					else -> null
+				}
+			}
+			?.filterNotNull()
+			?.takeIf { it.size == 5 }
+			?.let {
+				if (it[0] == LightPattern.LIGHT.description) listOf(it[0], it[1], it[2], it[4])
+				else listOf(it[0], it[1], it[2], "${it[3]}-${it[4]}")
+			}
+			?.let { "${it[0]} (${it[1]}, delay: ${it[2]}, limits: ${it[3]})" }
+			?: ""
 	VariableType.BOOLEAN -> if (value?.toBoolean() == true) "ON" else "OFF"
 	else -> value
 }
@@ -32,5 +45,6 @@ fun Variable.getDisplayNameValue() = when(type) {
 	else -> "${name}: ${getDisplayString()}"
 }
 
+fun String.toVariable(variables: Collection<Variable>) = variables.find { it.name == this }
 
-fun String?.toVariable(variables: List<Variable>) = variables.find { it.value == this }
+fun String?.toVariableFromValue(variables: List<Variable>) = variables.find { it.value == this }
