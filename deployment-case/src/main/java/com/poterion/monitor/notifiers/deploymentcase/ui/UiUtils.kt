@@ -5,7 +5,6 @@ import javafx.scene.control.TableColumn
 import javafx.scene.control.TextField
 import javafx.scene.control.TreeItem
 import javafx.scene.control.cell.PropertyValueFactory
-import javafx.scene.paint.Color
 import javafx.util.Callback
 
 fun TreeItem<*>.expandAll() {
@@ -15,15 +14,9 @@ fun TreeItem<*>.expandAll() {
 	}
 }
 
-fun Int.adjustColor(maxColorComponent: Int) = (255.0 / maxColorComponent.toDouble() * this.toDouble()).toInt()
-
-fun Color.adjust(maxColorComponent: Int) = Color.rgb(
-		(red * 255.0).toInt().adjustColor(maxColorComponent),
-		(green * 255.0).toInt().adjustColor(maxColorComponent),
-		(blue * 255.0).toInt().adjustColor(maxColorComponent))
-
 fun <Entry> TableColumn<Entry, String>.initEditableText(propertyName: String,
 														styler: (Entry?) -> String? = { null },
+														isReadOnly: (Entry?) -> Boolean = { true },
 														itemUpdater: (Entry, String) -> Unit,
 														saveConfig: () -> Unit) {
 	cellValueFactory = PropertyValueFactory<Entry, String>(propertyName)
@@ -33,7 +26,7 @@ fun <Entry> TableColumn<Entry, String>.initEditableText(propertyName: String,
 
 			override fun startEdit() {
 				super.startEdit()
-				if (!isEmpty) {
+				if (!isEmpty && !isReadOnly(tableRow?.item as? Entry)) {
 					text = null
 					graphic = createTextField()
 					textField?.selectAll()
@@ -60,7 +53,7 @@ fun <Entry> TableColumn<Entry, String>.initEditableText(propertyName: String,
 				} else {
 					text = item
 					graphic = null
-					style = styler(tableRow.item as? Entry)
+					style = styler(tableRow?.item as? Entry)
 				}
 			}
 

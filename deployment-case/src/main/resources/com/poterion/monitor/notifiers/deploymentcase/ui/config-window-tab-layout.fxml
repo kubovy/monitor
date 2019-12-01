@@ -4,7 +4,8 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.*?>
 <?import javafx.scene.text.Font?>
-<AnchorPane xmlns="http://javafx.com/javafx/8.0.201" xmlns:fx="http://javafx.com/fxml/1"
+<AnchorPane prefHeight="911.0" prefWidth="1192.0" xmlns="http://javafx.com/javafx/10.0.1"
+            xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowTabLayoutController">
     <children>
         <GridPane AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
@@ -138,18 +139,20 @@
                                 GridPane.halignment="CENTER" GridPane.valignment="CENTER"/>
                         <Circle fx:id="rgb10" fill="DODGERBLUE" radius="10.0" stroke="BLACK" strokeType="INSIDE"
                                 GridPane.halignment="CENTER" GridPane.rowIndex="1" GridPane.valignment="CENTER"/>
-                        <TextArea fx:id="lcd" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                        <TextArea fx:id="lcd" editable="false" maxHeight="-Infinity" maxWidth="-Infinity"
+                                  minHeight="-Infinity" minWidth="-Infinity" prefHeight="130.0" prefWidth="300.0"
                                   text="01234567890132456789&#10;01234567890132456789&#10;01234567890132456789&#10;01234567890132456789"
-                                  GridPane.columnIndex="1" GridPane.columnSpan="4" GridPane.rowSpan="3">
+                                  GridPane.columnIndex="1" GridPane.columnSpan="4" GridPane.halignment="CENTER"
+                                  GridPane.rowSpan="3" GridPane.valignment="CENTER">
                             <font>
-                                <Font name="Monospaced Regular" size="16.0"/>
+                                <Font name="Monospaced Regular" size="22.0"/>
                             </font>
                         </TextArea>
                     </children>
                 </GridPane>
                 <Circle fx:id="led0" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="8"
                         GridPane.halignment="CENTER" GridPane.valignment="BOTTOM"/>
-                <Circle fx:id="led1" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="1"
+                <Circle fx:id="led2" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="1"
                         GridPane.halignment="CENTER" GridPane.valignment="BOTTOM"/>
                 <ToggleButton fx:id="btn13" disable="true" maxHeight="1.7976931348623157E308"
                               maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onTestButton"
@@ -222,15 +225,15 @@
                               maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onTestButton"
                               text="22" GridPane.halignment="CENTER" GridPane.rowIndex="6"
                               GridPane.valignment="CENTER"/>
-                <Circle fx:id="led3" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="4"
+                <Circle fx:id="led4" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="4"
                         GridPane.halignment="CENTER" GridPane.rowIndex="8" GridPane.valignment="BOTTOM"/>
                 <ToggleButton fx:id="btn24" disable="true" maxHeight="1.7976931348623157E308"
                               maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onTestButton"
-                              text="24" GridPane.columnIndex="8" GridPane.halignment="CENTER" GridPane.rowIndex="9"
+                              text="24" GridPane.halignment="CENTER" GridPane.rowIndex="9"
                               GridPane.valignment="CENTER"/>
                 <ToggleButton fx:id="btn25" disable="true" maxHeight="1.7976931348623157E308"
                               maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onTestButton"
-                              text="25" GridPane.halignment="CENTER" GridPane.rowIndex="9"
+                              text="25" GridPane.columnIndex="8" GridPane.halignment="CENTER" GridPane.rowIndex="9"
                               GridPane.valignment="CENTER"/>
                 <GridPane GridPane.columnIndex="6" GridPane.columnSpan="2" GridPane.rowIndex="8" GridPane.rowSpan="2">
                     <columnConstraints>
@@ -312,14 +315,13 @@
                                 GridPane.valignment="CENTER" GridPane.vgrow="ALWAYS"/>
                     </children>
                 </GridPane>
-                <Circle fx:id="led2" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE"
+                <Circle fx:id="led3" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE"
                         GridPane.halignment="CENTER" GridPane.valignment="BOTTOM"/>
                 <VBox alignment="CENTER_LEFT" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
                       GridPane.columnIndex="7" GridPane.halignment="CENTER" GridPane.hgrow="NEVER" GridPane.rowIndex="1"
                       GridPane.valignment="CENTER" GridPane.vgrow="NEVER">
                     <children>
-                        <RadioButton fx:id="btn02" disable="true" mnemonicParsing="false" onAction="#onTestButton"
-                                     text="2">
+                        <RadioButton fx:id="btn02" disable="true" mnemonicParsing="false" onAction="#onTestButton">
                             <toggleGroup>
                                 <ToggleGroup fx:id="rotarySwitch"/>
                             </toggleGroup>
@@ -342,6 +344,8 @@
                 <ToggleButton fx:id="btn00" disable="true" maxHeight="1.7976931348623157E308"
                               maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onTestButton"
                               text="0" GridPane.columnIndex="8" GridPane.rowIndex="1"/>
+                <Circle fx:id="led1" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="7"
+                        GridPane.halignment="CENTER" GridPane.valignment="BOTTOM"/>
             </children>
         </GridPane>
     </children>

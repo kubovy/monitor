@@ -4,10 +4,10 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
-<SplitPane fx:id="rootPane" centerShape="false" dividerPositions="0.2" onKeyPressed="#onKeyPressed" prefHeight="800.0"
-           prefWidth="1036.0" scaleShape="false" xmlns="http://javafx.com/javafx/10.0.1"
-           xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController">
+<SplitPane fx:id="rootPane" centerShape="false" dividerPositions="0.1" onKeyPressed="#onKeyPressed" prefHeight="800.0"
+		   prefWidth="1036.0" scaleShape="false" xmlns="http://javafx.com/javafx/10.0.1"
+		   xmlns:fx="http://javafx.com/fxml/1"
+		   fx:controller="com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController">
 	<items>
 		<VBox maxWidth="1.7976931348623157E308">
 			<children>
@@ -28,11 +28,11 @@
 			<children>
 				<TabPane fx:id="tabPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" side="RIGHT" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
 					<tabs>
-                        <Tab fx:id="tabLayout" text="Layout"/>
-                        <Tab fx:id="tabConfiguration" closable="false" text="Configuration"/>
-                        <Tab fx:id="tabVariables" closable="false" text="Variables"/>
-                        <Tab fx:id="tabDevices" closable="false" text="Devices"/>
-                        <Tab fx:id="tabStateMachine" closable="false" text="State Machine"/>
+						<Tab fx:id="tabLayout" text="Layout"/>
+						<Tab fx:id="tabConfiguration" closable="false" text="Configuration"/>
+						<Tab fx:id="tabVariables" closable="false" text="Variables"/>
+						<Tab fx:id="tabDevices" closable="false" text="Devices"/>
+						<Tab fx:id="tabStateMachine" closable="false" text="State Machine"/>
 						<Tab fx:id="tabLog" closable="false" text="Log">
 							<content>
 								<AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
@@ -53,7 +53,7 @@
 						<Button fx:id="btnDownload" mnemonicParsing="false" onAction="#onDownload" text="Download [F2]" />
 						<Button fx:id="btnUpload" mnemonicParsing="false" onAction="#onUpload" text="Upload [F3]" />
 						<Button fx:id="btnSynchronize" mnemonicParsing="false" onAction="#onSynchronize" text="Sync [F4]" />
-						<Button mnemonicParsing="false" onAction="#onClear" text="Clear [F8]" />
+						<Button fx:id="btnClear" mnemonicParsing="false" onAction="#onClear" text="Clear [F8]"/>
 						<Button fx:id="btnLcdReset" mnemonicParsing="false" onAction="#onResetLCD" text="LCD Reset" />
 						<Button fx:id="btnReconnect" mnemonicParsing="false" onAction="#onReconnect" text="Reconnect [F5]" />
 					</children>

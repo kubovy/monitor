@@ -12,6 +12,9 @@ import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
 import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageListener
 import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
+import com.poterion.monitor.notifiers.deploymentcase.data.Device
+import com.poterion.monitor.notifiers.deploymentcase.data.DeviceKind
+import com.poterion.monitor.notifiers.deploymentcase.data.LcdKey
 import com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController
 import com.poterion.monitor.notifiers.deploymentcase.ui.StateCompareWindowController
 import javafx.application.Platform
@@ -25,7 +28,9 @@ import javafx.scene.control.TextField
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.BufferedWriter
+import java.io.FileOutputStream
 import java.io.FileWriter
+import java.nio.charset.Charset
 
 /**
  * Deployment case notifier.
@@ -41,6 +46,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		private val BUTTON_UPLOAD = ButtonType("Upload")
 		private val BUTTON_REPAIR = ButtonType("Repair")
 		// Chunk contains 2 bytes SM size, 2 bytes address and data
+		private val lcdCache = mutableListOf("", "", "", "")
 	}
 
 	override val definition: Module<DeploymentCaseConfig, ModuleInstanceInterface<DeploymentCaseConfig>> = DeploymentCaseModule
@@ -80,8 +86,12 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				})
 
-	override val configurationTab: Parent?
-		get() = ConfigWindowController.getRoot(config, this)
+	override var configurationTab: Parent? = null
+		get() {
+			field = field ?: ConfigWindowController.getRoot(config, this)
+			return field
+		}
+		private set
 
 	override fun initialize() {
 		super.initialize()
@@ -121,7 +131,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	override fun onConnect(channel: Channel) {
 		if (channel == Channel.BLUETOOTH) {
 			LOGGER.info("${channel} Connected")
-			listeners.forEach { Platform.runLater { it.onProgress(-1, 1, true) } }
+			listeners.forEach { Platform.runLater { it.onProgress(-1, 1, false) } }
 			bluetoothCommunicator.send(MessageKind.SM_CONFIGURATION)
 		}
 	}
@@ -144,7 +154,6 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 				val receivedChecksum = message[2] and 0xFF
 				val calculatedChecksum = config.configurations
 						.find { it.isActive }
-						?.stateMachine
 						?.toData()
 						?.toByteArray()
 						?.calculateChecksum()
@@ -152,7 +161,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 				listeners.forEach { Platform.runLater { it.onProgress(0, 0, true) } }
 				if (calculatedChecksum == null) { // No state machine selected
 					val activeConfig = config.configurations
-							.find { it.stateMachine.toData().toByteArray().calculateChecksum() == receivedChecksum }
+							.find { it.toData().toByteArray().calculateChecksum() == receivedChecksum }
 					activeConfig?.isActive = true
 					controller.saveConfig()
 					listeners.forEach { Platform.runLater { it.onVerification(activeConfig != null) } }
@@ -195,7 +204,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 				if (addr + message.size - 6 == length) {
 					stateMachineTransfer = false
 					val conf = (config.configurations.find { it.isActive } ?: config.configurations.firstOrNull())
-					val currentStateMachine = conf?.stateMachine?.toData()?.toByteArray()
+					val currentStateMachine = conf?.toData()?.toByteArray()
 					val matches = currentStateMachine?.contentEquals(stateMachineBuffer) ?: false
 
 					if (!matches && repairStateMachine) {
@@ -259,21 +268,23 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 					}
 				}
 
-				//BufferedWriter(FileWriter("sm-in.bin")).use { writer ->
-				//	var chars = ""
-				//	stateMachineBuffer.forEachIndexed { i, b ->
-				//		if (i % 8 == 0) writer.write("%04x: ".format(i))
-				//		chars += if (b in 32..126) b.toChar() else '.'
-				//		writer.write("0x%02X%s".format(b, if (b > 255) "!" else " "))
-				//		if (i % 8 == 7) {
-				//			writer.write(" ${chars} |\n")
-				//			chars = ""
-				//		}
-				//	}
-				//}
-				//FileOutputStream("sm.bin").use { out ->
-				//	out.write(stateMachineBuffer)
-				//}
+				if (config.debug) {
+					BufferedWriter(FileWriter("sm-in.txt")).use { writer ->
+						var chars = ""
+						stateMachineBuffer.forEachIndexed { i, b ->
+							if (i % 8 == 0) writer.write("%04x: ".format(i))
+							chars += if (b in 32..126) b.toChar() else '.'
+							writer.write("0x%02X%s".format(b, if (b > 255) "!" else " "))
+							if (i % 8 == 7) {
+								writer.write(" ${chars} |\n")
+								chars = ""
+							}
+						}
+					}
+					FileOutputStream("sm-in.bin").use { out ->
+						out.write(stateMachineBuffer)
+					}
+				}
 			}
 			MessageKind.SM_SET_STATE -> {
 				val configuration = config.configurations.find { it.isActive }
@@ -283,17 +294,61 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 				message.copyOfRange(2, message.size)
 						.toList()
 						.toActions(states, devices, variables)
-						.forEach { action -> listeners.forEach { Platform.runLater { it.onAction(action) } } }
+						.map { it.device?.toDevice(devices) to it.value }
+						.filter { (d, v) -> d != null && v != null }
+						.map { (d, v) -> d!! to v!! }
+						.forEach { (d, v) -> Platform.runLater { listeners.forEach { it.onAction(d, v) } } }
 			}
-			else -> LOGGER.warn("Unknown BT message [${"0x%02X".format(kind.code)}]:" +
-					" ${message.joinToString(" ") { "0x%02".format(it) }}")
+			MessageKind.MCP23017 -> {
+				if (message.size == 5) {
+					val address = message[2]
+					message.toList()
+							.subList(3, 5)
+							.mapIndexed { index, byte -> (index * 8) to byte2Bools(byte) }
+							.flatMap { (offset, bools) -> bools.mapIndexed { i, b -> (offset + i) to b } }
+							.map { (i, b) -> ((address - 0x20) * 16 + i) to (if (b) "true" else "false") }
+							.map { (key, value) -> Device(kind = DeviceKind.MCP23017, key = "${key}") to value }
+							.forEach { (d, v) -> Platform.runLater { listeners.forEach { it.onAction(d, v) } } }
+				}
+			}
+			MessageKind.WS281x -> {
+				// val num = message[2]
+				// val count = message[3]
+				val index = message[4]
+				val pattern = message[5]
+				val red = message[6]
+				val green = message[7]
+				val blue = message[8]
+				val delay = message[9] * 256 + message[10]
+				val min = message[11]
+				val max = message[12]
+				(index to listOf(pattern, red, green, blue, delay, min, max))
+						.let { (index, data) -> index to data.joinToString(",") }
+						.let { (key, value) -> Device(kind = DeviceKind.WS281x, key = "${key}") to value }
+						.let { (device, value) -> Platform.runLater { listeners.forEach { it.onAction(device, value) } } }
+			}
+			MessageKind.LCD -> if (message.size > 3) {
+				//val num = message[2]
+				//val backlight = message[3]
+				val line = message[4]
+				val length = message[5]
+				lcdCache[line] = (0 until length)
+						.map { message[6 + it].toByte() }
+						.toByteArray()
+						.toString(Charset.defaultCharset())
+				val device = Device(kind = DeviceKind.LCD, key = "${LcdKey.MESSAGE.key}")
+				val value = lcdCache.joinToString("\n")
+				Platform.runLater { listeners.forEach { it.onAction(device, value) } }
+			}
+			else -> {
+			}
 		}
 	}
 
 	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) {
 		if (stateMachineChunks > 0) {
 			if (remaining == 0 || remaining > stateMachineChunks) stateMachineChunks = remaining
-			listeners.forEach { Platform.runLater { it.onProgress(stateMachineChunks - remaining, stateMachineChunks, true) } }
+			listeners.forEach { Platform.runLater { it.onProgress(stateMachineChunks - remaining, stateMachineChunks, false) } }
 			if (remaining == 0) {
 				if (stateMachineTransfer) synchronizeStateMachine()
 				stateMachineTransfer = false
@@ -306,7 +361,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		bluetoothCommunicator
 				.takeIf { it.isConnected }
 				?.send(MessageKind.SM_CONFIGURATION)
-		listeners.forEach { Platform.runLater { it.onProgress(-1, 1, true) } }
+		listeners.forEach { Platform.runLater { it.onProgress(-1, 1, false) } }
 	}
 
 	internal fun pullStateMachine(repair: Boolean = false) {
@@ -323,18 +378,18 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		config.configurations
 				.takeIf { bluetoothCommunicator.isConnected && !stateMachineTransfer }
 				?.find { it.isActive }
-				?.stateMachine
 				?.toData()
 				?.toByteArray()
 				?.toList()
 				?.also { bytes ->
+					if (config.debug) FileOutputStream("sm-out.bin").use { out -> out.write(bytes.toByteArray()) }
 					bytes.chunked(channel.maxPacketSize)
 							.also { stateMachineChunks = it.size }
 							.mapIndexed { index, data -> (index * channel.maxPacketSize) to data }
 							.map { (reg, data) -> bytes.size.to2Byte() + reg.to2Byte() + data }
 							.map { it.toByteArray() }
 							.also { chunks ->
-								BufferedWriter(FileWriter("sm-out.bin")).use { writer ->
+								if (config.debug) BufferedWriter(FileWriter("sm-out.txt")).use { writer ->
 									var chars = ""
 									chunks.forEachIndexed { chunk, bytes ->
 										bytes.copyOfRange(4, bytes.size).forEachIndexed { x, b ->
@@ -353,7 +408,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 							.takeIf { it.isNotEmpty() }
 							?.also {
 								stateMachineTransfer = true
-								listeners.forEach { Platform.runLater { it.onProgress(-1, 1, true) } }
+								listeners.forEach { Platform.runLater { it.onProgress(-1, 1, false) } }
 							}
 							?.forEach { bluetoothCommunicator.send(MessageKind.SM_PUSH, it) }
 							?.also { bluetoothCommunicator.send(MessageKind.SM_CONFIGURATION) }
