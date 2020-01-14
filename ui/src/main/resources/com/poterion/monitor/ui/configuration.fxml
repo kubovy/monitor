@@ -38,7 +38,7 @@
       </Tab>
     <Tab fx:id="tabCommon" closable="false" text="Common">
       <content>
-            <SplitPane dividerPositions="0.29797979797979796" prefHeight="160.0" prefWidth="200.0">
+            <SplitPane fx:id="splitPane" dividerPositions="0.3" prefHeight="160.0" prefWidth="200.0">
               <items>
                   <TreeView fx:id="tree" prefHeight="200.0" prefWidth="200.0" />
                   <VBox fx:id="vboxContent">

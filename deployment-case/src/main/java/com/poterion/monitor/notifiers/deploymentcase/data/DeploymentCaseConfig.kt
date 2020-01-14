@@ -13,4 +13,5 @@ data class DeploymentCaseConfig(override var type: String = DeploymentCaseConfig
 								var deviceAddress: String = "",
 								var testNameHistory: List<String> = emptyList(),
 								var testValueHistory: List<String> = emptyList(),
+								var split: Double = 0.2,
 								var configurations: List<Configuration> = emptyList()) : NotifierConfig

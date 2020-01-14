@@ -92,6 +92,12 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 	}
 
 	private fun load() {
+		rootPane.setDividerPosition(0, config.split)
+		rootPane.dividers.first().positionProperty().addListener { _, _, value ->
+			config.split = value.toDouble()
+			notifier.controller.saveConfig()
+		}
+
 		listOf(tabLayout to ConfigWindowTabLayoutController.getRoot(notifier),
 				tabConfiguration to ConfigWindowTabConfigurationController.getRoot(config, notifier, this@ConfigWindowController::saveConfig) { rootPane.isDisable = !it },
 				tabVariables to ConfigWindowTabVariables.getRoot(this@ConfigWindowController::saveConfig),
