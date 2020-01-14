@@ -10,7 +10,7 @@ import java.util.concurrent.Executors
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-class ControllerWorker private constructor(val services: Collection<Service<ServiceConfig>>) : Callable<Boolean> {
+class ControllerWorker private constructor(private val services: Collection<Service<ServiceConfig>>) : Callable<Boolean> {
 	companion object {
 		private var instance: ControllerWorker? = null
 		private val executor = Executors.newSingleThreadExecutor()
@@ -19,7 +19,7 @@ class ControllerWorker private constructor(val services: Collection<Service<Serv
 			if (instance == null || instance?.running == false) {
 				instance = instance ?: ControllerWorker(services)
 				instance?.running = true
-				executor.submit(instance)
+				executor.submit(instance!!)
 			}
 		}
 
