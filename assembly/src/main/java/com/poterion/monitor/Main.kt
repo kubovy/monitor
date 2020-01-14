@@ -76,7 +76,10 @@ class Main : Application() {
 			registerModule(SystemTrayModule)
 		}
 		controller.start()
-		if (controller.applicationConfiguration.showOnStartup) ConfigurationController.create(controller)
+		if (controller.applicationConfiguration.showOnStartup) {
+			ConfigurationController.create(controller)
+			if (controller.applicationConfiguration.startMinimized) primaryStage.isIconified = true
+		}
 	}
 }
 
