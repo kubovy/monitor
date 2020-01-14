@@ -9,5 +9,6 @@ import com.poterion.monitor.data.services.ServiceConfig
 data class ApplicationConfiguration(
 		var btDiscovery: Boolean = false,
 		var showOnStartup: Boolean = true,
+		var startMinimized: Boolean = false,
 		val services: MutableList<ServiceConfig> = mutableListOf(),
 		val notifiers: MutableList<NotifierConfig> = mutableListOf())
