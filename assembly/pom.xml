@@ -68,6 +68,10 @@
         </dependency>
         <dependency>
             <groupId>com.poterion.monitor</groupId>
+            <artifactId>notifications</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.poterion.monitor</groupId>
             <artifactId>system-tray</artifactId>
         </dependency>
         <!-- 3rd Parties -->

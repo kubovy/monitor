@@ -1,6 +1,7 @@
 package com.poterion.monitor
 
 import com.poterion.monitor.control.ApplicationController
+import com.poterion.monitor.notifications.NotificationsModule
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
 import com.poterion.monitor.notifiers.devops.light.DevOpsLight
 import com.poterion.monitor.notifiers.tray.SystemTrayModule
@@ -73,6 +74,7 @@ class Main : Application() {
 			registerModule(SonarModule)
 			registerModule(DeploymentCaseModule)
 			registerModule(DevOpsLight)
+			registerModule(NotificationsModule)
 			registerModule(SystemTrayModule)
 		}
 		controller.start()

@@ -12,6 +12,7 @@ import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.api.ui.CommonIcon
 import com.poterion.monitor.api.utils.cell
+import com.poterion.monitor.api.utils.factory
 import com.poterion.monitor.api.utils.setOnItemClick
 import com.poterion.monitor.api.utils.toUriOrNull
 import com.poterion.monitor.data.*
@@ -444,6 +445,10 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				ComboBox<Priority>(FXCollections.observableArrayList(*Priority.values())).apply {
+					factory { item, empty ->
+						text = item?.takeUnless { empty }?.name
+						graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
+					}
 					GridPane.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 					selectionModel.apply {
 						select(module.config.priority)
@@ -569,6 +574,10 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				ComboBox<Priority>(FXCollections.observableArrayList(*Priority.values())).apply {
+					factory { item, empty ->
+						text = item?.takeUnless { empty }?.name
+						graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
+					}
 					GridPane.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 					selectionModel.apply {
 						select(module.config.minPriority)
