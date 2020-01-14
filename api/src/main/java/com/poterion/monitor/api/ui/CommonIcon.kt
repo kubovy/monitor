@@ -10,6 +10,7 @@ import java.io.InputStream
 enum class CommonIcon(private val file: String) : Icon {
 	APPLICATION("/icons/application.png"),
 	DEVICE("/icons/device.png"),
+	TRASH("/icons/trash.png"),
 	SETTINGS("/icons/settings.png"),
 	UNDER_CONSTRUCTION("/icons/under-construction.png"),
 
@@ -27,7 +28,12 @@ enum class CommonIcon(private val file: String) : Icon {
 	NOTIFICATION("/icons/notification.png"),
 	WARNING("/icons/warning.png"),
 	ERROR("/icons/error.png"),
-	FATAL("/icons/fatal.png");
+	FATAL("/icons/fatal.png"),
+
+	LOW("/icons/priority-low.png"),
+	MEDIUM("/icons/priority-medium.png"),
+	HIGH("/icons/priority-high.png"),
+	MAXIMUM("/icons/priority-maximum.png");
 
 	override val inputStream: InputStream
 		get() = CommonIcon::class.java.getResourceAsStream(file)

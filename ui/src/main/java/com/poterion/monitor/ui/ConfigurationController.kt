@@ -1,36 +1,40 @@
 package com.poterion.monitor.ui
 
+import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.controllers.Service
+import com.poterion.monitor.api.lib.toIcon
 import com.poterion.monitor.api.lib.toImage
 import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.api.ui.CommonIcon
-import com.poterion.monitor.data.HttpConfig
-import com.poterion.monitor.data.ModuleConfig
+import com.poterion.monitor.api.utils.cell
+import com.poterion.monitor.api.utils.setOnItemClick
+import com.poterion.monitor.api.utils.toUriOrNull
+import com.poterion.monitor.data.*
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.auth.BasicAuthConfig
+import javafx.application.Platform
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
-import javafx.geometry.HPos
 import javafx.geometry.Pos
 import javafx.geometry.VPos
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.scene.control.*
-import javafx.scene.layout.GridPane
-import javafx.scene.layout.HBox
-import javafx.scene.layout.RowConstraints
-import javafx.scene.layout.VBox
+import javafx.scene.layout.*
+import org.slf4j.LoggerFactory
+import java.awt.Desktop
+import java.time.Instant
 import java.util.*
-
-typealias Prio = javafx.scene.layout.Priority
+import java.util.concurrent.TimeUnit
+import kotlin.Comparator
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
@@ -59,11 +63,28 @@ class ConfigurationController {
 
 	@FXML private lateinit var tabPaneMain: TabPane
 	@FXML private lateinit var tabCommon: Tab
+	@FXML private lateinit var tabAlerts: Tab
 	@FXML private lateinit var tree: TreeView<ModuleItem>
 	@FXML private lateinit var vboxContent: VBox
 	@FXML private lateinit var gridPane: GridPane
 
+	@FXML private lateinit var treeTableAlerts: TreeTableView<StatusItem>
+	@FXML private lateinit var columnAlertsService: TreeTableColumn<StatusItem, String>
+	@FXML private lateinit var columnAlertsPriority: TreeTableColumn<StatusItem, Priority>
+	@FXML private lateinit var columnAlertsTitle: TreeTableColumn<StatusItem, String>
+	@FXML private lateinit var columnAlertsLabels: TreeTableColumn<StatusItem, Map<String, String>>
+	@FXML private lateinit var columnAlertsStarted: TreeTableColumn<StatusItem, Instant>
+
 	private var controller: ControllerInterface? = null
+
+	private var labelColors = listOf(
+			"#FFCCCC" to "#FF6666",
+			"#CCFFCC" to "#66FF66",
+			"#CCCCFF" to "#6666FF",
+			"#FFFFCC" to "#FFFF66",
+			"#FFCCFF" to "#FF66FF",
+			"#CCFFFF" to "#66FFFF")
+	private var labelColorMap = mutableMapOf<String, Pair<String, String>>()
 
 	@FXML
 	fun initialize() {
@@ -124,8 +145,85 @@ class ConfigurationController {
 				select(newValue)
 			}
 		}
+
+		treeTableAlerts.root = TreeItem(StatusItem("ROOT", Priority.NONE, Status.NONE, ""))
+		treeTableAlerts.isShowRoot = false
+		treeTableAlerts.setOnItemClick { item, event ->
+			if (event.clickCount == 2 && !isEmpty) item?.link?.toUriOrNull()?.also { Desktop.getDesktop().browse(it) }
+		}
+		columnAlertsService.cell("serviceName")
+		columnAlertsPriority.cell("priority") { _, value, empty ->
+			text = null
+			graphic = value?.takeUnless { empty }?.toIcon()?.toImageView()
+			tooltip = Tooltip(value?.name)
+		}
+		columnAlertsTitle.cell("title") { item, value, empty ->
+			text = value?.takeUnless { empty }
+			graphic = item?.status?.takeUnless { empty }?.toIcon()?.toImageView()
+			tooltip = item?.detail?.takeUnless { empty }?.let { Tooltip(it) }
+		}
+		columnAlertsLabels.cell("labels") { _, value, empty ->
+			//text = value?.takeUnless { empty }?.map { (k, v) -> "${k}: ${v}" }?.joinToString(", ")
+			val labels = value?.entries?.sortedBy { (k, _) -> k }?.map { (k, v) ->
+				Label("${k}: ${v}").apply {
+					val (background, border) = labelColorMap
+							.getOrPut(k, { labelColors[labelColorMap.size % labelColors.size] })
+					style = "-fx-border-color: ${border};" +
+							" -fx-background-color: ${background};" +
+							" -fx-border-radius: 5px;" +
+							" -fx-background-radius: 5px;" +
+							" -fx-padding: 0px 2px;"
+					tooltip = Tooltip("${k}: ${v}")
+				}
+			} ?: emptyList()
+			graphic = HBox(2.0, *labels.toTypedArray())
+					.apply {
+						minWidth = Region.USE_COMPUTED_SIZE
+						minHeight = Region.USE_COMPUTED_SIZE
+						prefWidth = Region.USE_COMPUTED_SIZE
+						prefHeight = Region.USE_COMPUTED_SIZE
+						maxWidth = Double.MAX_VALUE
+						maxHeight = Double.MAX_VALUE
+						//style = "-fx-border-color: red"
+					}
+		}
+		columnAlertsStarted.cell("startedAt")
+
+		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe { collector ->
+			Platform.runLater {
+				treeTableAlerts.root.children.setAll(collector.items.map { TreeItem(it) })
+				treeTableAlerts.root.children.sortWith(tableAlertComparator)
+			}
+		}
 		select(null)
 	}
+
+	private val StatusItem.groupOrder: Int
+		get() = if (serviceName == "" && priority == Priority.NONE && status == Status.NONE && title == "") 0 else 1
+
+	private val tableAlertComparator: Comparator<in TreeItem<StatusItem>> = compareBy(
+			{ it.value.groupOrder },
+			{ -it.value.status.ordinal },
+			{ -it.value.priority.ordinal },
+			{ -it.value.startedAt.epochSecond },
+			{ it.value.serviceName },
+			{ it.value.title })
+
+//	private fun TreeTableView<StatusItem>.add(item: StatusItem) {
+//		val group = item.group?.takeUnless { it.isBlank() }
+//		val parent = if (group == null) root else root.children.find { it.value.detail == group }
+//				?: TreeItem(StatusItem("", Priority.NONE, Status.NONE, "", group, group))
+//						.also { root.children.add(it) }
+//						.also { root.children.sortWith(tableAlertComparator) }
+//		parent.children.add(TreeItem(item))
+//		parent.children.sortWith(tableAlertComparator)
+//	}
+
+//	private fun TreeTableView<StatusItem>.setAll(items: Collection<StatusItem>) {
+//		for (item in items) {
+//			if (find { it == item } == null) add(item)
+//		}
+//	}
 
 	private fun ControllerInterface.validModules(getter: (ControllerInterface) -> Collection<ModuleInstanceInterface<*>>) =
 			modules.filter { m -> !m.singleton || !getter(this).map { it.definition }.contains(m) }
@@ -161,8 +259,13 @@ class ConfigurationController {
 			tab.userData = module
 			tab.textProperty().bind(item.value.title)
 			tabPaneMain.tabs.add(tab)
-			FXCollections.sort<Tab>(tabPaneMain.tabs,
-					Comparator.comparing<Tab, String> { if (it == tabCommon) "" else (it.text ?: "") })
+			FXCollections.sort<Tab>(tabPaneMain.tabs, Comparator.comparing<Tab, String> {
+				when (it) {
+					tabAlerts -> " 0"
+					tabCommon -> " 1"
+					else -> it.text ?: " Z"
+				}
+			})
 		}
 
 		controller?.saveConfig()
@@ -189,13 +292,13 @@ class ConfigurationController {
 		if (treeItem?.value?.module != null) {
 			var rows = initializeModule(treeItem)
 			gridPane.rowConstraints.addAll((0 until rows).map {
-				RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, Prio.ALWAYS, VPos.TOP, true)
+				RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, javafx.scene.layout.Priority.ALWAYS, VPos.TOP, true)
 			})
 
 			treeItem.value?.module?.configurationRows?.forEach { (label, content) ->
 				gridPane.addRow(rows++, label, content)
 				(label as? Label)?.alignment = Pos.CENTER_RIGHT
-				gridPane.rowConstraints.add(RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, Prio.ALWAYS, VPos.TOP, true))
+				gridPane.rowConstraints.add(RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, javafx.scene.layout.Priority.ALWAYS, VPos.TOP, true))
 			}
 			treeItem.value?.module?.configurationAddition?.forEach { vboxContent.children.add(it) }
 		}
@@ -210,7 +313,7 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				ComboBox<String>().apply {
-					GridPane.setHgrow(this, Prio.ALWAYS)
+					GridPane.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 					val loader = ServiceLoader.load(ModuleConfig::class.java)
 					items.add(null)
 					items.addAll(loader.map { it::class.simpleName })
@@ -264,7 +367,7 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				ComboBox<Priority>(FXCollections.observableArrayList(*Priority.values())).apply {
-					GridPane.setHgrow(this, Prio.ALWAYS)
+					GridPane.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 					selectionModel.apply {
 						select(module.config.priority)
 						selectedItemProperty().addListener { _, _, value ->
@@ -280,7 +383,7 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				HBox(TextField(module.config.checkInterval.toString()).apply {
-					HBox.setHgrow(this, Prio.ALWAYS)
+					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 					textProperty().addListener { _, _, value -> value.toLongOrNull()?.also { module.config.checkInterval = it } }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
@@ -303,7 +406,8 @@ class ConfigurationController {
 				Label("Trust certificate").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
-					alignment = Pos.CENTER_RIGHT },
+					alignment = Pos.CENTER_RIGHT
+				},
 				CheckBox().apply {
 					maxHeight = Double.MAX_VALUE
 					isSelected = config.trustCertificate
@@ -324,7 +428,7 @@ class ConfigurationController {
 				},
 				HBox(
 						usernameField.apply {
-							HBox.setHgrow(this, Prio.ALWAYS)
+							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							textProperty().addListener { _, _, value ->
 								val usr = value.takeIf { it.isNotEmpty() }
 								val pwd = passwordField.text.takeIf { it.isNotEmpty() }
@@ -334,7 +438,7 @@ class ConfigurationController {
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 						},
 						passwordField.apply {
-							HBox.setHgrow(this, Prio.ALWAYS)
+							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							text = config.auth?.password ?: ""
 							textProperty().addListener { _, _, value ->
 								val usr = usernameField.text.takeIf { it.isNotEmpty() }
@@ -351,7 +455,7 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				HBox(TextField(config.connectTimeout?.toString() ?: "").apply {
-					HBox.setHgrow(this, Prio.ALWAYS)
+					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.connectTimeout = it } }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
@@ -362,7 +466,7 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				HBox(TextField(config.readTimeout?.toString() ?: "").apply {
-					HBox.setHgrow(this, Prio.ALWAYS)
+					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.readTimeout = it } }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
@@ -373,7 +477,7 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				HBox(TextField(config.writeTimeout?.toString() ?: "").apply {
-					HBox.setHgrow(this, Prio.ALWAYS)
+					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.writeTimeout = it } }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
@@ -388,7 +492,7 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				ComboBox<Priority>(FXCollections.observableArrayList(*Priority.values())).apply {
-					GridPane.setHgrow(this, Prio.ALWAYS)
+					GridPane.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 					selectionModel.apply {
 						select(module.config.minPriority)
 						selectedItemProperty().addListener { _, _, value ->

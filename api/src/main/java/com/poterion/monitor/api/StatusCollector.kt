@@ -1,7 +1,8 @@
 package com.poterion.monitor.api
 
+import com.poterion.monitor.data.Priority
+import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
-import com.poterion.monitor.data.key
 import io.reactivex.subjects.PublishSubject
 import org.slf4j.LoggerFactory
 
@@ -10,17 +11,31 @@ import org.slf4j.LoggerFactory
  */
 object StatusCollector {
 	private val LOGGER = LoggerFactory.getLogger(StatusCollector::class.java)
-	private val statusItems = mutableMapOf<String, StatusItem>()
-	val status: PublishSubject<Collection<StatusItem>> = PublishSubject.create<Collection<StatusItem>>()
+	private val itemMap = mutableMapOf<String, Collection<StatusItem>>()
+	var items = emptyList<StatusItem>()
+		private set
+	val status: PublishSubject<StatusCollector> = PublishSubject.create<StatusCollector>()
+
+	fun maxStatus(minPriority: Priority): Status = topStatus(minPriority)
+			?.status
+			?: Status.NONE
+
+	fun topStatuses(minPriority: Priority) = items
+			.filter { it.priority >= minPriority }
+			.filter { it.status == maxStatus(minPriority) }
+			.distinctBy { it.serviceName }
+
+	fun topStatus(minPriority: Priority) = items
+			.filter { it.priority >= minPriority }
+			.maxBy { it.status }
 
 	@Synchronized
 	fun update(items: Collection<StatusItem>, update: Boolean) {
-		if (!update) statusItems.clear()
-		statusItems.putAll(items.map { it.key() to it })
+		if (!update) items.forEach { itemMap.remove(it.serviceName) }
+		itemMap.putAll(items.groupBy { it.serviceName })
 
-		statusItems.values.also { statusItems ->
-			LOGGER.info("Updating status: ${statusItems}")
-			status.onNext(statusItems)
-		}
+		this.items = itemMap.values.flatten()
+		LOGGER.info("Updating status: ${this.items}")
+		status.onNext(this)
 	}
 }

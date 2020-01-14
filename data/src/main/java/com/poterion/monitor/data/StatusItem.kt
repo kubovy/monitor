@@ -1,5 +1,7 @@
 package com.poterion.monitor.data
 
+import java.time.Instant
+
 /*
  * @startuml
  * class StatusItem {
@@ -43,6 +45,9 @@ package com.poterion.monitor.data
 data class StatusItem(val serviceName: String,
 					  val priority: Priority,
 					  val status: Status,
-					  val label: String,
+					  val title: String,
+					  val group: String? = null,
 					  val detail: String? = null,
-					  val link: String? = null)
+					  val labels: Map<String, String> = emptyMap(),
+					  val link: String? = null,
+					  val startedAt: Instant = Instant.now())
