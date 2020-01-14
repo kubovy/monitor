@@ -42,6 +42,8 @@ import kotlin.Comparator
 class ConfigurationController {
 
 	companion object {
+		private val LOGGER = LoggerFactory.getLogger(ConfigurationController::class.java)
+
 		fun create(controller: ControllerInterface) {
 			val loader = FXMLLoader(ConfigurationController::class.java.getResource("configuration.fxml"))
 			val root = loader.load<Parent>()
@@ -49,13 +51,25 @@ class ConfigurationController {
 				this.controller = controller
 				this.load()
 			}
+
+			val config = controller.applicationConfiguration
 			controller.stage.apply {
 				icons.add(CommonIcon.SETTINGS.toImage())
 				title = "Configuration"
 				//stage.isResizable = false
-				minWidth = 1200.0
-				minHeight = 1000.0
-				scene = Scene(root, 1200.0, 1000.0)
+				minWidth = 800.0
+				minHeight = 600.0
+
+				scene = Scene(root, config.windowWidth, config.windowHeight).apply {
+					widthProperty().addListener { _, _, value ->
+						config.windowWidth = value.toDouble()
+						controller.saveConfig()
+					}
+					heightProperty().addListener { _, _, value ->
+						config.windowHeight = value.toDouble()
+						controller.saveConfig()
+					}
+				}
 				show()
 			}
 		}
@@ -64,6 +78,7 @@ class ConfigurationController {
 	@FXML private lateinit var tabPaneMain: TabPane
 	@FXML private lateinit var tabCommon: Tab
 	@FXML private lateinit var tabAlerts: Tab
+	@FXML private lateinit var splitPane: SplitPane
 	@FXML private lateinit var tree: TreeView<ModuleItem>
 	@FXML private lateinit var vboxContent: VBox
 	@FXML private lateinit var gridPane: GridPane
@@ -75,7 +90,7 @@ class ConfigurationController {
 	@FXML private lateinit var columnAlertsLabels: TreeTableColumn<StatusItem, Map<String, String>>
 	@FXML private lateinit var columnAlertsStarted: TreeTableColumn<StatusItem, Instant>
 
-	private var controller: ControllerInterface? = null
+	private lateinit var controller: ControllerInterface
 
 	private var labelColors = listOf(
 			"#FFCCCC" to "#FF6666",
@@ -104,29 +119,29 @@ class ConfigurationController {
 							item.also { textProperty().bind(it.title) }
 							when (item.title.value) {
 								"Services" -> controller
-										?.validModules { it.services }
-										?.mapNotNull { it as? ServiceModule<*, *> }
-										?.map { module ->
+										.validModules { it.services }
+										.mapNotNull { it as? ServiceModule<*, *> }
+										.map { module ->
 											MenuItem("Add ${module.title} service", module.icon.toImageView()).apply {
 												setOnAction {
-													controller?.add(module)?.also { treeItem.children.addItem(it) }
+													controller.add(module)?.also { treeItem.children.addItem(it) }
 													treeView.refresh()
 												}
 											}
 										}
-										?.also { contextMenu = ContextMenu(*it.toTypedArray()) }
+										.also { contextMenu = ContextMenu(*it.toTypedArray()) }
 								"Notifiers" -> controller
-										?.validModules { it.notifiers }
-										?.mapNotNull { it as? NotifierModule<*, *> }
-										?.map { module ->
+										.validModules { it.notifiers }
+										.mapNotNull { it as? NotifierModule<*, *> }
+										.map { module ->
 											MenuItem("Add ${module.title} notifier", module.icon.toImageView()).apply {
 												setOnAction {
-													controller?.add(module)?.also { treeItem.children.addItem(it) }
+													controller.add(module)?.also { treeItem.children.addItem(it) }
 													treeView.refresh()
 												}
 											}
 										}
-										?.also { contextMenu = ContextMenu(*it.toTypedArray()) }
+										.also { contextMenu = ContextMenu(*it.toTypedArray()) }
 								else -> contextMenu = ContextMenu(MenuItem("Delete").apply {
 									setOnAction {
 										treeItem.value.module?.destroy()
@@ -189,6 +204,8 @@ class ConfigurationController {
 		}
 		columnAlertsStarted.cell("startedAt")
 
+		treeTableAlerts.root.children.setAll(StatusCollector.items.map { TreeItem(it) })
+		treeTableAlerts.root.children.sortWith(tableAlertComparator)
 		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe { collector ->
 			Platform.runLater {
 				treeTableAlerts.root.children.setAll(collector.items.map { TreeItem(it) })
@@ -229,10 +246,34 @@ class ConfigurationController {
 			modules.filter { m -> !m.singleton || !getter(this).map { it.definition }.contains(m) }
 
 	private fun load() {
+		splitPane.setDividerPosition(0, controller.applicationConfiguration.commonSplit)
+		splitPane.dividers.first().positionProperty().addListener { _, _, value ->
+			controller.applicationConfiguration.commonSplit = value.toDouble()
+			controller.saveConfig()
+		}
+
+		columnAlertsTitle.prefWidth = controller.applicationConfiguration.alertTitleWidth
+		columnAlertsTitle.widthProperty().addListener { _, _, value ->
+			controller.applicationConfiguration.alertTitleWidth = value.toDouble()
+			controller.saveConfig()
+		}
+
+		columnAlertsService.prefWidth = controller.applicationConfiguration.alertServiceWidth
+		columnAlertsService.widthProperty().addListener { _, _, value ->
+			controller.applicationConfiguration.alertServiceWidth = value.toDouble()
+			controller.saveConfig()
+		}
+
+		columnAlertsLabels.prefWidth = controller.applicationConfiguration.alertLabelsWidth
+		columnAlertsLabels.widthProperty().addListener { _, _, value ->
+			controller.applicationConfiguration.alertLabelsWidth = value.toDouble()
+			controller.saveConfig()
+		}
+
 		tree.root = TreeItem<ModuleItem>().apply {
 			children.addAll(
 					TreeItem(ModuleItem(SimpleStringProperty("Services"), UiIcon.SERVICES.toImageView())).apply {
-						controller?.services?.forEach { children.addItem(it) }
+						controller.services.forEach { children.addItem(it) }
 						//?.sortedBy { it.config.name }
 						//?.map { TreeItem(ModuleItem(module = it)) }
 
@@ -240,7 +281,7 @@ class ConfigurationController {
 						isExpanded = true
 					},
 					TreeItem(ModuleItem(SimpleStringProperty("Notifiers"), UiIcon.NOTIFIERS.toImageView())).apply {
-						controller?.notifiers?.forEach { children.addItem(it) }
+						controller.notifiers.forEach { children.addItem(it) }
 						//?.sortedBy { it.config.name }?.map { TreeItem(ModuleItem(module = it)) }
 						//?.also { children.addAll(it) }
 						isExpanded = true
@@ -268,19 +309,19 @@ class ConfigurationController {
 			})
 		}
 
-		controller?.saveConfig()
+		controller.saveConfig()
 	}
 
 	private fun TreeItem<ModuleItem>.remove() {
-		controller?.services?.removeIf { it.config == value?.module?.config }
-		controller?.notifiers?.removeIf { it.config == value?.module?.config }
-		controller?.applicationConfiguration?.services?.remove(value.module?.config)
-		controller?.applicationConfiguration?.notifiers?.remove(value.module?.config)
+		controller.services.removeIf { it.config == value?.module?.config }
+		controller.notifiers.removeIf { it.config == value?.module?.config }
+		controller.applicationConfiguration.services.remove(value.module?.config)
+		controller.applicationConfiguration.notifiers.remove(value.module?.config)
 		parent.children.remove(this)
 
 		tabPaneMain.tabs.removeIf { it.userData == value.module }
 
-		controller?.saveConfig()
+		controller.saveConfig()
 	}
 
 	private fun select(treeItem: TreeItem<ModuleItem>?) {
@@ -336,7 +377,7 @@ class ConfigurationController {
 						tree.refresh()
 						treeItem?.value?.module?.config?.name = value
 					}
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				})
 		addRow(row++,
 				Label("Enabled").apply {
@@ -349,7 +390,7 @@ class ConfigurationController {
 					isSelected = treeItem?.value?.module?.config?.enabled == true
 					selectedProperty().addListener { _, _, value ->
 						treeItem?.value?.module?.config?.enabled = value
-						controller?.saveConfig()
+						controller.saveConfig()
 					}
 				})
 
@@ -372,7 +413,7 @@ class ConfigurationController {
 						select(module.config.priority)
 						selectedItemProperty().addListener { _, _, value ->
 							module.config.priority = value
-							controller?.saveConfig()
+							controller.saveConfig()
 						}
 					}
 				})
@@ -385,7 +426,7 @@ class ConfigurationController {
 				HBox(TextField(module.config.checkInterval.toString()).apply {
 					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 					textProperty().addListener { _, _, value -> value.toLongOrNull()?.also { module.config.checkInterval = it } }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
 
 		return initializeHttpService(row + 2, module.config)
@@ -400,7 +441,7 @@ class ConfigurationController {
 				},
 				TextField(config.url).apply {
 					textProperty().addListener { _, _, value -> config.url = value }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				})
 		addRow(row + 1,
 				Label("Trust certificate").apply {
@@ -413,7 +454,7 @@ class ConfigurationController {
 					isSelected = config.trustCertificate
 					selectedProperty().addListener { _, _, value ->
 						config.trustCertificate = value
-						controller?.saveConfig()
+						controller.saveConfig()
 					}
 				})
 
@@ -435,7 +476,7 @@ class ConfigurationController {
 								config.auth = if (usr == null && pwd == null)
 									null else BasicAuthConfig(usr ?: "", pwd ?: "")
 							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						},
 						passwordField.apply {
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
@@ -446,7 +487,7 @@ class ConfigurationController {
 								config.auth = if (usr == null && pwd == null)
 									null else BasicAuthConfig(usr ?: "", pwd ?: "")
 							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						}).apply { alignment = Pos.CENTER })
 		addRow(row + 3,
 				Label("Connection timeout").apply {
@@ -457,7 +498,7 @@ class ConfigurationController {
 				HBox(TextField(config.connectTimeout?.toString() ?: "").apply {
 					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.connectTimeout = it } }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
 		addRow(row + 4,
 				Label("Read timeout").apply {
@@ -468,7 +509,7 @@ class ConfigurationController {
 				HBox(TextField(config.readTimeout?.toString() ?: "").apply {
 					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.readTimeout = it } }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
 		addRow(row + 5,
 				Label("Write timeout").apply {
@@ -479,7 +520,7 @@ class ConfigurationController {
 				HBox(TextField(config.writeTimeout?.toString() ?: "").apply {
 					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.writeTimeout = it } }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller?.saveConfig() }
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
 		return row + 6
 	}
@@ -497,7 +538,7 @@ class ConfigurationController {
 						select(module.config.minPriority)
 						selectedItemProperty().addListener { _, _, value ->
 							module.config.minPriority = value
-							controller?.saveConfig()
+							controller.saveConfig()
 						}
 					}
 				})

@@ -44,12 +44,13 @@ class ConfigWindowController : CommunicatorListener {
 						.let { it.load<Parent>() to it.getController<ConfigWindowController>() }
 						.let { (root, ctrl) ->
 							ctrl.config = config
-							ctrl.controller = controller
+							ctrl.notifier = controller
 							ctrl.load()
 							root
 						}
 	}
 
+	@FXML private lateinit var splitPane: SplitPane
 	@FXML private lateinit var treeConfigs: TreeView<StateConfig>
 	@FXML private lateinit var comboConfigName: ComboBox<String>
 	@FXML private lateinit var buttonAddConfig: Button
@@ -102,7 +103,7 @@ class ConfigWindowController : CommunicatorListener {
 	@FXML private lateinit var iconUSB: ImageView
 
 	private lateinit var config: DevOpsLightConfig
-	private lateinit var controller: DevOpsLightNotifier
+	private lateinit var notifier: DevOpsLightNotifier
 	private val clipboard = mutableListOf<LightConfig>()
 
 	private val patterns = FXCollections.observableArrayList(*LightPattern.values())
@@ -268,6 +269,12 @@ class ConfigWindowController : CommunicatorListener {
 	}
 
 	private fun load() {
+		splitPane.setDividerPosition(0, config.split)
+		splitPane.dividers.first().positionProperty().addListener { _, _, value ->
+			config.split = value.toDouble()
+			notifier.controller.saveConfig()
+		}
+
 		treeConfigs.root = TreeItem(StateConfig("Configurations")).apply {
 			config.items
 					.sortedBy { it.id }
@@ -290,7 +297,7 @@ class ConfigWindowController : CommunicatorListener {
 					.also { children.addAll(it) }
 		}
 		comboConfigName.apply {
-			controller.controller
+			notifier.controller
 					.applicationConfiguration
 					.services
 					.map { it.name }
@@ -305,14 +312,14 @@ class ConfigWindowController : CommunicatorListener {
 
 		// Status
 		iconBluetooth.image =
-				if (controller.bluetoothCommunicator.isConnected) DevOpsLightIcon.BLUETOOTH_CONNECTED.toImage()
+				if (notifier.bluetoothCommunicator.isConnected) DevOpsLightIcon.BLUETOOTH_CONNECTED.toImage()
 				else DevOpsLightIcon.BLUETOOTH_DISCONNECTED.toImage()
 		iconUSB.image =
-				if (controller.usbCommunicator.isConnected) DevOpsLightIcon.USB_CONNECTED.toImage()
+				if (notifier.usbCommunicator.isConnected) DevOpsLightIcon.USB_CONNECTED.toImage()
 				else DevOpsLightIcon.USB_DISCONNECTED.toImage()
 
-		controller.bluetoothCommunicator.register(this)
-		controller.usbCommunicator.register(this)
+		notifier.bluetoothCommunicator.register(this)
+		notifier.usbCommunicator.register(this)
 	}
 
 	@FXML
@@ -384,17 +391,17 @@ class ConfigWindowController : CommunicatorListener {
 
 	@FXML
 	fun onTestLight() {
-		createLightConfig()?.also { controller.changeLights(listOf(it)) }
+		createLightConfig()?.also { notifier.changeLights(listOf(it)) }
 	}
 
 	@FXML
 	fun onTestLightSequence() {
-		tableLightConfigs.items.takeIf { it.isNotEmpty() }?.also { controller.changeLights(it) }
+		tableLightConfigs.items.takeIf { it.isNotEmpty() }?.also { notifier.changeLights(it) }
 	}
 
 	@FXML
 	fun onTurnOffLight() {
-		controller.changeLights(listOf(LightConfig()))
+		notifier.changeLights(listOf(LightConfig()))
 	}
 
 	@FXML
@@ -453,15 +460,15 @@ class ConfigWindowController : CommunicatorListener {
 
 	@FXML
 	fun onReconnect() {
-		if (controller.bluetoothCommunicator.isConnected || controller.usbCommunicator.isConnected) {
-			if (controller.bluetoothCommunicator.isConnected) controller.bluetoothCommunicator.disconnect()
-			if (controller.usbCommunicator.isConnected) controller.usbCommunicator.disconnect()
-		} else if (controller.bluetoothCommunicator.isConnecting || controller.usbCommunicator.isConnecting) {
-			if (controller.bluetoothCommunicator.isConnecting) controller.bluetoothCommunicator.disconnect()
-			if (controller.usbCommunicator.isConnecting) controller.usbCommunicator.disconnect()
+		if (notifier.bluetoothCommunicator.isConnected || notifier.usbCommunicator.isConnected) {
+			if (notifier.bluetoothCommunicator.isConnected) notifier.bluetoothCommunicator.disconnect()
+			if (notifier.usbCommunicator.isConnected) notifier.usbCommunicator.disconnect()
+		} else if (notifier.bluetoothCommunicator.isConnecting || notifier.usbCommunicator.isConnecting) {
+			if (notifier.bluetoothCommunicator.isConnecting) notifier.bluetoothCommunicator.disconnect()
+			if (notifier.usbCommunicator.isConnecting) notifier.usbCommunicator.disconnect()
 		} else {
-			controller.bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
-			controller.usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
+			notifier.bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
+			notifier.usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
 		}
 	}
 
@@ -603,9 +610,9 @@ class ConfigWindowController : CommunicatorListener {
 							statusError = children[8].lightConfigs ?: emptyList(),
 							statusFatal = children[9].lightConfigs ?: emptyList())
 				}
-		controller.controller.saveConfig()
-		controller.bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
-		controller.usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
+		notifier.controller.saveConfig()
+		notifier.bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
+		notifier.usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
 	}
 
 	private fun TableColumn<LightConfig, LightColor>.init(propertyName: String) {

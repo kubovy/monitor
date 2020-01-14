@@ -14,4 +14,5 @@ data class DevOpsLightConfig(override var type: String = DevOpsLightConfig::clas
 							 var usbPort: String = "",
 							 var grbColors: Boolean = false,
 							 var combineMultipleServices: Boolean = true,
+							 var split: Double = 0.2,
 							 var items: Collection<DevOpsLightItemConfig> = emptyList()) : NotifierConfig
