@@ -11,6 +11,6 @@ interface AlertManagerRestService {
 	/**
 	 * The "api/" prefix is not included to support overwrites.
 	 */
-	@GET("v2/alerts?active=true&silenced=true&inhibited=true&unprocessed=true") // &receiver=devops-light
+	@GET("v2/alerts?active=true&silenced=false&inhibited=false&unprocessed=true") // &receiver=devops-light
 	fun check(): Call<List<AlertManagerResponse>>
 }
