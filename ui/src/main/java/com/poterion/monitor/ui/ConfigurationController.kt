@@ -32,9 +32,12 @@ import javafx.scene.layout.*
 import org.slf4j.LoggerFactory
 import java.awt.Desktop
 import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.Comparator
+
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
@@ -166,16 +169,33 @@ class ConfigurationController {
 		treeTableAlerts.setOnItemClick { item, event ->
 			if (event.clickCount == 2 && !isEmpty) item?.link?.toUriOrNull()?.also { Desktop.getDesktop().browse(it) }
 		}
-		columnAlertsService.cell("serviceName")
-		columnAlertsPriority.cell("priority") { _, value, empty ->
-			text = null
-			graphic = value?.takeUnless { empty }?.toIcon()?.toImageView()
-			tooltip = Tooltip(value?.name)
-		}
 		columnAlertsTitle.cell("title") { item, value, empty ->
 			text = value?.takeUnless { empty }
 			graphic = item?.status?.takeUnless { empty }?.toIcon()?.toImageView()
 			tooltip = item?.detail?.takeUnless { empty }?.let { Tooltip(it) }
+			style = when {
+				index == 0 -> "-fx-font-weight: bold;"
+				item?.priority == Priority.NONE -> "-fx-text-fill: #999; -fx-font-style: italic;"
+				else -> null
+			}
+		}
+		columnAlertsService.cell("serviceName") { item, value, empty ->
+			text = value?.takeUnless { empty }
+			style = when {
+				index == 0 -> "-fx-font-weight: bold;"
+				item?.priority == Priority.NONE -> "-fx-text-fill: #999; -fx-font-style: italic;"
+				else -> null
+			}
+		}
+		columnAlertsPriority.cell("priority") { item, value, empty ->
+			text = null
+			graphic = value?.takeUnless { empty }?.toIcon()?.toImageView()
+			tooltip = Tooltip(value?.name)
+			style = when {
+				index == 0 -> "-fx-font-weight: bold;"
+				item?.priority == Priority.NONE -> "-fx-text-fill: #999; -fx-font-style: italic;"
+				else -> null
+			}
 		}
 		columnAlertsLabels.cell("labels") { _, value, empty ->
 			//text = value?.takeUnless { empty }?.map { (k, v) -> "${k}: ${v}" }?.joinToString(", ")
@@ -183,7 +203,8 @@ class ConfigurationController {
 				Label("${k}: ${v}").apply {
 					val (background, border) = labelColorMap
 							.getOrPut(k, { labelColors[labelColorMap.size % labelColors.size] })
-					style = "-fx-border-color: ${border};" +
+					style = " -fx-text-fill: #000;" +
+							" -fx-border-color: ${border};" +
 							" -fx-background-color: ${background};" +
 							" -fx-border-radius: 5px;" +
 							" -fx-background-radius: 5px;" +
@@ -202,7 +223,17 @@ class ConfigurationController {
 						//style = "-fx-border-color: red"
 					}
 		}
-		columnAlertsStarted.cell("startedAt")
+		columnAlertsStarted.cell("startedAt") { item, value, empty ->
+			text = if (empty) null else DateTimeFormatter
+					.ofPattern("YYYY-MM-dd HH:mm:ss")
+					.withZone(ZoneId.systemDefault())
+					.format(value)
+			style = when {
+				index == 0 -> "-fx-font-weight: bold;"
+				item?.priority == Priority.NONE -> "-fx-text-fill: #999; -fx-font-style: italic;"
+				else -> null
+			}
+		}
 
 		treeTableAlerts.root.children.setAll(StatusCollector.items.map { TreeItem(it) })
 		treeTableAlerts.root.children.sortWith(tableAlertComparator)
@@ -219,6 +250,7 @@ class ConfigurationController {
 		get() = if (serviceName == "" && priority == Priority.NONE && status == Status.NONE && title == "") 0 else 1
 
 	private val tableAlertComparator: Comparator<in TreeItem<StatusItem>> = compareBy(
+			{ if (it.value.priority == Priority.NONE) 1 else 0 },
 			{ it.value.groupOrder },
 			{ -it.value.status.ordinal },
 			{ -it.value.priority.ordinal },
@@ -246,6 +278,10 @@ class ConfigurationController {
 			modules.filter { m -> !m.singleton || !getter(this).map { it.definition }.contains(m) }
 
 	private fun load() {
+		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe { collector ->
+			Platform.runLater { tabAlerts.graphic = collector.maxStatus(Priority.LOW).toIcon().toImageView() }
+		}
+
 		splitPane.setDividerPosition(0, controller.applicationConfiguration.commonSplit)
 		splitPane.dividers.first().positionProperty().addListener { _, _, value ->
 			controller.applicationConfiguration.commonSplit = value.toDouble()

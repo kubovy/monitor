@@ -253,7 +253,6 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 		labelTable.items.addAll(config.labels.sortedWith(compareBy({ -it.priority.ordinal }, { -it.status.ordinal }, { it.name }, { it.value })))
 	}
 
-
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		if (config.enabled && config.url.isNotEmpty()) try {
 			service?.check()?.enqueue(object : Callback<List<AlertManagerResponse>> {
@@ -308,8 +307,8 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 											})
 								}
 								?.takeIf { it.isNotEmpty() }
-								?: listOf(StatusItem(config.name, Priority.MAXIMUM, Status.OK, "No alerts"))
-						alerts.also(updater)
+								?: listOf(StatusItem(config.name, config.priority, Status.OK, "No alerts"))
+						updater(alerts)
 
 						Platform.runLater {
 							logArea.text = alerts.joinToString("\n") { item ->
@@ -319,9 +318,7 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 							}
 						}
 					} else {
-						lastFound
-								.map { (n, c, i) -> StatusItem(config.name, c.priority, Status.SERVICE_ERROR, n, link = i.generatorURL) }
-								.also(updater)
+						updater(getStatusItems("Service error", Status.SERVICE_ERROR))
 					}
 				}
 
@@ -329,18 +326,20 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 					call?.request()
 							?.also { LOGGER.warn("${it.method()} ${it.url()}: ${response?.message}", response) }
 							?: LOGGER.warn(response?.message)
-					lastFound
-							.map { (n, c, i) -> StatusItem(config.name, c.priority, Status.CONNECTION_ERROR, n, link = i.generatorURL) }
-							.also(updater)
+					updater(getStatusItems("Connection error", Status.CONNECTION_ERROR))
 				}
 			})
 		} catch (e: IOException) {
 			LOGGER.error(e.message, e)
-			lastFound
-					.map { (n, c, i) -> StatusItem(config.name, c.priority, Status.CONNECTION_ERROR, n, link = i.generatorURL) }
-					.also(updater)
+			updater(getStatusItems("Connection error", Status.CONNECTION_ERROR))
 		}
 	}
+
+	private fun getStatusItems(defaultTitle: String,
+							   rewriteStatus: Status? = null): Collection<StatusItem> = lastFound
+			.map { (n, c, i) -> StatusItem(config.name, c.priority, rewriteStatus ?: c.status, n, link = i.generatorURL) }
+			.takeIf { it.isNotEmpty() }
+			?: listOf(StatusItem(config.name, config.priority, rewriteStatus ?: Status.OK, defaultTitle))
 
 	private fun addLabel() {
 		newLabelName.text.takeIf { it.isNotEmpty() && it.isNotBlank() }?.also { name ->
