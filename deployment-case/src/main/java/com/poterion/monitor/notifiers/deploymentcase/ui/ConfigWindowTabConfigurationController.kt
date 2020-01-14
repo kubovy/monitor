@@ -156,8 +156,8 @@ class ConfigWindowTabConfigurationController : ConfigurationContributer, Configu
         textName.text = configuration.name
         comboboxMethod.selectionModel.select(configuration.method)
         textURL.text = configuration.url
-        textUsername.text = configuration.username
-        textPassword.text = configuration.password
+        textUsername.text = configuration.auth?.username
+        textPassword.text = configuration.auth?.password
         textJobName.text = configuration.jobName
         textParameters.text = configuration.parameters
         refreshJobStatusColors(configuration)
@@ -172,8 +172,8 @@ class ConfigWindowTabConfigurationController : ConfigurationContributer, Configu
         configuration?.name = textName.text
         configuration?.method = comboboxMethod.selectionModel.selectedItem
         configuration?.url = textURL.text
-        configuration?.username = textUsername.text
-        configuration?.password = textPassword.text
+        configuration?.auth?.username = textUsername.text
+        configuration?.auth?.password = textPassword.text
         configuration?.jobName = textJobName.text
         configuration?.parameters = textParameters.text
         configuration?.jobStatus = jobStatusColorComboBoxes

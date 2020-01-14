@@ -65,6 +65,7 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 	protected var connectionDescriptor: ConnectionDescriptor? = null
 
 	private val connectorRunnable: () -> Unit = {
+		Thread.currentThread().name = "${channel} Connector"
 		while (!Thread.interrupted()) {
 			if (state == State.CONNECTING) {
 				LOGGER.debug("${channel} ${connectionDescriptor}> Connection attempt ...")
@@ -106,6 +107,7 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 	}
 
 	private val inboundRunnable: () -> Unit = {
+		Thread.currentThread().name = "${channel} Inbound"
 		try {
 			while (!Thread.interrupted() && state == State.CONNECTED) try {
 				val message = nextMessage()
@@ -158,6 +160,7 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 	}
 
 	private val outboundRunnable: () -> Unit = {
+		Thread.currentThread().name = "${channel} Outbound"
 		try {
 			while (!Thread.interrupted() && state == State.CONNECTED) try {
 				if (checksumQueue.isNotEmpty()) {

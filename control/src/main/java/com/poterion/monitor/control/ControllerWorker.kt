@@ -34,6 +34,7 @@ class ControllerWorker private constructor(private val services: Collection<Serv
 	private val serviceLastChecked = mutableMapOf<String, Long>()
 
 	override fun call(): Boolean {
+		Thread.currentThread().name = "Controller Worker"
 		while (running) try {
 			val now = System.currentTimeMillis()
 			services

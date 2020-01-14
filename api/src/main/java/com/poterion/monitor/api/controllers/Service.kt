@@ -7,6 +7,7 @@ import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.auth.BasicAuthConfig
 import com.poterion.monitor.data.services.ServiceConfig
+import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -29,35 +30,42 @@ abstract class Service<out Config : ServiceConfig>(override val config: Config) 
 				icon = definition.icon,
 				sub = mutableListOf())
 
-	protected val retrofit: Retrofit?
-		get() = try {
-			Retrofit.Builder()
-					.baseUrl(config.url)
-					.client(OkHttpClient.Builder()
-							.connectTimeout(config.connectTimeout ?: 10_000L, TimeUnit.MILLISECONDS)
-							.readTimeout(config.readTimeout ?: 10_000L, TimeUnit.MILLISECONDS)
-							.writeTimeout(config.writeTimeout ?: 10_000L, TimeUnit.MILLISECONDS)
-							.addInterceptor { chain ->
-								val requestBuilder = chain.request().newBuilder()
-								val auth = config.auth
+	private var authCache: BasicAuthConfig? = null
 
-								if (auth is BasicAuthConfig) requestBuilder.header("Authorization",
-										Base64.getEncoder()
-												.encodeToString("${auth.username}:${auth.password}".toByteArray())
-												.let { "Basic ${it}" })
+	protected var retrofit: Retrofit? = null
+		get() {
+			if (field == null || authCache != config.auth) try {
+				field = Retrofit.Builder()
+						.baseUrl(config.url)
+						.client(OkHttpClient.Builder()
+								.connectionPool(ConnectionPool(1, 1, TimeUnit.MINUTES))
+								.connectTimeout(config.connectTimeout ?: 10_000L, TimeUnit.MILLISECONDS)
+								.readTimeout(config.readTimeout ?: 10_000L, TimeUnit.MILLISECONDS)
+								.writeTimeout(config.writeTimeout ?: 10_000L, TimeUnit.MILLISECONDS)
+								.addInterceptor { chain ->
+									val requestBuilder = chain.request().newBuilder()
+									val auth = config.auth
+									authCache = auth
 
-								val request = requestBuilder.build()
-								LOGGER.debug("${request.method()} ${request.url()}...")
-								chain.proceed(request)
-							}.build())
-					.addConverterFactory(JacksonConverterFactory.create(ObjectMapper(JsonFactory()).apply {
-						disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-					}))
-					.build()
-		} catch (e: IllegalArgumentException) {
-			LOGGER.error(e.message)
-			null
+									if (auth is BasicAuthConfig) requestBuilder.header("Authorization",
+											Base64.getEncoder()
+													.encodeToString("${auth.username}:${auth.password}".toByteArray())
+													.let { "Basic ${it}" })
+
+									val request = requestBuilder.build()
+									LOGGER.debug("${request.method()} ${request.url()}...")
+									chain.proceed(request)
+								}.build())
+						.addConverterFactory(JacksonConverterFactory.create(ObjectMapper(JsonFactory()).apply {
+							disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+						}))
+						.build()
+			} catch (e: IllegalArgumentException) {
+				LOGGER.error(e.message)
+			}
+			return field
 		}
+		private set
 
 	/**
 	 * Check implementation.
