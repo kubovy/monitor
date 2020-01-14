@@ -3,9 +3,11 @@ package com.poterion.monitor.sensors.alertmanager.control
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Service
+import com.poterion.monitor.api.lib.toIcon
 import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.CommonIcon
+import com.poterion.monitor.api.utils.factory
 import com.poterion.monitor.api.utils.toSet
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
@@ -95,16 +97,12 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 
 	override val configurationAddition: List<Parent>?
 		get() = listOf(
-				SplitPane(
-						VBox(
-								HBox(
-										Label("Name").apply { maxHeight = Double.MAX_VALUE }, newLabelName,
-										Label("Value").apply { maxHeight = Double.MAX_VALUE }, newLabelValue,
-										Button("Add").apply { setOnAction { addLabel() } }),
-								labelTable),
-						logArea).apply {
-					orientation = Orientation.VERTICAL
-					setDividerPositions(0.8, 0.2)
+				VBox(
+						HBox(
+								Label("Name").apply { maxHeight = Double.MAX_VALUE }, newLabelName,
+								Label("Value").apply { maxHeight = Double.MAX_VALUE }, newLabelValue,
+								Button("Add").apply { setOnAction { addLabel() } }),
+						labelTable).apply {
 					VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS)
 				})
 
@@ -118,13 +116,13 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 		setOnKeyReleased { event -> if (event.code == KeyCode.ENTER) addLabel() }
 	}
 
-	private val logArea = TextArea("").apply {
-		isEditable = false
-		text = ""
-		textProperty().addListener { _, _, _ -> if (!isFocused) scrollTop = Double.MAX_VALUE }
-	}
-
 	private val labelTable = TableView<AlertManagerLabelConfig>().apply {
+		minWidth = Region.USE_COMPUTED_SIZE
+		minHeight = Region.USE_COMPUTED_SIZE
+		prefWidth = Region.USE_COMPUTED_SIZE
+		prefHeight = Region.USE_COMPUTED_SIZE
+		maxWidth = Double.MAX_VALUE
+		maxHeight = Double.MAX_VALUE
 		VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS)
 		setOnKeyReleased { event ->
 			when (event.code) {
@@ -183,13 +181,17 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 		maxWidth = Region.USE_PREF_SIZE
 		setCellFactory {
 			val cell = TableCell<AlertManagerLabelConfig, Priority>()
-			val comboBox = ComboBox<Priority>(FXCollections.observableList(Priority.values().toList()))
-			comboBox.valueProperty().bindBidirectional(cell.itemProperty())
-
-			comboBox.valueProperty().addListener { _, _, priority ->
-				cell.tableRow.item.let { it as? AlertManagerLabelConfig }?.also { it.priority = priority }
-				labelTable.items.sortWith(compareBy({ -it.priority.ordinal }, { -it.status.ordinal }, { it.name }, { it.value }))
-				controller.saveConfig()
+			val comboBox = ComboBox<Priority>(FXCollections.observableList(Priority.values().toList())).apply {
+				factory { item, empty ->
+					text = item?.takeUnless { empty }?.name
+					graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
+				}
+				valueProperty().bindBidirectional(cell.itemProperty())
+				valueProperty().addListener { _, _, priority ->
+					cell.tableRow.item.let { it as? AlertManagerLabelConfig }?.also { it.priority = priority }
+					labelTable.items.sortWith(compareBy({ -it.priority.ordinal }, { -it.status.ordinal }, { it.name }, { it.value }))
+					controller.saveConfig()
+				}
 			}
 			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(comboBox))
 			cell
@@ -203,13 +205,18 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 		maxWidth = Region.USE_PREF_SIZE
 		setCellFactory {
 			val cell = TableCell<AlertManagerLabelConfig, Status>()
-			val comboBox = ComboBox<Status>(FXCollections.observableList(Status.values().toList()))
-			comboBox.valueProperty().bindBidirectional(cell.itemProperty())
+			val comboBox = ComboBox<Status>(FXCollections.observableList(Status.values().toList())).apply {
+				factory { item, empty ->
+					text = item?.takeUnless { empty }?.name
+					graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
+				}
+				valueProperty().bindBidirectional(cell.itemProperty())
 
-			comboBox.valueProperty().addListener { _, _, status ->
-				cell.tableRow.item.let { it as? AlertManagerLabelConfig }?.also { it.status = status }
-				labelTable.items.sortWith(compareBy({ -it.priority.ordinal }, { -it.status.ordinal }, { it.name }, { it.value }))
-				controller.saveConfig()
+				valueProperty().addListener { _, _, status ->
+					cell.tableRow.item.let { it as? AlertManagerLabelConfig }?.also { it.status = status }
+					labelTable.items.sortWith(compareBy({ -it.priority.ordinal }, { -it.status.ordinal }, { it.name }, { it.value }))
+					controller.saveConfig()
+				}
 			}
 			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(comboBox))
 			cell
@@ -309,14 +316,6 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 								?.takeIf { it.isNotEmpty() }
 								?: listOf(StatusItem(config.name, config.priority, Status.OK, "No alerts"))
 						updater(alerts)
-
-						Platform.runLater {
-							logArea.text = alerts.joinToString("\n") { item ->
-								"${item.startedAt} [${item.priority} ${item.status}]" +
-										" ${item.title.takeIf { it.isNotEmpty() } ?: "Default"}: ${item.detail}" +
-										item.labels.map { (k, v) -> "${k}:${v}" }.joinToString(", ", " (", ")")
-							}
-						}
 					} else {
 						updater(getStatusItems("Service error", Status.SERVICE_ERROR))
 					}
@@ -337,7 +336,9 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 
 	private fun getStatusItems(defaultTitle: String,
 							   rewriteStatus: Status? = null): Collection<StatusItem> = lastFound
-			.map { (n, c, i) -> StatusItem(config.name, c.priority, rewriteStatus ?: c.status, n, link = i.generatorURL) }
+			.map { (n, c, i) ->
+				StatusItem(config.name, c.priority, rewriteStatus ?: c.status, n, link = i.generatorURL)
+			}
 			.takeIf { it.isNotEmpty() }
 			?: listOf(StatusItem(config.name, config.priority, rewriteStatus ?: Status.OK, defaultTitle))
 

@@ -3,7 +3,10 @@ package com.poterion.monitor.sensors.sonar.control
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Service
+import com.poterion.monitor.api.lib.toIcon
+import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.Module
+import com.poterion.monitor.api.utils.factory
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
@@ -100,12 +103,17 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 		maxWidth = Region.USE_PREF_SIZE
 		setCellFactory {
 			val cell = TableCell<SonarProjectConfig, Priority>()
-			val comboBox = ComboBox<Priority>(FXCollections.observableList(Priority.values().toList()))
-			comboBox.valueProperty().bindBidirectional(cell.itemProperty())
+			val comboBox = ComboBox<Priority>(FXCollections.observableList(Priority.values().toList())).apply {
+				factory { item, empty ->
+					text = item?.takeUnless { empty }?.name
+					graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
+				}
+				valueProperty().bindBidirectional(cell.itemProperty())
 
-			comboBox.valueProperty().addListener { _, _, priority ->
-				cell.tableRow.item.let { it as? SonarProjectConfig }?.also { it.priority = priority }
-				controller.saveConfig()
+				valueProperty().addListener { _, _, priority ->
+					cell.tableRow.item.let { it as? SonarProjectConfig }?.also { it.priority = priority }
+					controller.saveConfig()
+				}
 			}
 			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(comboBox))
 			cell

@@ -23,6 +23,7 @@
         <!-- Notifiers -->
         <module>devops-light</module>
         <module>deployment-case</module>
+        <module>notifications</module>
         <module>system-tray</module>
     </modules>
 
@@ -91,6 +92,11 @@
             </dependency>
             <dependency>
                 <groupId>com.poterion.monitor</groupId>
+                <artifactId>notifications</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.poterion.monitor</groupId>
                 <artifactId>system-tray</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -116,6 +122,11 @@
                 <groupId>com.dorkbox</groupId>
                 <artifactId>SystemTray</artifactId>
                 <version>${dorkbox.version}</version>
+            </dependency>
+            <dependency><!-- https://github.com/controlsfx/controlsfx/wiki/ControlsFX-Features -->
+                <groupId>org.controlsfx</groupId>
+                <artifactId>controlsfx</artifactId>
+                <version>8.40.16</version>
             </dependency>
             <dependency>
                 <groupId>com.squareup.retrofit2</groupId>
