@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.hubspot.jinjava.Jinjava
 import com.poterion.monitor.api.controllers.Service
+import com.poterion.monitor.data.auth.BasicAuthConfig
 import com.poterion.monitor.notifiers.deploymentcase.data.Configuration
 import javafx.application.Platform
 import okhttp3.OkHttpClient
@@ -27,7 +28,7 @@ import javax.net.ssl.X509TrustManager
  *
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-class DeploymentTask(configuration: Configuration,
+class DeploymentTask(private val configuration: Configuration,
 					 context: Map<String, Any?>,
 					 private val onUpdate: (Collection<Pair<String, String>>) -> Unit,
 					 private val onFinish: () -> Unit) : Runnable {
@@ -65,7 +66,7 @@ class DeploymentTask(configuration: Configuration,
 			previousBuildNumber = getPreviousCompletedBuildNumber()
 
 			if (previousBuildNumber != IN_PROGRESS) { // Trigger if currently not running
-				service.post(triggerUrl).execute()
+				service?.post(triggerUrl)?.execute()
 			}
 			updateLooper()
 			LOGGER.info("FINISHED: ${isFinished.get()} (failed ${failedCount.get()} times)")
@@ -78,36 +79,45 @@ class DeploymentTask(configuration: Configuration,
 		}
 	}
 
-	private val retrofit: Retrofit = Retrofit.Builder()
-			.baseUrl(configuration.url)
-			.client(OkHttpClient.Builder()
-					.sslSocketFactory(SSLContext.getInstance("SSL").apply {
-						init(null, trustAllCerts, SecureRandom())
-					}.socketFactory, trustAllCerts[0])
-					.hostnameVerifier { _, _ -> true }
-					.addInterceptor { chain ->
-						val requestBuilder = chain.request().newBuilder()
+	private var authCache: BasicAuthConfig? = null
 
-						if (configuration.username.isNotEmpty()) requestBuilder.header("Authorization",
-								Base64.getEncoder()
-										.encodeToString("${configuration.username}:${configuration.password}".toByteArray())
-										.let { "Basic ${it}" })
+	private var retrofit: Retrofit? = null
+		get() {
+			if (field == null || authCache != configuration.auth) field = Retrofit.Builder()
+					.baseUrl(configuration.url)
+					.client(OkHttpClient.Builder()
+							.sslSocketFactory(SSLContext.getInstance("SSL").apply {
+								init(null, trustAllCerts, SecureRandom())
+							}.socketFactory, trustAllCerts[0])
+							.hostnameVerifier { _, _ -> true }
+							.addInterceptor { chain ->
+								val requestBuilder = chain.request().newBuilder()
+								val auth = configuration.auth
+								authCache = auth
 
-						val request = requestBuilder.build()
-						Service.LOGGER.debug("${request.method()} ${request.url()}...")
-						chain.proceed(request)
-					}.build())
-			.addConverterFactory(JacksonConverterFactory.create(ObjectMapper(JsonFactory()).apply {
-				disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-			}))
-			.build()
+								if (auth != null && auth.username.isNotEmpty()) requestBuilder
+										.header("Authorization", Base64.getEncoder()
+												.encodeToString("${auth.username}:${auth.password}".toByteArray())
+												.let { "Basic ${it}" })
 
-	private val service = retrofit.create(JenkinsRestService::class.java)
+								val request = requestBuilder.build()
+								Service.LOGGER.debug("${request.method()} ${request.url()}...")
+								chain.proceed(request)
+							}.build())
+					.addConverterFactory(JacksonConverterFactory.create(ObjectMapper(JsonFactory()).apply {
+						disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+					}))
+					.build()
+			return field
+		}
+		private set
+
+	private val service = retrofit?.create(JenkinsRestService::class.java)
 
 	private fun getPreviousCompletedBuildNumber() = service
-			.buildStatus(jobName)
-			.execute()
-			.body()
+			?.buildStatus(jobName)
+			?.execute()
+			?.body()
 			?.elements()
 			?.asSequence()
 			?.map { it.get("id").asInt(0) to it.get("state").asText() }
@@ -117,8 +127,8 @@ class DeploymentTask(configuration: Configuration,
 
 	private fun updateLooper() {
 		while (!isFinished.get() && failedCount.get() < 5) try {
-			val response = service.buildStatus(jobName).execute()
-			val body = response.body()
+			val response = service?.buildStatus(jobName)?.execute()
+			val body = response?.body()
 			val lastBuildNumber = body?.elements()
 					?.asSequence()
 					?.map { it.get("id").asInt(0) }
@@ -129,7 +139,7 @@ class DeploymentTask(configuration: Configuration,
 				val lastBuild = body?.elements()
 						?.asSequence()
 						?.find { it.get("id").asInt(0) == lastBuildNumber }
-				if (response.isSuccessful && lastBuild?.has("status") == true) {
+				if (response?.isSuccessful == true && lastBuild?.has("status") == true) {
 					failedCount.set(0)
 
 					LOGGER.debug("${jobName}: ${lastBuild.get("status").asText()}")
@@ -144,9 +154,12 @@ class DeploymentTask(configuration: Configuration,
 								&& stage.get("_links").get("self").has("href")) {
 							val url = stage.get("_links").get("self").get("href").asText()
 							try {
-								service.get(url).execute().body()
+								service?.get(url)
+										?.execute()
+										?.body()
 										?.takeIf { it.has("status") }
-										?.let { it.get("status").asText("unknown") }
+										?.get("status")
+										?.asText("unknown")
 										?.toLowerCase()
 										?: "unknown"
 							} catch (e: IOException) {

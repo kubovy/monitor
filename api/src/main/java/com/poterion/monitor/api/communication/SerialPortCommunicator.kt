@@ -57,6 +57,7 @@ class SerialPortCommunicator(portName: String) : SerialPortEventListener {
 	fun sendMessage(message: String): Future<Boolean> = executor.submit(Callable { sendMessageInternal(message) })
 
 	private fun sendMessageInternal(message: String): Boolean {
+		Thread.currentThread().name = "Serial Port Communicator Message Sender"
 		if (!serialPort.isOpened) try {
 			serialPort.openPort()
 
