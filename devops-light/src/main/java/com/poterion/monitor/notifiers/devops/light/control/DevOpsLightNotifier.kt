@@ -132,31 +132,18 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 		get() = ConfigWindowController.getRoot(config, this)
 
 	override fun initialize() {
-		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe { statusItems ->
+		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe { collector ->
 			Platform.runLater {
-				val lights = if (config.combineMultipleServices) {
-					val maxStatus = statusItems
-							.filter { it.priority >= config.minPriority }
-							.maxBy { it.status }
-							?.status
-
-					statusItems
-							.filter { it.priority >= config.minPriority }
-							.filter { it.status == maxStatus }
-							.distinctBy { it.serviceName }
+				val lights = if (config.combineMultipleServices) collector.topStatuses(config.minPriority)
 							.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
 							.mapNotNull { it.toLightConfig() }
 							.flatten()
 							.takeIf { it.isNotEmpty() }
 							?: config.items.firstOrNull { it.id == "" }?.statusOk
-				} else {
-					statusItems
-							.filter { it.priority >= config.minPriority }
-							.maxBy { it.status }
+				else collector.topStatus(config.minPriority)
 							.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
 							?.toLightConfig()
 							?: config.items.firstOrNull { it.id == "" }?.statusOk
-				}
 
 				lights?.also { lastState = it }
 						?.takeIf { config.enabled }

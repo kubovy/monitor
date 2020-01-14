@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.net.URI
 import java.net.URISyntaxException
+import java.util.concurrent.TimeUnit
 import javax.imageio.ImageIO
 
 /**
@@ -59,7 +60,9 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 		} catch (e: IOException) {
 			LOGGER.error(e.message, e)
 		}
-		StatusCollector.status.subscribe { Platform.runLater { update(it) } }
+		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe {
+			Platform.runLater { update(it.items)  }
+		}
 	}
 
 	override fun destroy() {
@@ -110,6 +113,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 		statusItems
 				.filter { it.priority >= config.minPriority }
 				.maxBy { it.status }
+				?.status
 				?.toIcon()
 				?.also { lastStatusIcon = it }
 
@@ -189,11 +193,11 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 	private fun Menu.updateSubMenu(statusItems: Collection<StatusItem>) {
 		var prioritised = true
 		statusItems
-				.sortedWith(compareByDescending(StatusItem::priority).thenBy(StatusItem::label))
+				.sortedWith(compareByDescending(StatusItem::priority).thenBy(StatusItem::title))
 				.forEachIndexed { index, statusItem ->
 					val menuItem = menuItems[statusItem.key()] ?: MenuItem().apply {
 						prioritised = separateNonePriorityItems(index, statusItem.priority, prioritised)
-						text = statusItem.label
+						text = statusItem.title
 						setCallback { _ ->
 							statusItem.link
 									?.let {
@@ -211,12 +215,13 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 						this@updateSubMenu.add(this)
 					}
 					if (statusItem.priority == Priority.NONE) prioritised = false
-					statusItem.toIcon().inputStream.use { menuItem.setImage(it) }
+					statusItem.status.toIcon().inputStream.use { menuItem.setImage(it) }
 				}
 
 		val icon = statusItems
 				.filter { it.priority > Priority.NONE }
 				.maxBy { it.status }
+				?.status
 				?.toIcon() ?: CommonIcon.OK
 		icon.inputStream.use { setImage(it) }
 	}
