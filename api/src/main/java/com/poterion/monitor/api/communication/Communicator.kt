@@ -86,8 +86,8 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 						outboundThread = Thread(outboundRunnable)
 						outboundThread?.name = "${channel}-outbound"
 
-						inboundExecutor.execute(inboundThread)
-						outboundExecutor.execute(outboundThread)
+						inboundExecutor.execute(inboundThread!!)
+						outboundExecutor.execute(outboundThread!!)
 
 						state = State.CONNECTED
 						listeners.forEach { Platform.runLater { it.onConnect(channel) } }
@@ -141,6 +141,8 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 							}
 						}
 					}
+				} else {
+					Thread.sleep(100L)
 				}
 			} catch (e: Exception) {
 				LOGGER.error("${channel} ${connectionDescriptor}> ${e.message}")
@@ -192,6 +194,7 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 					}
 					when (kind) {
 						MessageKind.CRC -> {
+							// nothing to do
 						}
 						MessageKind.IDD -> {
 							if (correctlyReceived) {
@@ -217,18 +220,18 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 						}
 					}
 					if (correctlyReceived) lastChecksum = null
+				} else if (iddCounter < 0) {
+					Thread.sleep(100L)
+					iddCounter++
+				} else if (iddCounter == 0) {
+
+					val message = if (iddState < 0x02) arrayOf(MessageKind.IDD.code, Random.nextBits(4), iddState)
+					else if (IDD_PING) arrayOf(MessageKind.IDD.code, Random.nextBits(4))
+					else null
+
+					if (message != null) messageQueue.add(message.map { it.toByte() }.toByteArray() to 500)
 				} else {
-					if (iddCounter < 0) {
-						Thread.sleep(100L)
-						iddCounter++
-					} else if (iddCounter == 0) {
-
-						val message = if (iddState < 0x02) arrayOf(MessageKind.IDD.code, Random.nextBits(4), iddState)
-						else if (IDD_PING) arrayOf(MessageKind.IDD.code, Random.nextBits(4))
-						else null
-
-						if (message != null) messageQueue.add(message.map { it.toByte() }.toByteArray() to 500)
-					}
+					Thread.sleep(100L)
 				}
 			} catch (e: Exception) {
 				LOGGER.error("${channel} ${connectionDescriptor}> ${e.message}")
@@ -330,7 +333,7 @@ abstract class Communicator<ConnectionDescriptor>(private val channel: Channel) 
 			if (connectorThread?.isAlive != true) {
 				connectorThread = Thread(connectorRunnable)
 				connectorThread?.name = "${channel}-connector"
-				connectorExecutor.execute(connectorThread)
+				connectorExecutor.execute(connectorThread!!)
 			}
 			return true
 		}
