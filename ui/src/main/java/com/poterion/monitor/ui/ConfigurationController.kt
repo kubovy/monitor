@@ -484,25 +484,11 @@ class ConfigurationController {
 					textProperty().addListener { _, _, value -> config.url = value }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				})
-		addRow(row + 1,
-				Label("Trust certificate").apply {
-					maxWidth = Double.MAX_VALUE
-					maxHeight = Double.MAX_VALUE
-					alignment = Pos.CENTER_RIGHT
-				},
-				CheckBox().apply {
-					maxHeight = Double.MAX_VALUE
-					isSelected = config.trustCertificate
-					selectedProperty().addListener { _, _, value ->
-						config.trustCertificate = value
-						controller.saveConfig()
-					}
-				})
 
 		val usernameField = TextField(config.auth?.username ?: "")
 		val passwordField = PasswordField()
 
-		addRow(row + 2,
+		addRow(row + 1,
 				Label("Auth").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -530,7 +516,88 @@ class ConfigurationController {
 							}
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						}).apply { alignment = Pos.CENTER })
+
+		addRow(row + 2,
+				Label("Trust certificate").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
+				CheckBox().apply {
+					maxHeight = Double.MAX_VALUE
+					isSelected = config.trustCertificate
+					selectedProperty().addListener { _, _, value ->
+						config.trustCertificate = value
+						controller.saveConfig()
+					}
+				})
+
+		val proxyAddressField = TextField(config.proxy?.address ?: "")
+		val proxyPortField = TextField(config.proxy?.port?.toString() ?: "")
+
 		addRow(row + 3,
+				Label("Proxy").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
+				HBox(
+						proxyAddressField.apply {
+							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+							textProperty().addListener { _, _, value ->
+								val address = value.takeIf { it.isNotEmpty() }
+								val port = proxyPortField.text.takeIf { it.isNotEmpty() }?.toIntOrNull() ?: 80
+								config.proxy = if (address == null)
+									null else HttpProxy(address, port)
+							}
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+						},
+						proxyPortField.apply {
+							minWidth = 75.0
+							promptText = "80"
+							HBox.setHgrow(this, javafx.scene.layout.Priority.NEVER)
+							textProperty().addListener { _, _, value ->
+								val address = proxyAddressField.text.takeIf { it.isNotEmpty() }
+								val port = value.takeIf { it.isNotEmpty() }?.toIntOrNull() ?: 80
+								config.proxy = if (address == null)
+									null else HttpProxy(address, port)
+							}
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+						}).apply { alignment = Pos.CENTER })
+
+		val proxyUsernameField = TextField(config.proxy?.auth?.username ?: "")
+		val proxyPasswordField = PasswordField()
+
+		addRow(row + 4,
+				Label("Proxy Auth").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
+				HBox(
+						proxyUsernameField.apply {
+							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+							textProperty().addListener { _, _, value ->
+								val usr = value.takeIf { it.isNotEmpty() }
+								val pwd = proxyPasswordField.text.takeIf { it.isNotEmpty() }
+								config.proxy?.auth = if (usr == null && pwd == null)
+									null else BasicAuthConfig(usr ?: "", pwd ?: "")
+							}
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+						},
+						proxyPasswordField.apply {
+							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+							text = config.proxy?.auth?.password ?: ""
+							textProperty().addListener { _, _, value ->
+								val usr = proxyUsernameField.text.takeIf { it.isNotEmpty() }
+								val pwd = value.takeIf { it.isNotEmpty() }
+								config.proxy?.auth = if (usr == null && pwd == null)
+									null else BasicAuthConfig(usr ?: "", pwd ?: "")
+							}
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+						}).apply { alignment = Pos.CENTER })
+
+		addRow(row + 5,
 				Label("Connection timeout").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -541,7 +608,7 @@ class ConfigurationController {
 					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.connectTimeout = it } }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
-		addRow(row + 4,
+		addRow(row + 6,
 				Label("Read timeout").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -552,7 +619,7 @@ class ConfigurationController {
 					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.readTimeout = it } }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
-		addRow(row + 5,
+		addRow(row + 7,
 				Label("Write timeout").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE

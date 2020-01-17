@@ -1,5 +1,6 @@
 package com.poterion.monitor.sensors.alertmanager.data
 
+import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.auth.BasicAuthConfig
 import com.poterion.monitor.data.services.ServiceConfig
@@ -11,6 +12,7 @@ class AlertManagerConfig(override var type: String = AlertManagerConfig::class.j
 						 override var name: String = "",
 						 override var enabled: Boolean = true,
 						 override var url: String = "",
+						 override var proxy: HttpProxy? = null,
 						 override var trustCertificate: Boolean = false,
 						 override var auth: BasicAuthConfig? = null,
 						 override var order: Int = Int.MAX_VALUE,
