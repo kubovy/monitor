@@ -10,6 +10,7 @@ import java.io.InputStream
 enum class CommonIcon(private val file: String) : Icon {
 	APPLICATION("/icons/application.png"),
 	DEVICE("/icons/device.png"),
+	LINK("/icons/link.png"),
 	TRASH("/icons/trash.png"),
 	SETTINGS("/icons/settings.png"),
 	UNDER_CONSTRUCTION("/icons/under-construction.png"),

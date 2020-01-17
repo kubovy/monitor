@@ -52,6 +52,10 @@
         </dependency>
         <dependency>
             <groupId>com.poterion.monitor</groupId>
+            <artifactId>gerrit-code-review</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.poterion.monitor</groupId>
             <artifactId>jenkins</artifactId>
         </dependency>
         <dependency>

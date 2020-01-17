@@ -16,10 +16,8 @@ import com.poterion.monitor.sensors.alertmanager.AlertManagerModule
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerConfig
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerLabelConfig
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerResponse
-import javafx.application.Platform
 import javafx.beans.binding.Bindings
 import javafx.collections.FXCollections
-import javafx.geometry.Orientation
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -232,9 +230,7 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 			val cell = TableCell<AlertManagerLabelConfig, Status>()
 			val button = Button("", CommonIcon.TRASH.toImageView()).apply {
 				setOnAction {
-					config.labels.removeIf { it == cell.tableRow.item }
-					cell.tableView.items.remove(cell.tableRow.item)
-					controller.saveConfig()
+					cell.tableRow.item?.let { it as? AlertManagerLabelConfig }?.also { removeLabel(it) }
 				}
 			}
 			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(button))
@@ -358,16 +354,16 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 		newLabelName.text = ""
 	}
 
-	private fun removeLabel(jenkinsJobConfig: AlertManagerLabelConfig) {
+	private fun removeLabel(labelConfig: AlertManagerLabelConfig) {
 		Alert(Alert.AlertType.CONFIRMATION).apply {
 			title = "Delete confirmation"
 			headerText = "Delete confirmation"
-			contentText = "Do you really want to delete label ${jenkinsJobConfig.name}=\"${jenkinsJobConfig.value}\"?"
+			contentText = "Do you really want to delete label ${labelConfig.name}=\"${labelConfig.value}\"?"
 			buttonTypes.setAll(ButtonType.YES, ButtonType.NO)
 		}.showAndWait().ifPresent {
 			it.takeIf { it == ButtonType.YES }?.also {
-				labelTable.items.remove(jenkinsJobConfig)
-				config.labels.remove(jenkinsJobConfig)
+				labelTable.items.remove(labelConfig)
+				config.labels.remove(labelConfig)
 				controller.saveConfig()
 			}
 		}
