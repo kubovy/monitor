@@ -1,6 +1,7 @@
 package com.poterion.monitor
 
 import com.poterion.monitor.control.ApplicationController
+import com.poterion.monitor.gerrit.code.review.GerritCodeReviewModule
 import com.poterion.monitor.notifications.NotificationsModule
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
 import com.poterion.monitor.notifiers.devops.light.DevOpsLight
@@ -70,6 +71,7 @@ class Main : Application() {
 
 		val controller = ApplicationController(primaryStage, CONFIG_FILE).apply {
 			registerModule(AlertManagerModule)
+			registerModule(GerritCodeReviewModule)
 			registerModule(JenkinsModule)
 			registerModule(SonarModule)
 			registerModule(DeploymentCaseModule)
