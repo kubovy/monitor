@@ -4,6 +4,7 @@ import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.data.services.ServiceConfig
+import org.slf4j.LoggerFactory
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 
@@ -12,6 +13,7 @@ import java.util.concurrent.Executors
  */
 class ControllerWorker private constructor(private val services: Collection<Service<ServiceConfig>>) : Callable<Boolean> {
 	companion object {
+		private val LOGGER = LoggerFactory.getLogger(ControllerWorker::class.java)
 		private var instance: ControllerWorker? = null
 		private val executor = Executors.newSingleThreadExecutor()
 
@@ -41,9 +43,13 @@ class ControllerWorker private constructor(private val services: Collection<Serv
 					.filter { (now - (serviceLastChecked[it.config.name] ?: 0L)) > it.config.checkInterval }
 					.forEach { service ->
 						serviceLastChecked[service.config.name] = System.currentTimeMillis()
-						service.check {
-							StatusCollector.update(it,
-									(service.definition as? ServiceModule)?.staticNotificationSet != false)
+						try {
+							service.check {
+								StatusCollector.update(it,
+										(service.definition as? ServiceModule)?.staticNotificationSet != false)
+							}
+						} catch (t: Throwable) {
+							LOGGER.error(t.message, t)
 						}
 					}
 			Thread.sleep(1_000L)
