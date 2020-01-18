@@ -175,7 +175,7 @@ class ConfigWindowTabStateMachine {
             KeyCode.DELETE -> {
                 treeStateMachine.selectionModel.selectedItem
                         ?.takeUnless { it.value is Placeholder }
-                        ?.takeIf { item -> item.value.let { it !is State || findStateReferences(it).isEmpty() } }
+                        ?.takeIf { item -> item.value.let { it !is State || it.findReferences().isEmpty() } }
                         ?.takeIf { item -> SharedUiData.pipelineStatus.keys.find { it == (item.value as? State)?.name } == null }
                         ?.takeIf { _ ->
                             Alert(Alert.AlertType.CONFIRMATION).apply {
@@ -208,7 +208,7 @@ class ConfigWindowTabStateMachine {
 
                     item?.also { item ->
                         when (item) {
-                            is State -> {
+                            is State -> if (item.findReferences().isEmpty()) {
                                 text = null
                                 graphic = createTextField(item)
                             }
@@ -265,8 +265,8 @@ class ConfigWindowTabStateMachine {
                         treeView.selectionModel.selectedItem?.value == item -> null
                         treeView.selectionModel.selectedIndex == index -> null
                         item is State && SharedUiData.pipelineStatus.keys.find { it == item.name } != null -> "-fx-background-color: #FFCCFF"
-                        item is State && findStateReferences(item).isEmpty() -> "-fx-background-color: #CCCCCC"
-                        item is State && findStateReferences(item).isNotEmpty() -> "-fx-background-color: #CCCCFF"
+                        item is State && item.findReferences().isEmpty() -> "-fx-background-color: #CCCCCC"
+                        item is State && item.findReferences().isNotEmpty() -> "-fx-background-color: #CCCCFF"
                         item is Condition -> "-fx-background-color: #CCFFCC"
                         item is Action && treeItem?.parent?.parent?.children?.getOrNull(0)?.children?.isEmpty() == true -> "-fx-background-color: #FFEECC"
                         item is Action && item.includingEnteringState -> "-fx-background-color: #FFEECC"
@@ -292,10 +292,15 @@ class ConfigWindowTabStateMachine {
                             is Condition -> {
                                 comboBox1 = ComboBox(FXCollections.observableArrayList(SharedUiData
                                         .devices
-                                        .filtered {
+                                        .filter {
                                             // it.type == VariableType.BOOLEAN
                                             it.kind == DeviceKind.MCP23017 && it.key.toInt() < 32
-                                                    || it.kind == DeviceKind.BLUETOOTH && it.key == "connected"
+
+                                                    || it.kind == DeviceKind.BLUETOOTH
+                                                    && it.key == BluetoothKey.CONNECTED.key
+
+                                                    || it.kind == DeviceKind.VIRTUAL
+                                                    && VirtualKey.values().find { k -> it.key == k.key }?.condition == true
                                         }))
                                         .apply { selectionModel.select(item.device?.toDevice(SharedUiData.devices)) }
                                 comboBox2 = ComboBox(SharedUiData.variables.filtered { it.type == VariableType.BOOLEAN })
@@ -306,10 +311,12 @@ class ConfigWindowTabStateMachine {
                                 comboBox2 = ComboBox()
                                 comboBox1 = ComboBox(FXCollections.observableArrayList(SharedUiData
                                         .devices
-                                        .toMutableList()
-                                        .apply { add(Device("GOTO", DeviceKind.VIRTUAL, VirtualKey.GOTO.key)) }
-                                        .apply { add(Device("ENTER", DeviceKind.VIRTUAL, VirtualKey.ENTER.key)) }
-                                        .filter { it.kind != DeviceKind.MCP23017 || it.key.toInt() >= 32 }))
+                                        .filter {
+                                            (it.kind != DeviceKind.MCP23017 || it.key.toInt() >= 32)
+
+                                                    && (it.kind != DeviceKind.VIRTUAL
+                                                    || VirtualKey.values().find { k -> it.key == k.key }?.condition == false)
+                                        }))
                                         .apply {
                                             selectionModel.selectedItemProperty().addListener { _, oldValue, newValue ->
                                                 if (oldValue == null || oldValue.type != newValue?.type) {
@@ -399,11 +406,12 @@ class ConfigWindowTabStateMachine {
         }
     }
 
-    private fun findStateReferences(state: State): List<Action> = findInStateMachine {
+    private fun State.findReferences(): List<StateMachineItem> = findInStateMachine {
         it is Action
                 && it.device?.toDevice(SharedUiData.devices)?.kind == DeviceKind.VIRTUAL
                 && it.device?.toDevice(SharedUiData.devices)?.key == VirtualKey.GOTO.key
-                && (it.value?.toVariable(SharedUiData.variables)?.value == state.name
+                && (it.value?.toVariable(SharedUiData.variables)?.value == this.name
                 || it.value?.toVariable(SharedUiData.variables)?.value == "${treeStateMachine.selectionModel.selectedIndex}")
-    }.map { it as Action }
+                || SharedUiData.pipelineStatus.values.contains(this.name)
+    }
 }

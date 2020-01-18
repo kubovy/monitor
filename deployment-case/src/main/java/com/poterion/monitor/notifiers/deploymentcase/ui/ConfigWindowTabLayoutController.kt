@@ -2,10 +2,7 @@ package com.poterion.monitor.notifiers.deploymentcase.ui
 
 import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageListener
 import com.poterion.monitor.notifiers.deploymentcase.control.DeploymentCaseNotifier
-import com.poterion.monitor.notifiers.deploymentcase.data.Device
-import com.poterion.monitor.notifiers.deploymentcase.data.DeviceKind
-import com.poterion.monitor.notifiers.deploymentcase.data.LcdKey
-import com.poterion.monitor.notifiers.deploymentcase.data.SharedUiData
+import com.poterion.monitor.notifiers.deploymentcase.data.*
 import javafx.collections.ListChangeListener
 import javafx.event.ActionEvent
 import javafx.fxml.FXML
@@ -113,12 +110,24 @@ class ConfigWindowTabLayoutController : DeploymentCaseMessageListener {
     @FXML private lateinit var keypadD: Button
     @FXML private lateinit var keypadStar: Button
     @FXML private lateinit var keypadCross: Button
+    @FXML private lateinit var lblData0: Label
+    @FXML private lateinit var lblData1: Label
+    @FXML private lateinit var lblData2: Label
+    @FXML private lateinit var lblData3: Label
+    @FXML private lateinit var lblData4: Label
+    @FXML private lateinit var lblData5: Label
+    @FXML private lateinit var lblData6: Label
+    @FXML private lateinit var lblData7: Label
+    @FXML private lateinit var lblData8: Label
+    @FXML private lateinit var lblData9: Label
 
     private lateinit var notifier: DeploymentCaseNotifier
 
     @FXML
     fun initialize() {
         lcd.text = ""
+        listOf(lblData0, lblData1, lblData2, lblData3, lblData4, lblData5, lblData6, lblData7, lblData8, lblData9)
+                .forEach { label -> label.text = "" }
         SharedUiData.devicesProperty.addListener { _, _, devices -> updateButtonNames(devices) }
         SharedUiData.devices.addListener(ListChangeListener { updateButtonNames(it.list) })
     }
@@ -158,6 +167,14 @@ class ConfigWindowTabLayoutController : DeploymentCaseMessageListener {
 
         if (device.kind == DeviceKind.LCD && device.key.toInt() == LcdKey.MESSAGE.key) lcd.text = value
                 .replace("\\n", "\n")
+
+        if (device.kind == DeviceKind.VIRTUAL && device.key == VirtualKey.ENTER.key) value
+                .split("|")
+                .let { (id, content) -> id.toIntOrNull()?.let { it to content } }
+                ?.let { (id, content) ->
+                    listOf(lblData0, lblData1, lblData2, lblData3, lblData4, lblData5, lblData6, lblData7, lblData8,
+                            lblData9).find { it.id == "lblData${id}" }?.text = content
+                }
     }
 
     @FXML

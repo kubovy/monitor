@@ -80,6 +80,8 @@ fun List<State>.toData(devices: Collection<Device>, variables: Collection<Variab
 						.find { condition ->
 							when (bit) {
 								32 -> condition.device?.let { it.toDevice(devices).kind == DeviceKind.BLUETOOTH && it.toDevice(devices).key == BluetoothKey.CONNECTED.key } == true
+								33 -> condition.device?.let { it.toDevice(devices).kind == DeviceKind.VIRTUAL && it.toDevice(devices).key == VirtualKey.ENTERED.key } == true
+								34 -> condition.device?.let { it.toDevice(devices).kind == DeviceKind.VIRTUAL && it.toDevice(devices).key == VirtualKey.ABORTED.key } == true
 								else -> condition.device?.let { it.toDevice(devices).kind == DeviceKind.MCP23017 && it.toDevice(devices).key == "${bit}" } == true
 							}
 						}
@@ -174,6 +176,8 @@ fun List<Int>.toStateMachine(states: List<State>, devices: List<Device>, variabl
 										in (0 until 4) -> Device("", DeviceKind.MCP23017, "${conditionId * 8 + bit}")
 										4 -> when (bit) {
 											0 -> Device("", DeviceKind.BLUETOOTH, BluetoothKey.CONNECTED.key)
+											1 -> Device("", DeviceKind.VIRTUAL, VirtualKey.ENTERED.key)
+											2 -> Device("", DeviceKind.VIRTUAL, VirtualKey.ABORTED.key)
 											else -> Device("", DeviceKind.VIRTUAL, "unknown")
 										}
 										else -> Device("", DeviceKind.VIRTUAL, "unknown")
@@ -252,6 +256,8 @@ fun Device.toData() : Int = when (kind) {
 	DeviceKind.VIRTUAL -> when (VirtualKey.get(key)) {
 		VirtualKey.GOTO -> 112            // 0x70
 		VirtualKey.ENTER -> 113           // 0x71
+		VirtualKey.ENTERED -> 114         // 0x72
+		VirtualKey.ABORTED -> 115         // 0x73
 		else -> 127                       // 0x7F
 	}
 }
@@ -267,6 +273,8 @@ fun Int.toDevice(devices: Collection<Device>) = when (this) {
 	97 -> Device(kind = DeviceKind.BLUETOOTH, key = BluetoothKey.TRIGGER.key)   // 0x61
 	112 -> Device(kind = DeviceKind.VIRTUAL, key = VirtualKey.GOTO.key)         // 0x70
 	113 -> Device(kind = DeviceKind.VIRTUAL, key = VirtualKey.ENTER.key)        // 0x71
+	114 -> Device(kind = DeviceKind.VIRTUAL, key = VirtualKey.ENTERED.key)      // 0x72
+	115 -> Device(kind = DeviceKind.VIRTUAL, key = VirtualKey.ABORTED.key)      // 0x73
 	else -> Device(kind = DeviceKind.VIRTUAL, key = "unknown")
 }.findName(devices)
 
@@ -366,6 +374,9 @@ private fun List<Int>.toEnterString(): String {
 fun Device.findName(devices: Collection<Device>) = apply {
 	name = when {
 		kind == DeviceKind.VIRTUAL && key == VirtualKey.GOTO.key -> "GOTO"
+		kind == DeviceKind.VIRTUAL && key == VirtualKey.ENTER.key -> "ENTER"
+		kind == DeviceKind.VIRTUAL && key == VirtualKey.ENTERED.key -> "ENTERED"
+		kind == DeviceKind.VIRTUAL && key == VirtualKey.ABORTED.key -> "ABORTED"
 		else -> devices.find { it.kind == kind && it.key == key }?.name ?: ""
 	}
 }

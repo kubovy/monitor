@@ -1,11 +1,20 @@
 package com.poterion.monitor.notifiers.deploymentcase
 
-import com.poterion.monitor.notifiers.deploymentcase.data.Device
-import com.poterion.monitor.notifiers.deploymentcase.data.LightPattern
-import com.poterion.monitor.notifiers.deploymentcase.data.Variable
-import com.poterion.monitor.notifiers.deploymentcase.data.VariableType
+import com.poterion.monitor.notifiers.deploymentcase.data.*
 
-fun Device.getDisplayName() = this.name.takeUnless { it.isEmpty() } ?: this.let { "${it.kind} [${it.key}]" } ?: ""
+fun Device.getDisplayName(): String = this.name.takeUnless { it.isEmpty() } ?: this.let {
+	when (it.kind) {
+		DeviceKind.VIRTUAL -> when (it.key) {
+			VirtualKey.GOTO.key -> "Goto State"
+			VirtualKey.ENTER.key -> "Enter Input"
+			VirtualKey.ENTERED.key -> "Input Entered"
+			VirtualKey.ABORTED.key -> "Input Aborted"
+			else -> "${it.kind} [${it.key}]"
+		}
+		else -> "${it.kind} [${it.key}]"
+	}
+}
+
 
 fun String.toDevice(devices: List<Device>) = devices.find { it.name == this || "${it.kind} [${it.key}]" == this }
 
@@ -29,18 +38,21 @@ fun getDisplayString(value: String?, type: VariableType) = when (type) {
 			}
 			?.let { "${it[0]} (${it[1]}, delay: ${it[2]}, limits: ${it[3]})" }
 			?: ""
+	VariableType.ENTER -> value
+			?.split("|")
+			?.let { "${it.getOrNull(1) ?: "?"}: ${it.getOrNull(2) ?: "?"} (${it.getOrNull(0) ?: "?"})" }
 	VariableType.BOOLEAN -> if (value?.toBoolean() == true) "ON" else "OFF"
 	else -> value
 }
 
 fun Variable.getDisplayString() = getDisplayString(value, type)
 
-fun Variable.getDisplayName() = when(type) {
+fun Variable.getDisplayName() = when (type) {
 	VariableType.STATE -> "${getDisplayString()}"
 	else -> name
 }
 
-fun Variable.getDisplayNameValue() = when(type) {
+fun Variable.getDisplayNameValue() = when (type) {
 	VariableType.STATE -> "${getDisplayString()}"
 	else -> "${name}: ${getDisplayString()}"
 }
