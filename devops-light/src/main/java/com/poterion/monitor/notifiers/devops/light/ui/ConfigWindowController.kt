@@ -1,9 +1,9 @@
 package com.poterion.monitor.notifiers.devops.light.ui
 
-import com.poterion.monitor.api.communication.BluetoothCommunicator
-import com.poterion.monitor.api.communication.Channel
-import com.poterion.monitor.api.communication.CommunicatorListener
-import com.poterion.monitor.api.communication.USBCommunicator
+import com.poterion.communication.serial.BluetoothCommunicator
+import com.poterion.communication.serial.Channel
+import com.poterion.communication.serial.CommunicatorListener
+import com.poterion.communication.serial.USBCommunicator
 import com.poterion.monitor.api.lib.toImage
 import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.ui.CommonIcon

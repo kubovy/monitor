@@ -11,32 +11,16 @@
 
     <artifactId>api</artifactId>
 
-    <profiles>
-        <profile>
-            <id>MacOSX</id>
-            <activation>
-                <os>
-                    <family>mac</family>
-                </os>
-            </activation>
-            <dependencyManagement>
-                <dependencies>
-                    <dependency>
-                        <groupId>net.sf.bluecove</groupId>
-                        <artifactId>bluecove</artifactId>
-                        <version>${bluecove.version}</version>
-                        <scope>system</scope>
-                        <systemPath>${basedir}/libs/bluecove-2.1.2.jar</systemPath>
-                    </dependency>
-                </dependencies>
-            </dependencyManagement>
-        </profile>
-    </profiles>
 
     <dependencies>
         <dependency>
             <groupId>com.poterion.monitor</groupId>
             <artifactId>data</artifactId>
+        </dependency>
+        <!-- External -->
+        <dependency>
+            <groupId>com.poterion</groupId>
+            <artifactId>serial-communication</artifactId>
         </dependency>
         <!-- 3rd Parties -->
         <dependency>
@@ -66,19 +50,6 @@
         <dependency>
             <groupId>io.reactivex.rxjava2</groupId>
             <artifactId>rxkotlin</artifactId>
-        </dependency>
-        <!-- 3rd Parties -->
-        <dependency>
-            <groupId>org.scream3r</groupId>
-            <artifactId>jssc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>net.sf.bluecove</groupId>
-            <artifactId>bluecove</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>net.sf.bluecove</groupId>
-            <artifactId>bluecove-gpl</artifactId>
         </dependency>
     </dependencies>
 </project>

@@ -1,9 +1,9 @@
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.poterion.monitor.api.communication.BluetoothCommunicator
-import com.poterion.monitor.api.communication.Channel
-import com.poterion.monitor.api.communication.CommunicatorListener
-import com.poterion.monitor.api.communication.MessageKind
+import com.poterion.communication.serial.BluetoothCommunicator
+import com.poterion.communication.serial.Channel
+import com.poterion.communication.serial.CommunicatorListener
+import com.poterion.communication.serial.MessageKind
 import com.poterion.monitor.api.lib.toImage
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import com.poterion.monitor.notifiers.deploymentcase.api.ConfigurationContributer
