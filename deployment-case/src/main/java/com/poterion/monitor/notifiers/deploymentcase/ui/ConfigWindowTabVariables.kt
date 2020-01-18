@@ -135,12 +135,18 @@ class ConfigWindowTabVariables {
 		cellFactory = Callback<TableColumn<Variable, String>, TableCell<Variable, String>> { _ ->
 			object : TableCell<Variable, String>() {
 				private var checkBox: CheckBox? = null
-				private var textField: TextField? = null
+				private var textField1: TextField? = null
+				private var textField2: TextField? = null
+				private var combo: ComboBox<String>? = null
 				private var patternCombo: ComboBox<LightPattern>? = null
 				private var colorPicker: ColorPicker? = null
-				private var delayField: TextField? = null
 				private var minSlider: Slider? = null
 				private var maxSlider: Slider? = null
+				private val setButton = Button("Set").apply {
+					minWidth = 40.0
+					maxWidth = 40.0
+					setOnAction { commitEdit(save()) }
+				}
 
 				private val itemText: String?
 					get() = tableView.items[index]?.type?.let { type -> getDisplayString(item, type) }
@@ -167,10 +173,10 @@ class ConfigWindowTabVariables {
 							VariableType.STRING -> createTextField()
 							VariableType.COLOR_PATTERN -> createColorPicker()
 							VariableType.STATE -> null
-							VariableType.ENTER -> createTextField()
+							VariableType.ENTER -> createInputControls()
 						}
 						style = null
-						textField?.selectAll()
+						textField1?.selectAll()
 					}
 				}
 
@@ -190,9 +196,9 @@ class ConfigWindowTabVariables {
 						style = null
 					} else {
 						if (isEditing) {
-							textField?.text = itemText
+							textField1?.text = itemText
 							text = null
-							graphic = textField
+							graphic = textField1
 							style = null
 						} else {
 							text = itemText
@@ -203,11 +209,11 @@ class ConfigWindowTabVariables {
 				}
 
 				private fun createTextField(): TextField? {
-					textField = TextField(itemText)
-					textField?.minWidth = width - graphicTextGap * 2
-					textField?.focusedProperty()?.addListener { _, _, newValue -> if (!newValue) commitEdit(save()) }
-					textField?.setOnAction { commitEdit(save()) }
-					return textField
+					textField1 = TextField(itemText)
+					textField1?.minWidth = width - graphicTextGap * 2
+					textField1?.focusedProperty()?.addListener { _, _, newValue -> if (!newValue) commitEdit(save()) }
+					textField1?.setOnAction { commitEdit(save()) }
+					return textField1
 				}
 
 				private fun createCheckBox(): CheckBox? {
@@ -251,7 +257,7 @@ class ConfigWindowTabVariables {
 					}
 
 
-					delayField = TextField(item.split(",").getOrNull(2) ?: "10").apply {
+					textField1 = TextField(item.split(",").getOrNull(2) ?: "10").apply {
 						minWidth = 75.0
 						maxWidth = 75.0
 					}
@@ -293,38 +299,56 @@ class ConfigWindowTabVariables {
 					}
 					HBox.setHgrow(maxSlider, Priority.ALWAYS)
 
-					val setButton = Button("Set").apply {
-						minWidth = 40.0
-						maxWidth = 40.0
-						setOnAction { commitEdit(save()) }
-					}
-
-					val box = HBox(patternCombo, colorPicker, delayField, minSlider, minLabel, maxSlider, maxLabel,
+					val box = HBox(patternCombo, colorPicker, textField1, minSlider, minLabel, maxSlider, maxLabel,
 							setButton).apply {
 						minWidth = width - graphicTextGap * 2
 						maxWidth = Double.MAX_VALUE
 					}
 					HBox.setHgrow(box, Priority.ALWAYS)
+					return box
+				}
 
+				private fun createInputControls(): HBox? {
+					combo = ComboBox(FXCollections.observableArrayList((0..9).map { "${it}" })).apply {
+						minWidth = 60.0
+						maxWidth = 60.0
+						selectionModel?.select(item.split("|").getOrNull(0) ?: "0")
+					}
 
+					textField1 = TextField(item.split("|").getOrNull(1) ?: "Enter version").apply {
+						minWidth = 75.0
+						maxWidth = Double.MAX_VALUE
+					}
+
+					textField2 = TextField(item.split("|").getOrNull(2) ?: "##.##.##").apply {
+						minWidth = 75.0
+						maxWidth = Double.MAX_VALUE
+					}
+
+					val box = HBox(combo, textField1, textField2, setButton).apply {
+						minWidth = width - graphicTextGap * 2
+						maxWidth = Double.MAX_VALUE
+					}
+					HBox.setHgrow(box, Priority.ALWAYS)
 					return box
 				}
 
 				private fun save(): String? = tableView.items[index]?.let { entry ->
 					when (entry.type) {
 						VariableType.BOOLEAN -> if (checkBox?.isSelected == true) "true" else "false"
-						VariableType.STRING -> textField?.text ?: ""
+						VariableType.STRING -> textField1?.text ?: ""
 						VariableType.COLOR_PATTERN -> {
 							listOf(patternCombo?.selectionModel?.selectedIndex ?: 0,
 									colorPicker?.value?.toHex() ?: "#000000",
-									delayField?.text?.toIntOrNull() ?: 10,
+									textField1?.text?.toIntOrNull() ?: 10,
 									minSlider?.value?.toInt()?.let { "0x%02X".format(it) } ?: "0x00",
 									maxSlider?.value?.toInt()?.let { "0x%02X".format(it) } ?: "0x20")
 									.joinToString(",")
 
 						}
 						VariableType.STATE -> null
-						VariableType.ENTER -> textField?.text ?: "0|Enter Version|##.##.##"
+						VariableType.ENTER -> "${combo?.selectionModel?.selectedItem ?: "0"}|${textField1?.text
+								?: ""}|${textField2?.text ?: ""}"
 					}
 				}
 			}

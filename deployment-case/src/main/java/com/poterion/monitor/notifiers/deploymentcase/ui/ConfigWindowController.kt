@@ -13,6 +13,7 @@ import com.poterion.monitor.notifiers.deploymentcase.data.Configuration
 import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
 import com.poterion.monitor.notifiers.deploymentcase.data.Device
 import com.poterion.monitor.notifiers.deploymentcase.data.SharedUiData
+import javafx.beans.Observable
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
@@ -84,14 +85,24 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 
 	private var controlsEnabled: Boolean = true
 		set(value) {
-			tabLayout.isDisable = !value || !notifier.bluetoothCommunicator.isConnected
+			tabLayout.isDisable = !value
+					|| !notifier.bluetoothCommunicator.isConnected
 			btnDownload.isDisable = !value
+					|| !notifier.bluetoothCommunicator.isConnected
+					|| !SharedUiData.isActiveProperty.get()
 			btnUpload.isDisable = !value
+					|| !notifier.bluetoothCommunicator.isConnected
+					|| !SharedUiData.isActiveProperty.get()
 			btnSynchronize.isDisable = !value
+					|| !notifier.bluetoothCommunicator.isConnected
+					|| !SharedUiData.isActiveProperty.get()
 			btnClear.isDisable = !value
 			btnLcdReset.isDisable = !value
+					|| !notifier.bluetoothCommunicator.isConnected
 			field = value
 		}
+
+	private var activationChangeListener = { _: Observable, _: Boolean, _: Boolean -> listConfigurations.refresh() }
 
 	@FXML
 	fun initialize() {
@@ -105,18 +116,30 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 				object : ListCell<Configuration>() {
 					override fun updateItem(item: Configuration?, empty: Boolean) {
 						super.updateItem(item, empty)
-						text = item?.name
-						graphic = null
+						if (item != null && !empty) {
+							text = item.name
+							graphic = null
+							style = item.takeIf { it.isActive }?.let { "-fx-font-weight: bold;" } ?: ""
+						} else {
+							text = null
+							graphic = null
+							style = null
+						}
 					}
 				}
 			}
 			selectionModel.selectedItemProperty().addListener { _, _, configuration ->
+				SharedUiData.isActiveProperty.removeListener(activationChangeListener)
 				SharedUiData.configurationProperty.set(configuration)
+				SharedUiData.isActiveProperty.addListener(activationChangeListener)
 				tabsEnabled = configuration != null
+				controlsEnabled = true
 			}
 			tabsEnabled = false
 			SharedUiData.nameProperty.addListener { _, _, _ -> listConfigurations.refresh() }
 		}
+		tabPane.selectionModel.select(1)
+		listConfigurations.selectionModel.select(null)
 	}
 
 	private fun load() {
@@ -234,10 +257,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 		when {
 			progress >= count -> { // Finished
 				this.progress.progress = 0.0
-				if (listConfigurations.selectionModel.selectedIndex != -1) {
-					tabsEnabled = true
-					tabLayout.isDisable = !notifier.bluetoothCommunicator.isConnected
-				}
+				if (listConfigurations.selectionModel.selectedIndex != -1) tabsEnabled = true
 				controlsEnabled = when (notifier.bluetoothCommunicator.state) {
 					Communicator.State.CONNECTING,
 					Communicator.State.DISCONNECTING,
@@ -281,21 +301,18 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 			Communicator.State.DISCONNECTING -> {
 				onProgress(-1, 1, false)
 				controlsEnabled = false
-				tabLayout.isDisable = true
 				//if (tabPane.selectionModel.selectedIndex == 0) tabPane.selectionModel.select(1)
 				icon = DeploymentCaseIcon.DISCONNECTED
 				btnReconnect.text = "Cancel [F5]"
 			}
 			Communicator.State.CONNECTED -> {
 				onProgress(0, 0, false)
-				tabLayout.isDisable = false
 				icon = DeploymentCaseIcon.CONNECTED
 				btnReconnect.text = "Disconnect [F5]"
 			}
 			Communicator.State.DISCONNECTED -> {
 				onProgress(0, 0, false)
 				controlsEnabled = false
-				tabLayout.isDisable = true
 				//if (tabPane.selectionModel.selectedIndex == 0) tabPane.selectionModel.select(1)
 				icon = DeploymentCaseIcon.DISCONNECTED
 				btnReconnect.text = "Connect [F5]"

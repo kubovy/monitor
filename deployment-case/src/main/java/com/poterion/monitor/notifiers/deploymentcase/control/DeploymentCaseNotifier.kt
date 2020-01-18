@@ -11,10 +11,7 @@ import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
 import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageListener
-import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
-import com.poterion.monitor.notifiers.deploymentcase.data.Device
-import com.poterion.monitor.notifiers.deploymentcase.data.DeviceKind
-import com.poterion.monitor.notifiers.deploymentcase.data.LcdKey
+import com.poterion.monitor.notifiers.deploymentcase.data.*
 import com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController
 import com.poterion.monitor.notifiers.deploymentcase.ui.StateCompareWindowController
 import javafx.application.Platform
@@ -150,6 +147,47 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 				?: MessageKind.UNKNOWN
 
 		when (kind) {
+			MessageKind.LCD -> if (message.size > 3) {
+				//val num = message[2]
+				//val backlight = message[3]
+				val line = message[4]
+				val length = message[5]
+				lcdCache[line] = (0 until length)
+						.map { message[6 + it].toByte() }
+						.toByteArray()
+						.toString(Charset.defaultCharset())
+				val device = Device(kind = DeviceKind.LCD, key = "${LcdKey.MESSAGE.key}")
+				val value = lcdCache.joinToString("\n")
+				Platform.runLater { listeners.forEach { it.onAction(device, value) } }
+			}
+			MessageKind.MCP23017 -> {
+				if (message.size == 5) {
+					val address = message[2]
+					message.toList()
+							.subList(3, 5)
+							.mapIndexed { index, byte -> (index * 8) to byte2Bools(byte) }
+							.flatMap { (offset, bools) -> bools.mapIndexed { i, b -> (offset + i) to b } }
+							.map { (i, b) -> ((address - 0x20) * 16 + i) to (if (b) "true" else "false") }
+							.map { (key, value) -> Device(kind = DeviceKind.MCP23017, key = "${key}") to value }
+							.forEach { (d, v) -> Platform.runLater { listeners.forEach { it.onAction(d, v) } } }
+				}
+			}
+			MessageKind.WS281x -> {
+				// val num = message[2]
+				// val count = message[3]
+				val index = message[4]
+				val pattern = message[5]
+				val red = message[6]
+				val green = message[7]
+				val blue = message[8]
+				val delay = message[9] * 256 + message[10]
+				val min = message[11]
+				val max = message[12]
+				(index to listOf(pattern, red, green, blue, delay, min, max))
+						.let { (index, data) -> index to data.joinToString(",") }
+						.let { (key, value) -> Device(kind = DeviceKind.WS281x, key = "${key}") to value }
+						.let { (device, value) -> Platform.runLater { listeners.forEach { it.onAction(device, value) } } }
+			}
 			MessageKind.SM_CONFIGURATION -> {
 				val receivedChecksum = message[2] and 0xFF
 				val calculatedChecksum = config.configurations
@@ -170,18 +208,21 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 					if (!stateMachineTransfer && System.currentTimeMillis() - lastStateMachineConfigurationCheck > 30_000L) {
 						lastStateMachineConfigurationCheck = System.currentTimeMillis()
 						Platform.runLater {
-							Alert(Alert.AlertType.CONFIRMATION).apply {
-								title = "Wrong State Machine"
-								headerText = "State machine configuration does not match deployment football's ones!"
-								contentText = "Do you want to upload the state machine to the deployment football?"
-								//contentText = "Do you want to download the state machine from the deployment football or upload it there?"
-								//buttonTypes.setAll(BUTTON_DOWNLOAD, BUTTON_UPLOAD, BUTTON_REPAIR, ButtonType.CANCEL)
-								buttonTypes.setAll(BUTTON_UPLOAD, ButtonType.CANCEL)
-							}.showAndWait().ifPresent { button ->
-								when (button) {
-									BUTTON_DOWNLOAD -> pullStateMachine(repair = false)
-									BUTTON_UPLOAD -> pushStateMachine()
-									BUTTON_REPAIR -> pullStateMachine(repair = true)
+							config.configurations.find { it.isActive }?.also { conf ->
+								Alert(Alert.AlertType.CONFIRMATION).apply {
+									title = "Wrong State Machine"
+									headerText = "State machine configuration does not match deployment football's ones!"
+									contentText = ("Do you want to upload the \"%s\" state machine to the deployment" +
+											" football?").format(conf.name)
+									//contentText = "Do you want to download the state machine from the deployment football or upload it there?"
+									//buttonTypes.setAll(BUTTON_DOWNLOAD, BUTTON_UPLOAD, BUTTON_REPAIR, ButtonType.CANCEL)
+									buttonTypes.setAll(BUTTON_UPLOAD, ButtonType.CANCEL)
+								}.showAndWait().ifPresent { button ->
+									when (button) {
+										BUTTON_DOWNLOAD -> pullStateMachine(repair = false)
+										BUTTON_UPLOAD -> pushStateMachine()
+										BUTTON_REPAIR -> pullStateMachine(repair = true)
+									}
 								}
 							}
 						}
@@ -299,46 +340,15 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 						.map { (d, v) -> d!! to v!! }
 						.forEach { (d, v) -> Platform.runLater { listeners.forEach { it.onAction(d, v) } } }
 			}
-			MessageKind.MCP23017 -> {
-				if (message.size == 5) {
-					val address = message[2]
-					message.toList()
-							.subList(3, 5)
-							.mapIndexed { index, byte -> (index * 8) to byte2Bools(byte) }
-							.flatMap { (offset, bools) -> bools.mapIndexed { i, b -> (offset + i) to b } }
-							.map { (i, b) -> ((address - 0x20) * 16 + i) to (if (b) "true" else "false") }
-							.map { (key, value) -> Device(kind = DeviceKind.MCP23017, key = "${key}") to value }
-							.forEach { (d, v) -> Platform.runLater { listeners.forEach { it.onAction(d, v) } } }
-				}
-			}
-			MessageKind.WS281x -> {
-				// val num = message[2]
-				// val count = message[3]
-				val index = message[4]
-				val pattern = message[5]
-				val red = message[6]
-				val green = message[7]
-				val blue = message[8]
-				val delay = message[9] * 256 + message[10]
-				val min = message[11]
-				val max = message[12]
-				(index to listOf(pattern, red, green, blue, delay, min, max))
-						.let { (index, data) -> index to data.joinToString(",") }
-						.let { (key, value) -> Device(kind = DeviceKind.WS281x, key = "${key}") to value }
-						.let { (device, value) -> Platform.runLater { listeners.forEach { it.onAction(device, value) } } }
-			}
-			MessageKind.LCD -> if (message.size > 3) {
-				//val num = message[2]
-				//val backlight = message[3]
-				val line = message[4]
-				val length = message[5]
-				lcdCache[line] = (0 until length)
-						.map { message[6 + it].toByte() }
+			MessageKind.SM_INPUT -> {
+				val num = message[2]
+				val length = message[3]
+				val value = (0 until length)
+						.map { message[4 + it].toByte() }
 						.toByteArray()
 						.toString(Charset.defaultCharset())
-				val device = Device(kind = DeviceKind.LCD, key = "${LcdKey.MESSAGE.key}")
-				val value = lcdCache.joinToString("\n")
-				Platform.runLater { listeners.forEach { it.onAction(device, value) } }
+				val device = Device(kind = DeviceKind.VIRTUAL, key = VirtualKey.ENTER.key)
+				Platform.runLater { listeners.forEach { it.onAction(device, "${num}|${value}") } }
 			}
 			else -> {
 			}

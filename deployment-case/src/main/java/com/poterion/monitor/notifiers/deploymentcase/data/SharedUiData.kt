@@ -2,10 +2,7 @@ package com.poterion.monitor.notifiers.deploymentcase.data
 
 import com.poterion.monitor.notifiers.deploymentcase.control.toDevice
 import javafx.beans.Observable
-import javafx.beans.property.ObjectProperty
-import javafx.beans.property.SimpleObjectProperty
-import javafx.beans.property.SimpleStringProperty
-import javafx.beans.property.StringProperty
+import javafx.beans.property.*
 import javafx.collections.*
 
 object SharedUiData {
@@ -13,6 +10,7 @@ object SharedUiData {
 	val configurationProperty: ObjectProperty<Configuration> = SimpleObjectProperty()
 
 	val nameProperty: StringProperty = SimpleStringProperty()
+	val isActiveProperty: BooleanProperty = SimpleBooleanProperty()
 
 	val devicesProperty: ObjectProperty<ObservableList<Device>> = SimpleObjectProperty(FXCollections.observableArrayList())
 	val devices: ObservableList<Device>
@@ -39,6 +37,7 @@ object SharedUiData {
 	init {
 
 		val namePropertyListener = { _: Observable, _: String, name: String -> configurationProperty.get()?.name = name }
+		val isActivePropertyListener = { _: Observable, _: Boolean, isActive: Boolean -> configurationProperty.get()?.isActive = isActive }
 		val devicesChangeListener = ListChangeListener<Device> { configurationProperty.get()?.devices = it.list }
 		val variableChangeListener = ListChangeListener<Variable> { configurationProperty.get()?.variables = it.list }
 		val jobStatusChangeListener = MapChangeListener<String, String?> {
@@ -57,6 +56,7 @@ object SharedUiData {
 			isUpdateInProgress = true
 
 			nameProperty.removeListener(namePropertyListener)
+			isActiveProperty.removeListener(isActivePropertyListener)
 			devices.removeListener(devicesChangeListener)
 			variables.removeListener(variableChangeListener)
 			jobStatus.removeListener(jobStatusChangeListener)
@@ -66,10 +66,13 @@ object SharedUiData {
 			nameProperty.set(configuration?.name ?: "")
 			nameProperty.addListener(namePropertyListener)
 
+			isActiveProperty.set(configuration?.isActive ?: false)
+			isActiveProperty.addListener(isActivePropertyListener)
+
 			devicesProperty.set(FXCollections.observableList(configuration?.devices?.toMutableList()
 					?: mutableListOf()))
 			devices.addListener(devicesChangeListener)
-			devices.setAll(((0..71) + (80..83) + (96..97) + (112..113)).map { it.toDevice(devices) })
+			devices.setAll(((0..71) + (80..83) + (96..97) + (112..115)).map { it.toDevice(devices) })
 
 			variablesProperty.set(FXCollections.observableList(configuration?.variables?.toMutableList()
 					?: mutableListOf()))

@@ -168,25 +168,28 @@ class ConfigWindowTabConfigurationController : ConfigurationWindowActionListener
 
 	}
 
-	override fun onUpload() {
-		Alert(Alert.AlertType.CONFIRMATION).apply {
-			initModality(Modality.APPLICATION_MODAL)
-			title = "Upload State Machine"
-			headerText = "Uploading will overwrite the deployment football's configuration and it may take a while."
-			contentText = "Do you want to proceed?"
-			buttonTypes.setAll(ButtonType.YES, ButtonType.NO)
-		}.showAndWait().ifPresent { button ->
-			when (button) {
-				ButtonType.YES -> {
-					if (!checkboxActive.isSelected) {
-						checkboxActive.isSelected = true
-					} else {
-						notifier.pushStateMachine()
-					}
-				}
-			}
-		}
-	}
+    override fun onUpload() {
+        SharedUiData.configurationProperty.get()?.also { configuration ->
+            Alert(Alert.AlertType.CONFIRMATION).apply {
+                initModality(Modality.APPLICATION_MODAL)
+                title = "Upload \"%s\" State Machine".format(configuration.name)
+                headerText = "Uploading will overwrite the deployment football's configuration and it may take a while."
+                contentText = "Do you want to proceed with uploading \"%s\" state machine to the deployment football?"
+                        .format(configuration.name)
+                buttonTypes.setAll(ButtonType.YES, ButtonType.NO)
+            }.showAndWait().ifPresent { button ->
+                when (button) {
+                    ButtonType.YES -> {
+                        if (!checkboxActive.isSelected) {
+                            checkboxActive.isSelected = true
+                        } else {
+                            notifier.pushStateMachine()
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 	override fun onKeyPressed(keyEvent: KeyEvent) = when (keyEvent.code) {
 		KeyCode.F4 -> onTest()
