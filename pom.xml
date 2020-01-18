@@ -26,6 +26,7 @@
         <!-- Notifiers -->
         <module>devops-light</module>
         <module>deployment-case</module>
+        <module>notification-tabs</module>
         <module>notifications</module>
         <module>system-tray</module>
     </modules>
@@ -99,6 +100,11 @@
             <dependency>
                 <groupId>com.poterion.monitor</groupId>
                 <artifactId>notifications</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.poterion.monitor</groupId>
+                <artifactId>notification-tabs</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
