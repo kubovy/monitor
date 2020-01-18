@@ -1,6 +1,6 @@
 package com.poterion.monitor.notifiers.deploymentcase.control
 
-import com.poterion.monitor.api.communication.*
+import com.poterion.communication.serial.*
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier

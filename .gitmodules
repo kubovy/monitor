@@ -1,0 +1,3 @@
+[submodule "serial-communication"]
+	path = serial-communication
+	url = ssh://git@bitbucket.poterion.com:22999/poterion/serial-communication.git
