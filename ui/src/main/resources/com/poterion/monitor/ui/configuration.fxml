@@ -1,50 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.CheckBox?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.SplitPane?>
-<?import javafx.scene.control.Tab?>
-<?import javafx.scene.control.TabPane?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.control.TreeTableColumn?>
-<?import javafx.scene.control.TreeTableView?>
-<?import javafx.scene.control.TreeView?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.RowConstraints?>
-<?import javafx.scene.layout.VBox?>
-
-<TabPane fx:id="tabPaneMain" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="1000.0" prefWidth="1200.0" tabClosingPolicy="UNAVAILABLE" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.poterion.monitor.ui.ConfigurationController">
-  <tabs>
-      <Tab fx:id="tabAlerts" closable="false" text="Alerts">
-        <content>
-          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
-               <children>
-                  <TreeTableView fx:id="treeTableAlerts" layoutX="43.0" layoutY="25.0" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-                    <columns>
-                        <TreeTableColumn fx:id="columnAlertsTitle" editable="false" maxWidth="1.7976931348623157E308" minWidth="200.0" prefWidth="-1.0" sortable="false" text="Title" />
-                      <TreeTableColumn fx:id="columnAlertsService" editable="false" maxWidth="1.7976931348623157E308" minWidth="200.0" prefWidth="-1.0" sortable="false" text="Service" />
-                      <TreeTableColumn fx:id="columnAlertsPriority" editable="false" maxWidth="1.7976931348623157E308" minWidth="24.0" prefWidth="-1.0" resizable="false" sortable="false" text="P" />
-                        <TreeTableColumn fx:id="columnAlertsLabels" editable="false" maxWidth="1.7976931348623157E308" minWidth="200.0" prefWidth="-1.0" sortable="false" text="Labels" />
-                        <TreeTableColumn fx:id="columnAlertsStarted" editable="false" maxWidth="1.7976931348623157E308" minWidth="190.0" prefWidth="-1.0" resizable="false" sortable="false" text="Started" />
-                    </columns>
-                  </TreeTableView>
-               </children>
-            </AnchorPane>
-        </content>
-      </Tab>
-    <Tab fx:id="tabCommon" closable="false" text="Common">
-      <content>
-            <SplitPane fx:id="splitPane" dividerPositions="0.3" prefHeight="160.0" prefWidth="200.0">
-              <items>
-                  <TreeView fx:id="tree" prefHeight="200.0" prefWidth="200.0" />
-                  <VBox fx:id="vboxContent">
-                      <children>
-                        <GridPane fx:id="gridPane" hgap="5.0" maxWidth="1.7976931348623157E308">
-                          <columnConstraints>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<TabPane fx:id="tabPaneMain" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity"
+         minWidth="-Infinity" prefHeight="1000.0" prefWidth="1200.0" tabClosingPolicy="UNAVAILABLE"
+         xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1"
+         fx:controller="com.poterion.monitor.ui.ConfigurationController">
+    <tabs>
+        <Tab fx:id="tabCommon" closable="false" text="Common">
+            <content>
+                <SplitPane fx:id="splitPane" dividerPositions="0.3" prefHeight="160.0" prefWidth="200.0">
+                    <items>
+                        <TreeView fx:id="tree" prefHeight="200.0" prefWidth="200.0"/>
+                        <VBox fx:id="vboxContent">
+                            <children>
+                                <GridPane fx:id="gridPane" hgap="5.0" maxWidth="1.7976931348623157E308">
+                                    <columnConstraints>
                             <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" />
                             <ColumnConstraints hgrow="ALWAYS" maxWidth="1.7976931348623157E308" minWidth="10.0" />
                           </columnConstraints>

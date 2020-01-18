@@ -4,11 +4,13 @@ import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.auth.BasicAuthConfig
 import com.poterion.monitor.data.services.ServiceConfig
+import java.util.*
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
 class SonarConfig(override var type: String = SonarConfig::class.java.simpleName,
+				  override val uuid: String = UUID.randomUUID().toString(),
 				  override var name: String = "",
 				  override var enabled: Boolean = true,
 				  override var url: String = "",

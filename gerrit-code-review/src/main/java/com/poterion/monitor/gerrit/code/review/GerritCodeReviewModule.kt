@@ -4,6 +4,7 @@ import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.api.ui.Icon
 import com.poterion.monitor.data.ApplicationConfiguration
+import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.gerrit.code.review.control.GerritCodeReviewService
 import com.poterion.monitor.gerrit.code.review.data.GerritCodeReviewConfig
 import com.poterion.monitor.gerrit.code.review.ui.GerritCodeReviewIcon
@@ -20,11 +21,15 @@ object GerritCodeReviewModule : ServiceModule<GerritCodeReviewConfig, GerritCode
 	override val staticNotificationSet: Boolean
 		get() = false
 
-	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration): GerritCodeReviewService =
-			GerritCodeReviewService(controller, GerritCodeReviewConfig(name = title).also { applicationConfiguration.services.add(it) })
+	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
+			GerritCodeReviewService = GerritCodeReviewConfig(uuid = applicationConfiguration.services.nextUUID(), name = title)
+			.also { applicationConfiguration.services[it.uuid] = it }
+			.let { GerritCodeReviewService(controller, it) }
 
-	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration): Collection<GerritCodeReviewService> = applicationConfiguration
+	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
+			Collection<GerritCodeReviewService> = applicationConfiguration
 			.services
+			.values
 			.filterIsInstance<GerritCodeReviewConfig>()
 			.map { GerritCodeReviewService(controller, it) }
 }

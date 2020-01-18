@@ -7,6 +7,7 @@ import com.poterion.monitor.api.lib.toIcon
 import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.CommonIcon
+import com.poterion.monitor.api.utils.cell
 import com.poterion.monitor.api.utils.factory
 import com.poterion.monitor.api.utils.toSet
 import com.poterion.monitor.data.Priority
@@ -16,13 +17,11 @@ import com.poterion.monitor.sensors.alertmanager.AlertManagerModule
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerConfig
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerLabelConfig
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerResponse
-import javafx.beans.binding.Bindings
 import javafx.collections.FXCollections
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.*
-import javafx.scene.control.cell.PropertyValueFactory
 import javafx.scene.input.KeyCode
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Pane
@@ -139,17 +138,16 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 		minWidth = 150.0
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Double.MAX_VALUE
-		setCellFactory {
-			val cell = TableCell<AlertManagerLabelConfig, String>()
-			val textField = TextField(cell.item)
-			textField.textProperty().bindBidirectional(cell.itemProperty())
-			textField.textProperty().addListener { _, _, value ->
-				cell.tableRow.item.let { it as? AlertManagerLabelConfig }?.also { it.name = value }
-				labelTable.items.sortWith(compareBy({ -it.priority.ordinal }, { -it.status.ordinal }, { it.name }, { it.value }))
-				controller.saveConfig()
+		cell("name") { item, value, empty ->
+			graphic = TextField(value).takeUnless { empty }?.apply {
+				textProperty().bindBidirectional(itemProperty())
+				textProperty().addListener { _, _, value ->
+					item?.name = value
+					sortLabelTable()
+					controller.saveConfig()
+				}
+
 			}
-			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(textField))
-			cell
 		}
 	}
 
@@ -158,17 +156,15 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 		minWidth = 200.0
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Double.MAX_VALUE
-		setCellFactory {
-			val cell = TableCell<AlertManagerLabelConfig, String>()
-			val textField = TextField(cell.item)
-			textField.textProperty().bindBidirectional(cell.itemProperty())
-			textField.textProperty().addListener { _, _, value ->
-				cell.tableRow.item.let { it as? AlertManagerLabelConfig }?.also { it.value = value }
-				labelTable.items.sortWith(compareBy({ -it.priority.ordinal }, { -it.status.ordinal }, { it.name }, { it.value }))
-				controller.saveConfig()
+		cell("value") { item, value, empty ->
+			graphic = TextField(value).takeUnless { empty }?.apply {
+				textProperty().bindBidirectional(itemProperty())
+				textProperty().addListener { _, _, value ->
+					item?.value = value
+					sortLabelTable()
+					controller.saveConfig()
+				}
 			}
-			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(textField))
-			cell
 		}
 	}
 
@@ -177,22 +173,21 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 		minWidth = 150.0
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Region.USE_PREF_SIZE
-		setCellFactory {
-			val cell = TableCell<AlertManagerLabelConfig, Priority>()
-			val comboBox = ComboBox<Priority>(FXCollections.observableList(Priority.values().toList())).apply {
-				factory { item, empty ->
-					text = item?.takeUnless { empty }?.name
-					graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
-				}
-				valueProperty().bindBidirectional(cell.itemProperty())
-				valueProperty().addListener { _, _, priority ->
-					cell.tableRow.item.let { it as? AlertManagerLabelConfig }?.also { it.priority = priority }
-					labelTable.items.sortWith(compareBy({ -it.priority.ordinal }, { -it.status.ordinal }, { it.name }, { it.value }))
-					controller.saveConfig()
-				}
-			}
-			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(comboBox))
-			cell
+		cell("priority") { item, value, empty ->
+			graphic = ComboBox<Priority>(FXCollections.observableList(Priority.values().toList())).takeUnless { empty }
+					?.apply {
+						factory { item, empty ->
+							text = item?.takeUnless { empty }?.name
+							graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
+						}
+						selectionModel.select(value)
+						valueProperty().bindBidirectional(itemProperty())
+						valueProperty().addListener { _, _, priority ->
+							item?.priority = priority
+							sortLabelTable()
+							controller.saveConfig()
+						}
+					}
 		}
 	}
 
@@ -201,23 +196,21 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 		minWidth = 200.0
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Region.USE_PREF_SIZE
-		setCellFactory {
-			val cell = TableCell<AlertManagerLabelConfig, Status>()
-			val comboBox = ComboBox<Status>(FXCollections.observableList(Status.values().toList())).apply {
-				factory { item, empty ->
-					text = item?.takeUnless { empty }?.name
-					graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
-				}
-				valueProperty().bindBidirectional(cell.itemProperty())
-
-				valueProperty().addListener { _, _, status ->
-					cell.tableRow.item.let { it as? AlertManagerLabelConfig }?.also { it.status = status }
-					labelTable.items.sortWith(compareBy({ -it.priority.ordinal }, { -it.status.ordinal }, { it.name }, { it.value }))
-					controller.saveConfig()
-				}
-			}
-			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(comboBox))
-			cell
+		cell("status") { item, value, empty ->
+			graphic = ComboBox<Status>(FXCollections.observableList(Status.values().toList())).takeUnless { empty }
+					?.apply {
+						factory { item, empty ->
+							text = item?.takeUnless { empty }?.name
+							graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
+						}
+						selectionModel.select(value)
+						valueProperty().bindBidirectional(itemProperty())
+						valueProperty().addListener { _, _, status ->
+							item?.status = status
+							sortLabelTable()
+							controller.saveConfig()
+						}
+					}
 		}
 	}
 
@@ -226,34 +219,18 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 		minWidth = 48.0
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Region.USE_PREF_SIZE
-		setCellFactory {
-			val cell = TableCell<AlertManagerLabelConfig, Status>()
-			val button = Button("", CommonIcon.TRASH.toImageView()).apply {
-				setOnAction {
-					cell.tableRow.item?.let { it as? AlertManagerLabelConfig }?.also { removeLabel(it) }
-				}
+		cell { item, _, empty ->
+			graphic = Button("", CommonIcon.TRASH.toImageView()).takeUnless { empty }?.apply {
+				setOnAction { item?.also { removeLabel(it) } }
 			}
-			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(button))
-			cell
 		}
 	}
 
 	init {
-		labelTableNameColumn.apply {
-			cellValueFactory = PropertyValueFactory<AlertManagerLabelConfig, String>("name")
-		}
-		labelTableValueColumn.apply {
-			cellValueFactory = PropertyValueFactory<AlertManagerLabelConfig, String>("value")
-		}
-		labelTablePriorityColumn.apply {
-			cellValueFactory = PropertyValueFactory<AlertManagerLabelConfig, Priority>("priority")
-		}
-		labelTableStatusColumn.apply {
-			cellValueFactory = PropertyValueFactory<AlertManagerLabelConfig, Status>("status")
-		}
-		labelTable.columns.addAll(labelTablePriorityColumn, labelTableNameColumn, labelTableValueColumn,
-				labelTableStatusColumn, labelTableActionColumn)
-		labelTable.items.addAll(config.labels.sortedWith(compareBy({ -it.priority.ordinal }, { -it.status.ordinal }, { it.name }, { it.value })))
+		labelTable.items.setAll(config.labels)
+		labelTable.columns.addAll(labelTablePriorityColumn, labelTableNameColumn, labelTableValueColumn, labelTableStatusColumn,
+				labelTableActionColumn)
+		sortLabelTable()
 	}
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
@@ -280,7 +257,7 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 								?.map { (name, p) -> Triple(name, p.first, p.second) }
 								?.also { lastFound = it }
 								?.map { (n, c, i) ->
-									StatusItem(serviceName = config.name,
+									StatusItem(serviceId = config.uuid,
 											priority = c.priority,
 											status = c.status,
 											title = n,
@@ -367,5 +344,13 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 				controller.saveConfig()
 			}
 		}
+	}
+
+	private fun sortLabelTable() {
+		labelTable.items.sortWith(compareBy(
+				{ -it.priority.ordinal },
+				{ -it.status.ordinal },
+				{ it.name },
+				{ it.value }))
 	}
 }

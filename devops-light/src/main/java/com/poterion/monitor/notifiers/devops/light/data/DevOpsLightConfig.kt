@@ -2,11 +2,13 @@ package com.poterion.monitor.notifiers.devops.light.data
 
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.notifiers.NotifierConfig
+import java.util.*
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
 data class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.java.simpleName,
+							 override val uuid: String = UUID.randomUUID().toString(),
 							 override var name: String = "",
 							 override var enabled: Boolean = true,
 							 override var minPriority: Priority = Priority.LOW,

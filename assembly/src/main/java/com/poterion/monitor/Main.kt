@@ -2,6 +2,7 @@ package com.poterion.monitor
 
 import com.poterion.monitor.control.ApplicationController
 import com.poterion.monitor.gerrit.code.review.GerritCodeReviewModule
+import com.poterion.monitor.notification.tabs.NotificationTabsModule
 import com.poterion.monitor.notifications.NotificationsModule
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
 import com.poterion.monitor.notifiers.devops.light.DevOpsLight
@@ -13,8 +14,6 @@ import com.poterion.monitor.ui.ConfigurationController
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.stage.Stage
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 /*
  * @startuml
@@ -57,7 +56,6 @@ import org.slf4j.LoggerFactory
  */
 class Main : Application() {
 	companion object {
-		private val LOGGER: Logger = LoggerFactory.getLogger(Application::class.java)
 		private const val CONFIG_FILE: String = "config.yaml"
 
 		@JvmStatic
@@ -69,16 +67,16 @@ class Main : Application() {
 	override fun start(primaryStage: Stage) {
 		Platform.setImplicitExit(false)
 
-		val controller = ApplicationController(primaryStage, CONFIG_FILE).apply {
-			registerModule(AlertManagerModule)
-			registerModule(GerritCodeReviewModule)
-			registerModule(JenkinsModule)
-			registerModule(SonarModule)
-			registerModule(DeploymentCaseModule)
-			registerModule(DevOpsLight)
-			registerModule(NotificationsModule)
-			registerModule(SystemTrayModule)
-		}
+		val controller = ApplicationController(primaryStage, CONFIG_FILE,
+				AlertManagerModule,
+				GerritCodeReviewModule,
+				JenkinsModule,
+				SonarModule,
+				DeploymentCaseModule,
+				DevOpsLight,
+				NotificationsModule,
+				NotificationTabsModule,
+				SystemTrayModule)
 		controller.start()
 		if (controller.applicationConfiguration.showOnStartup) {
 			ConfigurationController.create(controller)

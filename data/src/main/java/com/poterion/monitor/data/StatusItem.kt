@@ -42,7 +42,7 @@ import java.time.Instant
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-data class StatusItem(val serviceName: String,
+data class StatusItem(val serviceId: String,
 					  val priority: Priority,
 					  val status: Status,
 					  val title: String,

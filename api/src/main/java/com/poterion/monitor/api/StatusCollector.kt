@@ -23,7 +23,7 @@ object StatusCollector {
 	fun topStatuses(minPriority: Priority) = items
 			.filter { it.priority >= minPriority }
 			.filter { it.status == maxStatus(minPriority) }
-			.distinctBy { it.serviceName }
+			.distinctBy { it.serviceId }
 
 	fun topStatus(minPriority: Priority) = items
 			.filter { it.priority >= minPriority }
@@ -31,8 +31,8 @@ object StatusCollector {
 
 	@Synchronized
 	fun update(items: Collection<StatusItem>, update: Boolean) {
-		if (!update) items.forEach { itemMap.remove(it.serviceName) }
-		itemMap.putAll(items.groupBy { it.serviceName })
+		if (!update) items.forEach { itemMap.remove(it.serviceId) }
+		itemMap.putAll(items.groupBy { it.serviceId })
 
 		this.items = itemMap.values.flatten()
 		LOGGER.info("Updating status: ${this.items}")

@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
@@ -19,7 +18,6 @@ import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.notifiers.NotifierDeserializer
 import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.data.services.ServiceDeserializer
-import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.stage.Stage
@@ -27,7 +25,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.time.LocalDateTime
-import java.util.concurrent.Executors
 import kotlin.system.exitProcess
 
 /**
@@ -35,9 +32,9 @@ import kotlin.system.exitProcess
  *
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-class ApplicationController(override val stage: Stage, configFileName: String = "config.yaml") : ControllerInterface {
+class ApplicationController(override val stage: Stage, configFileName: String, vararg modules: Module<*, *>) : ControllerInterface {
 	companion object {
-		val LOGGER: Logger = LoggerFactory.getLogger(ApplicationController::class.java)
+		private val LOGGER: Logger = LoggerFactory.getLogger(ApplicationController::class.java)
 	}
 
 	private val configFile = File(configFileName)
@@ -55,10 +52,30 @@ class ApplicationController(override val stage: Stage, configFileName: String = 
 	override val services: ObservableList<Service<ServiceConfig>> = FXCollections.observableArrayList()
 	override val notifiers: ObservableList<Notifier<NotifierConfig>> = FXCollections.observableArrayList()
 
-	override var applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration()
+	override lateinit var applicationConfiguration: ApplicationConfiguration
 	private val configListeners = mutableListOf<(ApplicationConfiguration) -> Unit>()
 
-	fun registerModule(module: Module<*, *>) {
+	init {
+		LOGGER.info("Initializing with ${configFile.absolutePath} config file")
+		modules.forEach { registerModule(it) }
+		if (configFile.exists()) try {
+			applicationConfiguration = mapper.readValue(configFile, ApplicationConfiguration::class.java)
+			(applicationConfiguration.services as MutableMap<String, ServiceConfig?>)
+					.filterValues { it == null }
+					.keys
+					.forEach { applicationConfiguration.services.remove(it) }
+			(applicationConfiguration.notifiers as MutableMap<String, NotifierConfig?>)
+					.filterValues { it == null }
+					.keys
+					.forEach { applicationConfiguration.notifiers.remove(it) }
+		} catch (e: Exception) {
+			LOGGER.error(e.message, e)
+			applicationConfiguration = ApplicationConfiguration()
+			configFile.copyTo(File(configFile.absolutePath + "-" + LocalDateTime.now().toString()))
+		}
+	}
+
+	private fun registerModule(module: Module<*, *>) {
 		LOGGER.info("Registring ${module::class.java.name} module")
 		modules.add(module)
 		when (module) {
@@ -68,12 +85,7 @@ class ApplicationController(override val stage: Stage, configFileName: String = 
 	}
 
 	fun start() {
-		LOGGER.info("Starting with ${configFile.absolutePath} config file")
-		if (configFile.exists()) try {
-			applicationConfiguration = mapper.readValue(configFile, ApplicationConfiguration::class.java)
-		} catch (e: Exception) {
-			configFile.copyTo(File(configFile.absolutePath + "-" + LocalDateTime.now().toString()))
-		}
+		LOGGER.info("Starting...")
 
 		for (module in modules) {
 			LOGGER.info("Loading ${module.title} module...")
@@ -93,19 +105,17 @@ class ApplicationController(override val stage: Stage, configFileName: String = 
 	}
 
 	override fun add(module: Module<*, *>): ModuleInstanceInterface<*>? {
-		when (module) {
+		return when (module) {
 			is ServiceModule<*, *> -> module.createController(this, applicationConfiguration)?.also { controller ->
 				services.add(controller)
 				services.sortBy { controller.config.priority }
-				return controller
 			}
 			is NotifierModule<*, *> -> module.createController(this, applicationConfiguration)?.also { controller ->
 				notifiers.add(controller)
 				notifiers.sortBy { controller.config.name }
-				return controller
 			}
-		}
-		return null
+			else -> null
+		}?.also { (it as? ModuleInstanceInterface<*>)?.initialize() }
 	}
 
 	override fun quit() {
