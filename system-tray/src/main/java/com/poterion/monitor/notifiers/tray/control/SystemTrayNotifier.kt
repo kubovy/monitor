@@ -61,7 +61,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 			LOGGER.error(e.message, e)
 		}
 		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe {
-			Platform.runLater { update(it.items)  }
+			Platform.runLater { update(it.items) }
 		}
 	}
 
@@ -101,13 +101,13 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 	}
 
 	private fun update(statusItems: Collection<StatusItem>) {
-		statusItems.map { it.serviceName }
+		statusItems.map { it.serviceId }
 				.distinct()
 				.map { it to serviceMenus[it] }
-				.forEach { (serviceName, serviceMenu) ->
+				.forEach { (serviceId, serviceMenu) ->
 					serviceMenu
-							?.also { it.updateSubMenu(statusItems.filter { item -> item.serviceName == serviceName }) }
-							?: LOGGER.error("Unknown service ${serviceName} - no menu for it")
+							?.also { it.updateSubMenu(statusItems.filter { item -> item.serviceId == serviceId }) }
+							?: LOGGER.error("Unknown service ${serviceId} - no menu for it")
 				}
 
 		statusItems
@@ -195,7 +195,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 		statusItems
 				.sortedWith(compareByDescending(StatusItem::priority).thenBy(StatusItem::title))
 				.forEachIndexed { index, statusItem ->
-					val menuItem = menuItems[statusItem.key()] ?: MenuItem().apply {
+					val menuItem = menuItems[statusItem.key] ?: MenuItem().apply {
 						prioritised = separateNonePriorityItems(index, statusItem.priority, prioritised)
 						text = statusItem.title
 						setCallback { _ ->
@@ -211,7 +211,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 									?.also { open(it) }
 						}
 						//menuEntries[this@updateSubMenu]?.add(this)
-						menuItems[statusItem.key()] = this
+						menuItems[statusItem.key] = this
 						this@updateSubMenu.add(this)
 					}
 					if (statusItem.priority == Priority.NONE) prioritised = false

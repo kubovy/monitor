@@ -9,7 +9,7 @@ import javafx.scene.input.MouseEvent
 import javafx.util.Callback
 
 fun <T> ComboBox<T>.factory(factory: ListCell<T>.(T?, Boolean) -> Unit) {
-	cellFactory = Callback<ListView<T>, ListCell<T>>() {
+	cellFactory = Callback<ListView<T>, ListCell<T>> {
 		object : ListCell<T>() {
 			override fun updateItem(item: T, empty: Boolean) {
 				super.updateItem(item, empty)
@@ -18,6 +18,17 @@ fun <T> ComboBox<T>.factory(factory: ListCell<T>.(T?, Boolean) -> Unit) {
 		}
 	}
 	buttonCell = cellFactory.call(null)
+}
+
+fun <T> TreeView<T>.factory(factory: TreeCell<T>.(T?, Boolean) -> Unit) {
+	cellFactory = Callback<TreeView<T>, TreeCell<T>> {
+		object : TreeCell<T>() {
+			override fun updateItem(item: T, empty: Boolean) {
+				super.updateItem(item, empty)
+				factory(item, empty)
+			}
+		}
+	}
 }
 
 fun <S, T> TableColumn<S, T>.cellFactoryInternal(factory: (TableCell<S, T>.(S?, T?, Boolean) -> Unit)? = null) {

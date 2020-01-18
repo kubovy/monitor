@@ -1,6 +1,5 @@
 package com.poterion.monitor.notification.tabs.ui
 
-import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.lib.toIcon
 import com.poterion.monitor.api.lib.toImageView
@@ -10,8 +9,8 @@ import com.poterion.monitor.api.utils.toUriOrNull
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
+import com.poterion.monitor.data.serviceName
 import com.poterion.monitor.notification.tabs.data.NotificationTabsConfig
-import javafx.application.Platform
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
@@ -22,19 +21,18 @@ import java.awt.Desktop
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.concurrent.TimeUnit
-
 
 class TabController {
 	companion object {
-		internal fun getRoot(controller: ControllerInterface, config: NotificationTabsConfig): Parent =
-				FXMLLoader(TabController::class.java.getResource("tab.fxml"))
+		internal fun getRoot(controller: ControllerInterface, config: NotificationTabsConfig): Pair<Parent, TabController> =
+				FXMLLoader(TabController::class.java.getResource("/tab.fxml"))
 						.let { it.load<Parent>() to it.getController<TabController>() }
 						.let { (root, ctrl) ->
 							ctrl.controller = controller
 							ctrl.config = config
 							root.userData = ctrl
-							root
+							ctrl.load()
+							root to ctrl
 						}
 	}
 
@@ -63,7 +61,7 @@ class TabController {
 			{ -it.value.status.ordinal },
 			{ -it.value.priority.ordinal },
 			{ -it.value.startedAt.epochSecond },
-			{ it.value.serviceName },
+			{ it.value.serviceName(controller.applicationConfiguration) },
 			{ it.value.title })
 
 	@FXML
@@ -73,6 +71,7 @@ class TabController {
 		treeTableAlerts.setOnItemClick { item, event ->
 			if (event.clickCount == 2 && !isEmpty) item?.link?.toUriOrNull()?.also { Desktop.getDesktop().browse(it) }
 		}
+
 		columnAlertsTitle.cell("title") { item, value, empty ->
 			text = value?.takeUnless { empty }
 			graphic = item?.status?.takeUnless { empty }?.toIcon()?.toImageView()
@@ -83,14 +82,16 @@ class TabController {
 				else -> null
 			}
 		}
-		columnAlertsService.cell("serviceName") { item, value, empty ->
-			text = value?.takeUnless { empty }
+
+		columnAlertsService.cell("serviceId") { item, _, empty ->
+			text = item?.takeUnless { empty }?.serviceName(controller.applicationConfiguration)
 			style = when {
 				index == 0 -> "-fx-font-weight: bold;"
 				item?.priority == Priority.NONE -> "-fx-text-fill: #999; -fx-font-style: italic;"
 				else -> null
 			}
 		}
+
 		columnAlertsPriority.cell("priority") { item, value, empty ->
 			text = null
 			graphic = value?.takeUnless { empty }?.toIcon()?.toImageView()
@@ -101,6 +102,7 @@ class TabController {
 				else -> null
 			}
 		}
+
 		columnAlertsLabels.cell("labels") { _, value, _ ->
 			//text = value?.takeUnless { empty }?.map { (k, v) -> "${k}: ${v}" }?.joinToString(", ")
 			val labels = value?.entries?.sortedBy { (k, _) -> k }?.map { (k, v) ->
@@ -127,6 +129,7 @@ class TabController {
 						//style = "-fx-border-color: red"
 					}
 		}
+
 		columnAlertsStarted.cell("startedAt") { item, value, empty ->
 			text = if (empty) null else DateTimeFormatter
 					.ofPattern("YYYY-MM-dd HH:mm:ss")
@@ -140,13 +143,33 @@ class TabController {
 		}
 	}
 
-	fun update(statusItems: Collection<StatusItem>) {
-		Platform.runLater {
-			treeTableAlerts.root.children.setAll(statusItems.map { TreeItem(it) })
-			treeTableAlerts.root.children.sortWith(tableAlertComparator)
+	fun load() {
+		columnAlertsTitle.prefWidth = config.alertTitleWidth
+		columnAlertsTitle.widthProperty().addListener { _, _, value ->
+			config.alertTitleWidth = value.toDouble()
+			controller.saveConfig()
+		}
+		columnAlertsService.prefWidth = config.alertServiceWidth
+		columnAlertsService.widthProperty().addListener { _, _, value ->
+			config.alertServiceWidth = value.toDouble()
+			controller.saveConfig()
+		}
+		columnAlertsLabels.prefWidth = config.alertLabelsWidth
+		columnAlertsLabels.widthProperty().addListener { _, _, value ->
+			config.alertLabelsWidth = value.toDouble()
+			controller.saveConfig()
 		}
 	}
 
+	fun update(statusItems: Collection<StatusItem>) {
+		treeTableAlerts.root.children.setAll(statusItems.map { TreeItem(it) })
+		treeTableAlerts.root.children.sortWith(tableAlertComparator)
+	}
+
 	private val StatusItem.groupOrder: Int
-		get() = if (serviceName == "" && priority == Priority.NONE && status == Status.NONE && title == "") 0 else 1
+		get() = if (serviceName(controller.applicationConfiguration.services) == ""
+				&& priority == Priority.NONE
+				&& status == Status.NONE
+				&& title == "")
+			0 else 1
 }

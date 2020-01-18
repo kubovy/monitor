@@ -5,6 +5,7 @@ package com.poterion.monitor.data
  */
 interface ModuleConfig {
 	var type: String
+	val uuid: String
 	var name: String
 	var enabled: Boolean
 }

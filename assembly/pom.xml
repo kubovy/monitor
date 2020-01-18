@@ -72,6 +72,10 @@
         </dependency>
         <dependency>
             <groupId>com.poterion.monitor</groupId>
+            <artifactId>notification-tabs</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.poterion.monitor</groupId>
             <artifactId>notifications</artifactId>
         </dependency>
         <dependency>

@@ -11,16 +11,17 @@ import com.poterion.monitor.api.utils.factory
 import com.poterion.monitor.api.utils.toUriOrNull
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
+import com.poterion.monitor.data.key
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifications.NotificationsModule
 import com.poterion.monitor.notifications.data.NotificationsConfig
 import javafx.application.Platform
 import javafx.collections.FXCollections
-import javafx.geometry.HPos
 import javafx.geometry.Pos
 import javafx.scene.Node
-import javafx.scene.control.*
-import javafx.scene.layout.GridPane
+import javafx.scene.control.ComboBox
+import javafx.scene.control.Label
+import javafx.scene.control.TextField
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Pane
 import javafx.util.Duration
@@ -135,17 +136,16 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 				.filter { it.priority >= config.minPriority }
 				.filter { it.status >= config.minStatus }) {
 			val now = Instant.now()
-			val key = "${statusItem.serviceName}-${statusItem.title}"
 			//val lastStarted = statusItemCache[key]?.startedAt
-			val lastStatus = statusItemCache[key]?.status
-			val lastShown = statusItemLastShownAtCache[key] ?: Instant.EPOCH
+			val lastStatus = statusItemCache[statusItem.key]?.status
+			val lastShown = statusItemLastShownAtCache[statusItem.key] ?: Instant.EPOCH
 			val repeatAfter = config.repeatAfter
 
 			if (lastStatus != statusItem.status
 					|| repeatAfter == null
 					|| lastShown.isBefore(now.minusMillis(repeatAfter))) {
-				statusItemCache[key] = statusItem
-				statusItemLastShownAtCache[key] = now
+				statusItemCache[statusItem.key] = statusItem
+				statusItemLastShownAtCache[statusItem.key] = now
 
 				val formatter = listOf(statusItem.startedAt, now)
 						.map { it.atOffset(ZoneOffset.UTC) }

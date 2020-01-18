@@ -7,6 +7,8 @@ import com.poterion.communication.serial.USBCommunicator
 import com.poterion.monitor.api.lib.toImage
 import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.ui.CommonIcon
+import com.poterion.monitor.api.utils.cell
+import com.poterion.monitor.api.utils.factory
 import com.poterion.monitor.notifiers.devops.light.DevOpsLightIcon
 import com.poterion.monitor.notifiers.devops.light.control.DevOpsLightNotifier
 import com.poterion.monitor.notifiers.devops.light.data.*
@@ -21,7 +23,6 @@ import javafx.scene.Parent
 import javafx.scene.control.*
 import javafx.scene.control.Alert.AlertType
 import javafx.scene.control.ButtonType
-import javafx.scene.control.cell.PropertyValueFactory
 import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
@@ -134,13 +135,8 @@ class ConfigWindowController : CommunicatorListener {
 						.firstOrNull { it.title == string }
 						?: patterns.first()
 			}
-			setCellFactory {
-				object : ListCell<LightPattern>() {
-					public override fun updateItem(item: LightPattern?, empty: Boolean) {
-						super.updateItem(item, empty)
-						text = item?.title
-					}
-				}
+			factory { item, empty ->
+				text = item?.takeUnless { empty }?.title
 			}
 		}
 
@@ -160,14 +156,9 @@ class ConfigWindowController : CommunicatorListener {
 		treeConfigs.apply {
 			isShowRoot = false
 			selectionModel.selectionMode = SelectionMode.SINGLE
-			setCellFactory { _ ->
-				object : TreeCell<StateConfig>() {
-					override fun updateItem(item: StateConfig?, empty: Boolean) {
-						super.updateItem(item, empty)
-						text = item?.title?.let { if (it.isEmpty()) "Default" else it }
-						graphic = item?.icon?.toImageView()
-					}
-				}
+			factory { item, empty ->
+				text = item?.takeUnless { empty }?.title?.let { if (it.isEmpty()) "Default" else it }
+				graphic = item?.takeUnless { empty }?.icon?.toImageView()
 			}
 			selectionModel.selectedItemProperty().addListener { _, _, item ->
 				selectStateConfig(item)
@@ -186,9 +177,7 @@ class ConfigWindowController : CommunicatorListener {
 			selectionModel.selectedItemProperty().addListener { _, _, newValue -> selectLightConfig(newValue) }
 		}
 
-		columnLightPattern.apply {
-			setCellValueFactory(PropertyValueFactory<LightConfig, String>("pattern"))
-		}
+		columnLightPattern.cell("pattern")
 
 		columnLightColor1.init("color1")
 		columnLightColor2.init("color2")
@@ -197,72 +186,12 @@ class ConfigWindowController : CommunicatorListener {
 		columnLightColor5.init("color5")
 		columnLightColor6.init("color6")
 
-		columnLightDelay.apply {
-			cellValueFactory = PropertyValueFactory<LightConfig, Int>("delay")
-			setCellFactory { _ ->
-				object : TableCell<LightConfig, Int>() {
-					override fun updateItem(item: Int?, empty: Boolean) {
-						super.updateItem(item, empty)
-						text = item?.let { "${it} ms" }
-					}
-				}
-			}
-		}
-		columnLightWidth.apply {
-			cellValueFactory = PropertyValueFactory<LightConfig, Int>("width")
-			setCellFactory {
-				object : TableCell<LightConfig, Int>() {
-					override fun updateItem(item: Int?, empty: Boolean) {
-						super.updateItem(item, empty)
-						text = item?.toString()
-					}
-				}
-			}
-		}
-		columnLightFading.apply {
-			cellValueFactory = PropertyValueFactory<LightConfig, Int>("fading")
-			setCellFactory {
-				object : TableCell<LightConfig, Int>() {
-					override fun updateItem(item: Int?, empty: Boolean) {
-						super.updateItem(item, empty)
-						text = item?.toString()
-					}
-				}
-			}
-		}
-		columnLightMinimum.apply {
-			cellValueFactory = PropertyValueFactory<LightConfig, Int>("min")
-			setCellFactory {
-				object : TableCell<LightConfig, Int>() {
-					override fun updateItem(item: Int?, empty: Boolean) {
-						super.updateItem(item, empty)
-						text = item?.toString()
-					}
-				}
-			}
-		}
-		columnLightMaximum.apply {
-			cellValueFactory = PropertyValueFactory<LightConfig, Int>("max")
-			setCellFactory {
-				object : TableCell<LightConfig, Int>() {
-					override fun updateItem(item: Int?, empty: Boolean) {
-						super.updateItem(item, empty)
-						text = item?.toString()
-					}
-				}
-			}
-		}
-		columnLightTimeout.apply {
-			cellValueFactory = PropertyValueFactory<LightConfig, Int>("timeout")
-			setCellFactory {
-				object : TableCell<LightConfig, Int>() {
-					override fun updateItem(item: Int?, empty: Boolean) {
-						super.updateItem(item, empty)
-						text = item?.toString()
-					}
-				}
-			}
-		}
+		columnLightDelay.cell("delay") { _, value, empty -> text = value?.takeUnless { empty }?.let { "${it} ms" } }
+		columnLightWidth.cell("width") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
+		columnLightFading.cell("fading") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
+		columnLightMinimum.cell("min") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
+		columnLightMaximum.cell("max") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
+		columnLightTimeout.cell("timeout") { _, value, empty -> text = value?.takeUnless { empty }.toString() }
 		treeConfigs.selectionModel.clearSelection()
 		selectStateConfig(null)
 		selectLightConfig(null)
@@ -300,6 +229,7 @@ class ConfigWindowController : CommunicatorListener {
 			notifier.controller
 					.applicationConfiguration
 					.services
+					.values
 					.map { it.name }
 					.filter { !config.items.map { i -> i.id }.contains(it) }
 					.distinct()
@@ -615,18 +545,11 @@ class ConfigWindowController : CommunicatorListener {
 		notifier.usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
 	}
 
-	private fun TableColumn<LightConfig, LightColor>.init(propertyName: String) {
-		cellValueFactory = PropertyValueFactory<LightConfig, LightColor>(propertyName)
-		setCellFactory {
-			object : TableCell<LightConfig, LightColor>() {
-				override fun updateItem(item: LightColor?, empty: Boolean) {
-					super.updateItem(item, empty)
-					graphic = Pane().apply {
-						background = Background(BackgroundFill(item?.toColor() ?: Color.TRANSPARENT,
-								CornerRadii.EMPTY, Insets.EMPTY))
-					}
-				}
-			}
+	private fun TableColumn<LightConfig, LightColor>.init(propertyName: String) = cell(propertyName) { _, value, empty ->
+		graphic = Pane().takeUnless { empty }?.apply {
+			background = Background(BackgroundFill(value?.toColor() ?: Color.TRANSPARENT,
+					CornerRadii.EMPTY,
+					Insets.EMPTY))
 		}
 	}
 }

@@ -4,6 +4,7 @@ import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.ui.Icon
 import com.poterion.monitor.data.ApplicationConfiguration
+import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.notifiers.tray.control.SystemTrayNotifier
 import com.poterion.monitor.notifiers.tray.data.SystemTrayConfig
 import kotlin.reflect.KClass
@@ -22,12 +23,15 @@ object SystemTrayModule : NotifierModule<SystemTrayConfig, SystemTrayNotifier> {
 
 	override val icon: Icon = SystemTrayIcon.TRAY
 
-	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration): SystemTrayNotifier =
-			SystemTrayNotifier(controller, SystemTrayConfig(name = title).also { applicationConfiguration.notifiers.add(it) })
-					.also { it.initialize() }
+	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
+			SystemTrayNotifier = SystemTrayConfig(uuid = applicationConfiguration.notifiers.nextUUID(), name = title)
+			.also { applicationConfiguration.notifiers[it.uuid] = it }
+			.let { SystemTrayNotifier(controller, it) }
 
-	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration): Collection<SystemTrayNotifier> = applicationConfiguration
+	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
+			Collection<SystemTrayNotifier> = applicationConfiguration
 			.notifiers
+			.values
 			.filterIsInstance<SystemTrayConfig>()
 			.map { SystemTrayNotifier(controller, it) }
 }

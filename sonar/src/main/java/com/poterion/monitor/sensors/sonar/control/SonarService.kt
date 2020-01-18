@@ -6,6 +6,7 @@ import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.lib.toIcon
 import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.Module
+import com.poterion.monitor.api.utils.cell
 import com.poterion.monitor.api.utils.factory
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
@@ -14,7 +15,6 @@ import com.poterion.monitor.sensors.sonar.SonarModule
 import com.poterion.monitor.sensors.sonar.data.SonarConfig
 import com.poterion.monitor.sensors.sonar.data.SonarProjectConfig
 import com.poterion.monitor.sensors.sonar.data.SonarProjectResponse
-import javafx.beans.binding.Bindings
 import javafx.collections.FXCollections
 import javafx.geometry.Pos
 import javafx.scene.Node
@@ -101,22 +101,20 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 		minWidth = 100.0
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Region.USE_PREF_SIZE
-		setCellFactory {
-			val cell = TableCell<SonarProjectConfig, Priority>()
-			val comboBox = ComboBox<Priority>(FXCollections.observableList(Priority.values().toList())).apply {
-				factory { item, empty ->
-					text = item?.takeUnless { empty }?.name
-					graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
-				}
-				valueProperty().bindBidirectional(cell.itemProperty())
-
-				valueProperty().addListener { _, _, priority ->
-					cell.tableRow.item.let { it as? SonarProjectConfig }?.also { it.priority = priority }
-					controller.saveConfig()
-				}
-			}
-			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(comboBox))
-			cell
+		cell("priority") { item, value, empty ->
+			graphic = ComboBox<Priority>(FXCollections.observableList(Priority.values().toList())).takeUnless { empty }
+					?.apply {
+						factory { item, empty ->
+							text = item?.takeUnless { empty }?.name
+							graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
+						}
+						selectionModel.select(value)
+						valueProperty().bindBidirectional(itemProperty())
+						valueProperty().addListener { _, _, priority ->
+							item?.priority = priority
+							controller.saveConfig()
+						}
+					}
 		}
 	}
 

@@ -4,6 +4,7 @@ import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.ui.Icon
 import com.poterion.monitor.data.ApplicationConfiguration
+import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.notifiers.deploymentcase.control.DeploymentCaseNotifier
 import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
 import kotlin.reflect.KClass
@@ -19,10 +20,15 @@ object DeploymentCaseModule : NotifierModule<DeploymentCaseConfig, DeploymentCas
 
 	override val icon: Icon = DeploymentCaseIcon.NUCLEAR_FOOTBALL
 
-	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration): DeploymentCaseNotifier =
-			DeploymentCaseNotifier(controller, DeploymentCaseConfig(name = title).also { applicationConfiguration.notifiers.add(it) })
+	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
+			DeploymentCaseNotifier = DeploymentCaseConfig(uuid = applicationConfiguration.notifiers.nextUUID(), name = title)
+			.also { applicationConfiguration.notifiers[it.uuid] = it }
+			.let { DeploymentCaseNotifier(controller, it) }
 
-	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration): Collection<DeploymentCaseNotifier> = applicationConfiguration.notifiers
+	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
+			Collection<DeploymentCaseNotifier> = applicationConfiguration
+			.notifiers
+			.values
 			.filterIsInstance<DeploymentCaseConfig>()
 			.map { DeploymentCaseNotifier(controller, it) }
 }

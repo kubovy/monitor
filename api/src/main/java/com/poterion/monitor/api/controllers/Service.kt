@@ -59,7 +59,7 @@ abstract class Service<out Config : ServiceConfig>(override val config: Config) 
 			?.let { auth -> auth.username.takeIf { it.isNotBlank() } to auth.password.takeIf { it.isNotBlank() } }
 			?.let { (username, password) -> username?.let { u -> password?.let { p -> u to p } } }
 			?.let { (username, password) ->
-				Authenticator { route, response ->
+				Authenticator { _, response ->
 					val credential = Credentials.basic(username, password)
 					response.request().newBuilder().header(headerName, credential).build()
 				}

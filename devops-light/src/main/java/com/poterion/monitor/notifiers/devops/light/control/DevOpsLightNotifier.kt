@@ -1,7 +1,7 @@
 package com.poterion.monitor.notifiers.devops.light.control
 
-import com.poterion.monitor.api.StatusCollector
 import com.poterion.communication.serial.*
+import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
@@ -11,6 +11,7 @@ import com.poterion.monitor.api.ui.Icon
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
+import com.poterion.monitor.data.key
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.devops.light.DevOpsLight
 import com.poterion.monitor.notifiers.devops.light.DevOpsLightIcon
@@ -229,13 +230,11 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) {
 	}
 
-	private fun StatusItem.key() = serviceName
-
 	private fun StatusItem?.toLightConfig(): List<LightConfig>? {
 		val lightConfig = config.items
 				.map { it.id to it }
 				.toMap()
-				.let { it[this?.key() ?: ""] ?: it[""] }
+				.let { it[this?.key ?: ""] ?: it[""] }
 
 		return when (this?.status) {
 			Status.NONE, Status.OFF -> lightConfig?.statusNone

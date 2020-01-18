@@ -4,6 +4,7 @@ import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.api.ui.Icon
 import com.poterion.monitor.data.ApplicationConfiguration
+import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.alertmanager.control.AlertManagerService
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerConfig
 import com.poterion.monitor.sensors.alertmanager.ui.AlertManagerIcon
@@ -20,11 +21,15 @@ object AlertManagerModule : ServiceModule<AlertManagerConfig, AlertManagerServic
 	override val staticNotificationSet: Boolean
 		get() = false
 
-	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration): AlertManagerService =
-			AlertManagerService(controller, AlertManagerConfig(name = title).also { applicationConfiguration.services.add(it) })
+	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
+			AlertManagerService = AlertManagerConfig(uuid = applicationConfiguration.services.nextUUID(), name = title)
+			.also { applicationConfiguration.services[it.uuid] = it }
+			.let { AlertManagerService(controller, it) }
 
-	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration): Collection<AlertManagerService> = applicationConfiguration
+	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
+			Collection<AlertManagerService> = applicationConfiguration
 			.services
+			.values
 			.filterIsInstance<AlertManagerConfig>()
 			.map { AlertManagerService(controller, it) }
 }

@@ -6,6 +6,7 @@ import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.lib.toIcon
 import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.Module
+import com.poterion.monitor.api.utils.cell
 import com.poterion.monitor.api.utils.factory
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
@@ -15,7 +16,6 @@ import com.poterion.monitor.sensors.jenkins.data.JenkinsConfig
 import com.poterion.monitor.sensors.jenkins.data.JenkinsJobConfig
 import com.poterion.monitor.sensors.jenkins.data.JenkinsJobResponse
 import com.poterion.monitor.sensors.jenkins.data.JenkinsResponse
-import javafx.beans.binding.Bindings
 import javafx.collections.FXCollections
 import javafx.geometry.Pos
 import javafx.scene.Node
@@ -91,22 +91,20 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 		minWidth = 100.0
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Region.USE_PREF_SIZE
-		setCellFactory {
-			val cell = TableCell<JenkinsJobConfig, Priority>()
-			val comboBox = ComboBox<Priority>(FXCollections.observableList(Priority.values().toList())).apply {
-				factory { item, empty ->
-					text = item?.takeUnless { empty }?.name
-					graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
-				}
-				valueProperty().bindBidirectional(cell.itemProperty())
-
-				valueProperty().addListener { _, _, priority ->
-					cell.tableRow.item.let { it as? JenkinsJobConfig }?.also { it.priority = priority }
-					controller.saveConfig()
-				}
-			}
-			cell.graphicProperty().bind(Bindings.`when`(cell.emptyProperty()).then(null as Node?).otherwise(comboBox))
-			cell
+		cell("priority") { item, value, empty ->
+			graphic = ComboBox<Priority>(FXCollections.observableList(Priority.values().toList())).takeUnless { empty }
+					?.apply {
+						factory { item, empty ->
+							text = item?.takeUnless { empty }?.name
+							graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
+						}
+						selectionModel.select(value)
+						valueProperty().bindBidirectional(itemProperty())
+						valueProperty().addListener { _, _, priority ->
+							item?.priority = priority
+							controller.saveConfig()
+						}
+					}
 		}
 	}
 
