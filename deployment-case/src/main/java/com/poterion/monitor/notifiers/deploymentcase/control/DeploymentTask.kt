@@ -1,26 +1,15 @@
 package com.poterion.monitor.notifiers.deploymentcase.control
 
-import com.fasterxml.jackson.core.JsonFactory
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.hubspot.jinjava.Jinjava
-import com.poterion.monitor.api.controllers.Service
-import com.poterion.monitor.data.auth.BasicAuthConfig
+import com.poterion.monitor.api.controllers.HttpServiceModule
 import com.poterion.monitor.notifiers.deploymentcase.data.Configuration
 import javafx.application.Platform
-import okhttp3.OkHttpClient
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import retrofit2.Retrofit
-import retrofit2.converter.jackson.JacksonConverterFactory
 import java.io.IOException
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
-import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
-import javax.net.ssl.SSLContext
-import javax.net.ssl.X509TrustManager
 
 /**
  * Triggers a Jenkins job, if not already running and checks its status including all downstream jobs until the root
@@ -38,16 +27,6 @@ class DeploymentTask(private val configuration: Configuration,
 		private const val NOT_RUN_YET = 0
 		private const val IN_PROGRESS = -1
 	}
-
-	private val trustAllCerts = arrayOf(object : X509TrustManager {
-		override fun checkClientTrusted(p0: Array<out X509Certificate>?, p1: String?) {
-		}
-
-		override fun checkServerTrusted(p0: Array<out X509Certificate>?, p1: String?) {
-		}
-
-		override fun getAcceptedIssuers() = emptyArray<X509Certificate>()
-	})
 
 	private val jinjava = Jinjava()
 	private var failedCount = AtomicInteger(0)
@@ -79,38 +58,10 @@ class DeploymentTask(private val configuration: Configuration,
 		}
 	}
 
-	private var authCache: BasicAuthConfig? = null
+	private val httpServiceModule = HttpServiceModule(configuration)
 
-	private var retrofit: Retrofit? = null
-		get() {
-			if (field == null || authCache != configuration.auth) field = Retrofit.Builder()
-					.baseUrl(configuration.url)
-					.client(OkHttpClient.Builder()
-							.sslSocketFactory(SSLContext.getInstance("SSL").apply {
-								init(null, trustAllCerts, SecureRandom())
-							}.socketFactory, trustAllCerts[0])
-							.hostnameVerifier { _, _ -> true }
-							.addInterceptor { chain ->
-								val requestBuilder = chain.request().newBuilder()
-								val auth = configuration.auth
-								authCache = auth
-
-								if (auth != null && auth.username.isNotEmpty()) requestBuilder
-										.header("Authorization", Base64.getEncoder()
-												.encodeToString("${auth.username}:${auth.password}".toByteArray())
-												.let { "Basic ${it}" })
-
-								val request = requestBuilder.build()
-								Service.LOGGER.debug("${request.method()} ${request.url()}...")
-								chain.proceed(request)
-							}.build())
-					.addConverterFactory(JacksonConverterFactory.create(ObjectMapper(JsonFactory()).apply {
-						disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-					}))
-					.build()
-			return field
-		}
-		private set
+	private val retrofit: Retrofit?
+		get() = httpServiceModule.retrofit
 
 	private val service = retrofit?.create(JenkinsRestService::class.java)
 

@@ -2,7 +2,7 @@ package com.poterion.monitor.sensors.alertmanager.data
 
 import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.Priority
-import com.poterion.monitor.data.auth.BasicAuthConfig
+import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.monitor.data.services.ServiceConfig
 import java.util.*
 
@@ -16,7 +16,7 @@ class AlertManagerConfig(override var type: String = AlertManagerConfig::class.j
 						 override var url: String = "",
 						 override var proxy: HttpProxy? = null,
 						 override var trustCertificate: Boolean = false,
-						 override var auth: BasicAuthConfig? = null,
+						 override var auth: AuthConfig? = null,
 						 override var order: Int = Int.MAX_VALUE,
 						 override var priority: Priority = Priority.NONE,
 						 override var checkInterval: Long = 3600_000L, // 1 hour

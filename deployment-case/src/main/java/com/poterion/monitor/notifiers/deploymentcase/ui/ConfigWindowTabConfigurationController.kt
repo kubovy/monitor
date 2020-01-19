@@ -102,9 +102,9 @@ class ConfigWindowTabConfigurationController : ConfigurationWindowActionListener
 		textURL.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 
 		textUsername.textProperty().addListener { _, _, value ->
-			SharedUiData.configurationProperty.get()?.also {
-				it.auth = it.auth ?: BasicAuthConfig()
-				it.auth?.username = value
+			SharedUiData.configurationProperty.get()?.also { config ->
+				config.auth = config.auth ?: BasicAuthConfig()
+				config.auth?.let { it as? BasicAuthConfig }?.username = value
 			}
 		}
 		textUsername.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
@@ -113,7 +113,7 @@ class ConfigWindowTabConfigurationController : ConfigurationWindowActionListener
 			SharedUiData.configurationProperty.get()?.also {
 				SharedUiData.configurationProperty.get()?.also { config ->
 					config.auth = config.auth ?: BasicAuthConfig()
-					config.auth?.password = value
+					config.auth?.let { it as? BasicAuthConfig }?.password = value
 				}
 			}
 		}
@@ -148,8 +148,8 @@ class ConfigWindowTabConfigurationController : ConfigurationWindowActionListener
 			textName.textProperty().bindBidirectional(SharedUiData.nameProperty)
 			comboboxMethod.selectionModel.select(configuration?.method ?: "GET")
 			textURL.text = configuration?.url ?: ""
-			textUsername.text = configuration?.auth?.username ?: ""
-			textPassword.text = configuration?.auth?.password ?: ""
+			textUsername.text = configuration?.auth?.let { it as? BasicAuthConfig }?.username ?: ""
+			textPassword.text = configuration?.auth?.let { it as? BasicAuthConfig }?.password ?: ""
 			textJobName.text = configuration?.jobName ?: ""
 			textParameters.text = configuration?.parameters ?: ""
 

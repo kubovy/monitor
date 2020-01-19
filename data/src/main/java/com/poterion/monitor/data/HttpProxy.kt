@@ -1,5 +1,8 @@
 package com.poterion.monitor.data
 
-import com.poterion.monitor.data.auth.BasicAuthConfig
+import com.poterion.monitor.data.auth.AuthConfig
 
-class HttpProxy(var address: String? = null, var port: Int? = null, var auth: BasicAuthConfig? = null)
+/**
+ * @author Jan Kubovy <jan@kubovy.eu>
+ */
+class HttpProxy(var address: String? = null, var port: Int? = null, var auth: AuthConfig? = null)
