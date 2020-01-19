@@ -22,7 +22,9 @@ import javafx.util.Callback
 import javafx.util.StringConverter
 import kotlin.math.pow
 
-
+/**
+ * @author Jan Kubovy <jan@kubovy.eu>
+ */
 class ConfigWindowTabVariables {
 	companion object {
 		internal fun getRoot(config: DeploymentCaseConfig, saveConfig: () -> Unit): Pair<ConfigWindowTabVariables, Parent> =
@@ -35,7 +37,6 @@ class ConfigWindowTabVariables {
 						}
 
 	}
-
 
 	@FXML private lateinit var tableVariables: TableView<Variable>
 	@FXML private lateinit var columnVariableName: TableColumn<Variable, String>

@@ -2,6 +2,9 @@ package com.poterion.monitor.gerrit.code.review.data
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
+/**
+ * @author Jan Kubovy <jan@kubovy.eu>
+ */
 data class GerritCodeReviewQueryResponse(var id: String? = null,
 										 var project: String? = null,
 										 var branch: String? = null,

@@ -238,7 +238,7 @@ fun List<Int>.toActions(states: List<State>, devices: List<Device>, variables: L
 	return actions
 }
 
-fun Device.toData() : Int = when (kind) {
+fun Device.toData(): Int = when (kind) {
 	DeviceKind.MCP23017 -> key.toInt()    // 0x00 - 0x27
 	DeviceKind.WS281x -> key.toInt() + 40 // 0x28 - 0x47
 	DeviceKind.LCD -> when (LcdKey.get(key.toInt())) {

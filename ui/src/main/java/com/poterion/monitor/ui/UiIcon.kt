@@ -1,7 +1,6 @@
 package com.poterion.monitor.ui
 
 import com.poterion.monitor.api.ui.Icon
-import javafx.scene.image.Image
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 

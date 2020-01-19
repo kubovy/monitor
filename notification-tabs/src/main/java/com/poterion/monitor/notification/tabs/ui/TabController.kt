@@ -22,6 +22,9 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
+/**
+ * @author Jan Kubovy <jan@kubovy.eu>
+ */
 class TabController {
 	companion object {
 		internal fun getRoot(controller: ControllerInterface, config: NotificationTabsConfig): Pair<Parent, TabController> =
@@ -37,11 +40,11 @@ class TabController {
 	}
 
 	@FXML private lateinit var treeTableAlerts: TreeTableView<StatusItem>
-	@FXML private lateinit var  columnAlertsTitle: TreeTableColumn<StatusItem, String>
-	@FXML private lateinit var  columnAlertsService: TreeTableColumn<StatusItem, String>
-	@FXML private lateinit var  columnAlertsPriority: TreeTableColumn<StatusItem, Priority>
-	@FXML private lateinit var  columnAlertsLabels: TreeTableColumn<StatusItem, Map<String, String>>
-	@FXML private lateinit var  columnAlertsStarted: TreeTableColumn<StatusItem, Instant>
+	@FXML private lateinit var columnAlertsTitle: TreeTableColumn<StatusItem, String>
+	@FXML private lateinit var columnAlertsService: TreeTableColumn<StatusItem, String>
+	@FXML private lateinit var columnAlertsPriority: TreeTableColumn<StatusItem, Priority>
+	@FXML private lateinit var columnAlertsLabels: TreeTableColumn<StatusItem, Map<String, String>>
+	@FXML private lateinit var columnAlertsStarted: TreeTableColumn<StatusItem, Instant>
 
 	private lateinit var controller: ControllerInterface
 	private lateinit var config: NotificationTabsConfig
