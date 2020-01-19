@@ -1,6 +1,7 @@
 package com.poterion.monitor.notifiers.deploymentcase.data
 
 import com.poterion.monitor.data.Priority
+import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import java.util.*
 
@@ -12,8 +13,10 @@ data class DeploymentCaseConfig(override var type: String = DeploymentCaseConfig
 								override var name: String = "",
 								override var enabled: Boolean = true,
 								override var minPriority: Priority = Priority.LOW,
+								override var minStatus: Status = Status.NONE,
+								override val services: MutableSet<String> = mutableSetOf(),
 								var deviceAddress: String = "",
-								var testNameHistory: List<String> = emptyList(),
-								var testValueHistory: List<String> = emptyList(),
+								val testNameHistory: MutableList<String> = mutableListOf(),
+								val testValueHistory: MutableList<String> = mutableListOf(),
 								var split: Double = 0.2,
-								var configurations: List<Configuration> = emptyList()) : NotifierConfig
+								val configurations: MutableList<Configuration> = mutableListOf()) : NotifierConfig

@@ -61,7 +61,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 			LOGGER.error(e.message, e)
 		}
 		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe {
-			Platform.runLater { update(it.items) }
+			Platform.runLater { update(it) }
 		}
 	}
 
@@ -100,26 +100,19 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 		else -> LOGGER.debug("Executing action ${action}")
 	}
 
-	private fun update(statusItems: Collection<StatusItem>) {
-		statusItems.map { it.serviceId }
+	private fun update(collector: StatusCollector) {
+		collector.items
+				.map { it.serviceId }
 				.distinct()
 				.map { it to serviceMenus[it] }
 				.forEach { (serviceId, serviceMenu) ->
 					serviceMenu
-							?.also { it.updateSubMenu(statusItems.filter { item -> item.serviceId == serviceId }) }
+							?.also { it.updateSubMenu(collector.items.filter { item -> item.serviceId == serviceId }) }
 							?: LOGGER.error("Unknown service ${serviceId} - no menu for it")
 				}
 
-		statusItems
-				.filter { it.priority >= config.minPriority }
-				.maxBy { it.status }
-				?.status
-				?.toIcon()
-				?.also { lastStatusIcon = it }
-
-		lastStatusIcon
-				?.inputStream
-				?.use { systemTray?.setImage(it) }
+		lastStatusIcon = collector.maxStatus(config.minPriority, config.minStatus, config.services).toIcon()
+		lastStatusIcon?.inputStream?.use { systemTray?.setImage(it) }
 	}
 
 	private fun createMenu() {

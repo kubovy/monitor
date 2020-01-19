@@ -125,9 +125,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 										}
 									})
 						}.toTypedArray()
-				).apply {
-					maxHeight = Double.MAX_VALUE
-				})
+				))
 
 	override val configurationTab: Parent?
 		get() = ConfigWindowController.getRoot(config, this)
@@ -135,16 +133,17 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 	override fun initialize() {
 		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe { collector ->
 			Platform.runLater {
-				val lights = if (config.combineMultipleServices) collector.topStatuses(config.minPriority)
-							.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
-							.mapNotNull { it.toLightConfig() }
-							.flatten()
-							.takeIf { it.isNotEmpty() }
-							?: config.items.firstOrNull { it.id == "" }?.statusOk
-				else collector.topStatus(config.minPriority)
-							.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
-							?.toLightConfig()
-							?: config.items.firstOrNull { it.id == "" }?.statusOk
+				val lights = if (config.combineMultipleServices) collector
+						.topStatuses(config.minPriority, config.minStatus, config.services)
+						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
+						.mapNotNull { it.toLightConfig() }
+						.flatten()
+						.takeIf { it.isNotEmpty() }
+						?: config.items.firstOrNull { it.id == "" }?.statusOk
+				else collector.topStatus(config.minPriority, config.minStatus, config.services)
+						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
+						?.toLightConfig()
+						?: config.items.firstOrNull { it.id == "" }?.statusOk
 
 				lights?.also { lastState = it }
 						?.takeIf { config.enabled }

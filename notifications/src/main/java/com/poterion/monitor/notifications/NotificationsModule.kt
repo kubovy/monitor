@@ -15,9 +15,6 @@ import kotlin.reflect.KClass
 object NotificationsModule : NotifierModule<NotificationsConfig, NotificationsNotifier> {
 	override val configClass: KClass<out NotificationsConfig> = NotificationsConfig::class
 
-	override val singleton: Boolean
-		get() = true
-
 	override val title: String
 		get() = "Notifications"
 
