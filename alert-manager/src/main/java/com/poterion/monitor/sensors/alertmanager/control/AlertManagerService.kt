@@ -256,38 +256,14 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 								}
 								?.map { (name, p) -> Triple(name, p.first, p.second) }
 								?.also { lastFound = it }
-								?.map { (n, c, i) ->
-									StatusItem(serviceId = config.uuid,
-											priority = c.priority,
-											status = c.status,
-											title = n,
-											detail = config.descriptionRefs
-													.mapNotNull { i.annotations[it] ?: i.labels[it] }
-													.firstOrNull(),
-											labels = (i.labels + i.annotations)
-													.filterNot { (k, _) -> config.nameRefs.contains(k) }
-													.filterNot { (k, _) -> config.descriptionRefs.contains(k) }
-													.filter { (k, _) ->
-														config.labelFilter
-																.filterNot { it.startsWith("!") }
-																.let { it.isEmpty() || it.contains(k) }
-													}
-													.filter { (k, _) ->
-														config.labelFilter
-																.filter { it.startsWith("!") }
-																.map { it.removePrefix("!") }
-																.let { it.isEmpty() || !it.contains(k) }
-													},
-											link = i.generatorURL,
-											startedAt = try {
-												Instant.parse(i.startsAt)
-											} catch (e: DateTimeParseException) {
-												LOGGER.error(e.message, e)
-												Instant.now()
-											})
-								}
+								?.map { (n, c, i) -> createStatusItem(n, c, i) }
 								?.takeIf { it.isNotEmpty() }
-								?: listOf(StatusItem(config.name, config.priority, Status.OK, "No alerts"))
+								?: listOf(StatusItem(
+										id = "${config.uuid}-no-alerts",
+										serviceId = config.uuid,
+										priority = config.priority,
+										status = Status.OK,
+										title = "No alerts"))
 						updater(alerts)
 					} else {
 						updater(getStatusItems("Service error", Status.SERVICE_ERROR))
@@ -309,11 +285,45 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 
 	private fun getStatusItems(defaultTitle: String,
 							   rewriteStatus: Status? = null): Collection<StatusItem> = lastFound
-			.map { (n, c, i) ->
-				StatusItem(config.name, c.priority, rewriteStatus ?: c.status, n, link = i.generatorURL)
-			}
+			.map { (n, c, i) -> createStatusItem(n, c, i, rewriteStatus) }
 			.takeIf { it.isNotEmpty() }
-			?: listOf(StatusItem(config.name, config.priority, rewriteStatus ?: Status.OK, defaultTitle))
+			?: listOf(StatusItem(
+					id = "${config.uuid}-${rewriteStatus?.name ?: Status.OK.name}",
+					serviceId = config.uuid,
+					priority = config.priority,
+					status = rewriteStatus ?: Status.OK,
+					title = defaultTitle))
+
+	private fun createStatusItem(title: String,
+								 labelConfig: AlertManagerLabelConfig,
+								 response: AlertManagerResponse,
+								 status: Status? = null) = StatusItem(
+			id = "${config.uuid}-${response.fingerprint}",
+			serviceId = config.uuid,
+			priority = labelConfig.priority,
+			status = status ?: labelConfig.status,
+			title = title,
+			labels = (response.labels + response.annotations)
+					.filterNot { (k, _) -> config.nameRefs.contains(k) }
+					.filterNot { (k, _) -> config.descriptionRefs.contains(k) }
+					.filter { (k, _) ->
+						config.labelFilter
+								.filterNot { it.startsWith("!") }
+								.let { it.isEmpty() || it.contains(k) }
+					}
+					.filter { (k, _) ->
+						config.labelFilter
+								.filter { it.startsWith("!") }
+								.map { it.removePrefix("!") }
+								.let { it.isEmpty() || !it.contains(k) }
+					},
+			link = response.generatorURL,
+			startedAt = try {
+				Instant.parse(response.startsAt)
+			} catch (e: DateTimeParseException) {
+				LOGGER.error(e.message, e)
+				Instant.now()
+			})
 
 	private fun addLabel() {
 		newLabelName.text.takeIf { it.isNotEmpty() && it.isNotBlank() }?.also { name ->

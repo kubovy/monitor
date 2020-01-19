@@ -12,7 +12,6 @@ import com.poterion.monitor.api.ui.Icon
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
-import com.poterion.monitor.data.key
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.devops.light.DevOpsLight
 import com.poterion.monitor.notifiers.devops.light.DevOpsLightIcon
@@ -131,16 +130,20 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 		get() = ConfigWindowController.getRoot(config, this)
 
 	override fun initialize() {
+		super.initialize()
 		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe { collector ->
 			Platform.runLater {
 				val lights = if (config.combineMultipleServices) collector
-						.topStatuses(config.minPriority, config.minStatus, config.services)
+						.topStatuses(controller.applicationConfiguration.silenced.keys, config.minPriority,
+								config.minStatus, config.services)
 						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
 						.mapNotNull { it.toLightConfig() }
 						.flatten()
 						.takeIf { it.isNotEmpty() }
 						?: config.items.firstOrNull { it.id == "" }?.statusOk
-				else collector.topStatus(config.minPriority, config.minStatus, config.services)
+				else collector
+						.topStatus(controller.applicationConfiguration.silenced.keys, config.minPriority,
+								config.minStatus, config.services)
 						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
 						?.toLightConfig()
 						?: config.items.firstOrNull { it.id == "" }?.statusOk
@@ -233,7 +236,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 		val lightConfig = config.items
 				.map { it.id to it }
 				.toMap()
-				.let { it[this?.key ?: ""] ?: it[""] }
+				.let { it[this?.id ?: ""] ?: it[""] }
 
 		return when (this?.status) {
 			Status.NONE, Status.OFF -> lightConfig?.statusNone

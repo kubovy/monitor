@@ -49,8 +49,8 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 	override val definition: Module<GerritCodeReviewConfig, ModuleInstanceInterface<GerritCodeReviewConfig>> = GerritCodeReviewModule
 	private val service
 		get() = retrofit?.create(GerritCodeReviewRestService::class.java)
-	private val responseType = objectMapper.typeFactory.constructCollectionType(MutableList::class.java, GerritCodeReviewQueryResponse::class.java)
-	private var lastFound = listOf<StatusItem>()
+	private val responseType = http.objectMapper.typeFactory.constructCollectionType(MutableList::class.java, GerritCodeReviewQueryResponse::class.java)
+	private var lastFound: MutableMap<String, Collection<StatusItem>> = mutableMapOf()
 
 	override val configurationAddition: List<Parent>?
 		get() = listOf(
@@ -100,10 +100,10 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 		maxWidth = Double.MAX_VALUE
 		cell("name") { item, value, empty ->
 			graphic = TextField(value).takeUnless { empty }?.apply {
-				textProperty().bindBidirectional(itemProperty())
-				textProperty().addListener { _, _, value ->
-					if (value != null) {
-						item?.name = value
+				text = value
+				focusedProperty().addListener { _, _, value ->
+					if (!value) {
+						item?.name = text
 						sortLabelTable()
 						controller.saveConfig()
 					}
@@ -119,10 +119,10 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 		maxWidth = Double.MAX_VALUE
 		cell("query") { item, value, empty ->
 			graphic = TextField(value).takeUnless { empty }?.apply {
-				textProperty().bindBidirectional(itemProperty())
-				textProperty().addListener { _, _, value ->
-					if (value != null) {
-						item?.query = value
+				text = value
+				focusedProperty().addListener { _, _, value ->
+					if (!value) {
+						item?.query = text
 						sortLabelTable()
 						controller.saveConfig()
 					}
@@ -144,7 +144,6 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 							graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
 						}
 						selectionModel.select(value)
-						valueProperty().bindBidirectional(itemProperty())
 						valueProperty().addListener { _, _, priority ->
 							if (priority != null) {
 								item?.priority = priority
@@ -169,7 +168,6 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 							graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
 						}
 						selectionModel.select(value)
-						valueProperty().bindBidirectional(itemProperty())
 						valueProperty().addListener { _, _, status ->
 							if (status != null) {
 								item?.status = status
@@ -212,6 +210,9 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		if (config.enabled && config.url.isNotEmpty()) try {
+			lastFound.keys
+					.filterNot { key -> config.queries.map { it.name }.contains(key) }
+					.forEach { lastFound.remove(it) }
 			config.queries.mapNotNull { q -> service?.check(q.query)?.let { q to it } }.forEach { (query, call) ->
 				call.enqueue(object : Callback<String> {
 					override fun onResponse(call: Call<String>?, response: Response<String>?) {
@@ -221,10 +222,12 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 							val body = response.body() ?: ""
 							val startIndex = body.indexOf('[')
 							if (startIndex >= 0) {
-								val alerts = objectMapper.readValue<List<GerritCodeReviewQueryResponse>>(
+								http.objectMapper.readValue<List<GerritCodeReviewQueryResponse>>(
 										body.substring(startIndex), responseType)
 										.map { item ->
-											StatusItem(serviceId = config.uuid,
+											StatusItem(
+													id = "${config.uuid}-${item.changeId}",
+													serviceId = config.uuid,
 													priority = query.priority,
 													status = query.status,
 													title = "[${query.name}] ${item.subject ?: ""}",
@@ -234,7 +237,8 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 															"Branch" to item.branch,
 															"Topic" to item.topic,
 															"Status" to item.status,
-															"Mergeable" to item.mergeable?.let { if (it) "Yes" else "No" })
+															"Mergeable" to item.mergeable?.let { if (it) "Yes" else "No" },
+															"Submit" to item.submitType?.toLowerCase())
 															.mapNotNull { (k, v) -> v?.let { k to v } }
 															.toMap()
 															.toMutableMap()
@@ -252,10 +256,15 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 														Instant.now()
 													})
 										}
-										.also { lastFound = it }
+										.also { lastFound[query.name] = it }
 										.takeIf { it.isNotEmpty() }
-										?: listOf(StatusItem(config.name, config.priority, Status.OK, "${query.name}: No Items"))
-								updater(alerts)
+										?: listOf(StatusItem(
+												id = "${config.uuid}-${query.name}",
+												serviceId = config.uuid,
+												priority = config.priority,
+												status = Status.OK,
+												title = "${query.name}: No Items"))
+								updater(lastFound.values.flatten())
 							}
 						} else {
 							updater(getStatusItems("Service error", query.priority, Status.SERVICE_ERROR))
@@ -279,7 +288,12 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 	private fun getStatusItems(error: String,
 							   priority: Priority,
 							   status: Status): Collection<StatusItem> =
-			lastFound + listOf(StatusItem(config.name, priority, status, error))
+			lastFound.values.flatten() + listOf(StatusItem(
+					id = "${config.uuid}-${error}",
+					serviceId = config.uuid,
+					priority = priority,
+					status = status,
+					title = error))
 
 	private fun addQuery() {
 		textNewName.text.takeIf { it.isNotEmpty() && it.isNotBlank() }?.also { name ->
@@ -295,6 +309,7 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 			controller.saveConfig()
 		}
 		textNewName.text = ""
+		textNewQuery.text = ""
 	}
 
 	private fun removeQuery(queryConfig: GerritCodeReviewQueryConfig) {

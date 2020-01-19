@@ -145,12 +145,28 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 						lastFoundProjectNames = foundProjects?.map { it.name } ?: projects.keys
 
 						foundProjects
-								?.map { StatusItem(config.name, it.priority, it.severity, it.name, link = "${config.url}dashboard/index/${it.id}") }
+								?.map {
+									StatusItem(
+											id = "${config.uuid}-${it.id}",
+											serviceId = config.uuid,
+											priority = it.priority,
+											status = it.severity,
+											title = it.name,
+											link = "${config.url}dashboard/index/${it.id}")
+								}
 								?.also(updater)
 					} else {
 						lastFoundProjectNames
 								.mapNotNull { projects[it] }
-								.map { StatusItem(config.name, it.priority, Status.SERVICE_ERROR, it.name, link = config.url) }
+								.map {
+									StatusItem(
+											id = "${config.uuid}-${it.id}",
+											serviceId = config.uuid,
+											priority = it.priority,
+											status = Status.SERVICE_ERROR,
+											title = it.name,
+											link = config.url)
+								}
 								.also(updater)
 					}
 				}
@@ -160,7 +176,15 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 							?: LOGGER.warn(response?.message, response)
 					lastFoundProjectNames
 							.mapNotNull { projects[it] }
-							.map { StatusItem(config.name, it.priority, Status.CONNECTION_ERROR, it.name, link = config.url) }
+							.map {
+								StatusItem(
+										id = "${config.uuid}-${it.id}",
+										serviceId = config.uuid,
+										priority = it.priority,
+										status = Status.CONNECTION_ERROR,
+										title = it.name,
+										link = config.url)
+							}
 							.also(updater)
 				}
 			})
@@ -168,7 +192,15 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 			LOGGER.error(e.message, e)
 			lastFoundProjectNames
 					.mapNotNull { projects[it] }
-					.map { StatusItem(config.name, it.priority, Status.CONNECTION_ERROR, it.name, link = config.url) }
+					.map {
+						StatusItem(
+								id = "${config.uuid}-${it.id}",
+								serviceId = config.uuid,
+								priority = it.priority,
+								status = Status.CONNECTION_ERROR,
+								title = it.name,
+								link = config.url)
+					}
 					.also(updater)
 		}
 	}

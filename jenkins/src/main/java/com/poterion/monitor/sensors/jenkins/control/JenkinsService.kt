@@ -134,12 +134,28 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 						lastFoundJobNames = foundJobs?.map { it.name } ?: jobs.keys
 
 						foundJobs
-								?.map { StatusItem(config.name, it.priority, it.severity, it.name, link = it.url) }
+								?.map {
+									StatusItem(
+											id = "${config.uuid}-${it.name}",
+											serviceId = config.uuid,
+											priority = it.priority,
+											status = it.severity,
+											title = it.name,
+											link = it.url)
+								}
 								?.also(updater)
 					} else {
 						lastFoundJobNames
 								.mapNotNull { jobs[it] }
-								.map { StatusItem(config.name, it.priority, Status.SERVICE_ERROR, it.name, link = config.url) }
+								.map {
+									StatusItem(
+											id = "${config.uuid}-${it.name}",
+											serviceId = config.uuid,
+											priority = it.priority,
+											status = Status.SERVICE_ERROR,
+											title = it.name,
+											link = config.url)
+								}
 								.also(updater)
 					}
 				}
@@ -149,7 +165,15 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 							?: LOGGER.warn(response?.message, response)
 					lastFoundJobNames
 							.mapNotNull { jobs[it] }
-							.map { StatusItem(config.name, it.priority, Status.CONNECTION_ERROR, it.name, link = config.url) }
+							.map {
+								StatusItem(
+										id = "${config.uuid}-${it.name}",
+										serviceId = config.uuid,
+										priority = it.priority,
+										status = Status.CONNECTION_ERROR,
+										title = it.name,
+										link = config.url)
+							}
 							.also(updater)
 				}
 			})
@@ -157,7 +181,15 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 			LOGGER.error(e.message, e)
 			lastFoundJobNames
 					.mapNotNull { jobs[it] }
-					.map { StatusItem(config.name, it.priority, Status.CONNECTION_ERROR, it.name, link = config.url) }
+					.map {
+						StatusItem(
+								id = "${config.uuid}-${it.name}",
+								serviceId = config.uuid,
+								priority = it.priority,
+								status = Status.CONNECTION_ERROR,
+								title = it.name,
+								link = config.url)
+					}
 					.also(updater)
 		}
 	}

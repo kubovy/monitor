@@ -15,7 +15,6 @@ import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.StatusItem
-import com.poterion.monitor.data.key
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.tray.SystemTrayIcon
 import com.poterion.monitor.notifiers.tray.SystemTrayModule
@@ -51,6 +50,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 	private var lastStatusIcon: Icon? = null
 
 	override fun initialize() {
+		super.initialize()
 		try {
 			LOGGER.info("Tray image size: ${systemTray?.trayImageSize}")
 			CommonIcon.APPLICATION.inputStream.use { ImageIO.read(it) }.also { systemTray?.setImage(it) }
@@ -102,6 +102,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 
 	private fun update(collector: StatusCollector) {
 		collector.items
+				.filterNot { controller.applicationConfiguration.silenced.keys.contains(it.id) }
 				.map { it.serviceId }
 				.distinct()
 				.map { it to serviceMenus[it] }
@@ -111,7 +112,8 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 							?: LOGGER.error("Unknown service ${serviceId} - no menu for it")
 				}
 
-		lastStatusIcon = collector.maxStatus(config.minPriority, config.minStatus, config.services).toIcon()
+		lastStatusIcon = collector.maxStatus(controller.applicationConfiguration.silenced.keys, config.minPriority,
+				config.minStatus, config.services).toIcon()
 		lastStatusIcon?.inputStream?.use { systemTray?.setImage(it) }
 	}
 
@@ -188,7 +190,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 		statusItems
 				.sortedWith(compareByDescending(StatusItem::priority).thenBy(StatusItem::title))
 				.forEachIndexed { index, statusItem ->
-					val menuItem = menuItems[statusItem.key] ?: MenuItem().apply {
+					val menuItem = menuItems[statusItem.id] ?: MenuItem().apply {
 						prioritised = separateNonePriorityItems(index, statusItem.priority, prioritised)
 						text = statusItem.title
 						setCallback { _ ->
@@ -204,7 +206,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 									?.also { open(it) }
 						}
 						//menuEntries[this@updateSubMenu]?.add(this)
-						menuItems[statusItem.key] = this
+						menuItems[statusItem.id] = this
 						this@updateSubMenu.add(this)
 					}
 					if (statusItem.priority == Priority.NONE) prioritised = false

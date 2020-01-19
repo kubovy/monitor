@@ -1,13 +1,17 @@
 package com.poterion.monitor.api.controllers
 
+import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.data.notifiers.NotifierConfig
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.SimpleObjectProperty
+import javafx.scene.Node
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-abstract class Notifier<out Config : NotifierConfig>(override val config: Config) : ModuleInstanceInterface<Config> {
+abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractModule<Config>(config) {
 
 	override val navigationRoot: NavigationItem
 		get() = NavigationItem(

@@ -16,29 +16,30 @@ object StatusCollector {
 		private set
 	val status: PublishSubject<StatusCollector> = PublishSubject.create<StatusCollector>()
 
-	fun filter(minPriority: Priority, minStatus: Status = Status.NONE, serviceIds: Set<String> = emptySet()) = items
+	fun filter(silencedIds: Collection<String>, minPriority: Priority, minStatus: Status = Status.NONE, serviceIds: Set<String> = emptySet()) = items
+			.filterNot { silencedIds.contains(it.id) }
 			.filter { it.priority >= minPriority }
 			.filter { it.status >= minStatus }
 			.filter { serviceIds.isEmpty() || serviceIds.contains(it.serviceId) }
 
-	fun maxStatus(minPriority: Priority, minStatus: Status, serviceIds: Set<String> = emptySet()): Status =
-			topStatus(minPriority, minStatus, serviceIds)?.status ?: Status.NONE
+	fun maxStatus(silencedIds: Collection<String>, minPriority: Priority, minStatus: Status = Status.NONE, serviceIds: Set<String> = emptySet()): Status =
+			topStatus(silencedIds, minPriority, minStatus, serviceIds)?.status ?: Status.NONE
 
-	fun topStatuses(minPriority: Priority, minStatus: Status = Status.NONE, serviceIds: Set<String> = emptySet()) =
-			filter(minPriority, minStatus, serviceIds)
-					.filter { it.status == maxStatus(minPriority, minStatus, serviceIds) }
+	fun topStatuses(silencedIds: Collection<String>, minPriority: Priority, minStatus: Status = Status.NONE, serviceIds: Set<String> = emptySet()) =
+			filter(silencedIds, minPriority, minStatus, serviceIds)
+					.filter { it.status == maxStatus(silencedIds, minPriority, minStatus, serviceIds) }
 					.distinctBy { it.serviceId }
 
-	fun topStatus(minPriority: Priority, minStatus: Status = Status.NONE, serviceIds: Set<String> = emptySet()) =
-			filter(minPriority, minStatus, serviceIds).maxBy { it.status }
+	fun topStatus(silencedIds: Collection<String>, minPriority: Priority, minStatus: Status = Status.NONE, serviceIds: Set<String> = emptySet()) =
+			filter(silencedIds, minPriority, minStatus, serviceIds).maxBy { it.status }
 
 	@Synchronized
-	fun update(items: Collection<StatusItem>, update: Boolean) {
-		if (!update) items.forEach { itemMap.remove(it.serviceId) }
-		itemMap.putAll(items.groupBy { it.serviceId })
+	fun update(statusItems: Collection<StatusItem>, update: Boolean) {
+		if (!update) statusItems.forEach { itemMap.remove(it.serviceId) }
+		itemMap.putAll(statusItems.groupBy { it.serviceId })
 
-		this.items = itemMap.values.flatten()
-		LOGGER.info("Updating status: ${this.items}")
+		items = itemMap.values.flatten()
+		LOGGER.info("Updating status: ${items}")
 		status.onNext(this)
 	}
 }

@@ -9,6 +9,8 @@ import java.util.*
 
 fun StatusItem.service(services: Map<String, ServiceConfig>) = services[serviceId]
 
+fun StatusItem.service(applicationConfiguration: ApplicationConfiguration) = service(applicationConfiguration.services)
+
 fun StatusItem.serviceName(services: Map<String, ServiceConfig>): String = service(services)?.name ?: ""
 
 fun StatusItem.serviceName(applicationConfiguration: ApplicationConfiguration) = serviceName(applicationConfiguration.services)
