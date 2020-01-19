@@ -7,7 +7,6 @@ import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.lib.toIcon
 import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.Module
-import com.poterion.monitor.api.utils.factory
 import com.poterion.monitor.api.utils.toUriOrNull
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
@@ -16,10 +15,8 @@ import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifications.NotificationsModule
 import com.poterion.monitor.notifications.data.NotificationsConfig
 import javafx.application.Platform
-import javafx.collections.FXCollections
 import javafx.geometry.Pos
 import javafx.scene.Node
-import javafx.scene.control.ComboBox
 import javafx.scene.control.Label
 import javafx.scene.control.TextField
 import javafx.scene.layout.HBox
@@ -52,22 +49,6 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 
 	override val configurationRows: List<Pair<Node, Node>>?
 		get() = listOf(
-				Label("Min. status").apply {
-					maxWidth = Double.MAX_VALUE
-					maxHeight = Double.MAX_VALUE
-					alignment = Pos.CENTER_RIGHT
-				} to ComboBox<Status>(FXCollections.observableList(Status.values().toList())).apply {
-					factory { item, empty ->
-						text = item?.takeUnless { empty }?.name
-						graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
-					}
-					maxHeight = Double.MAX_VALUE
-					selectionModel.select(config.minStatus)
-					selectionModel.selectedItemProperty().addListener { _, _, value ->
-						config.minStatus = value
-						controller.saveConfig()
-					}
-				},
 				Label("Repeat after").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -114,7 +95,7 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 
 	override fun initialize() {
 		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe {
-			Platform.runLater { update(it.items) }
+			Platform.runLater { update(it.filter(config.minPriority, config.minStatus, config.services)) }
 		}
 	}
 
@@ -132,9 +113,7 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 	}
 
 	private fun update(statusItems: Collection<StatusItem>) {
-		for (statusItem in statusItems
-				.filter { it.priority >= config.minPriority }
-				.filter { it.status >= config.minStatus }) {
+		for (statusItem in statusItems) {
 			val now = Instant.now()
 			//val lastStarted = statusItemCache[key]?.startedAt
 			val lastStatus = statusItemCache[statusItem.key]?.status

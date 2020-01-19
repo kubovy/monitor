@@ -1,6 +1,7 @@
 package com.poterion.monitor.notifiers.devops.light.data
 
 import com.poterion.monitor.data.Priority
+import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import java.util.*
 
@@ -12,9 +13,11 @@ data class DevOpsLightConfig(override var type: String = DevOpsLightConfig::clas
 							 override var name: String = "",
 							 override var enabled: Boolean = true,
 							 override var minPriority: Priority = Priority.LOW,
+							 override var minStatus: Status = Status.NONE,
+							 override val services: MutableSet<String> = mutableSetOf(),
 							 var deviceAddress: String = "",
 							 var usbPort: String = "",
 							 var grbColors: Boolean = false,
 							 var combineMultipleServices: Boolean = true,
 							 var split: Double = 0.2,
-							 var items: Collection<DevOpsLightItemConfig> = emptyList()) : NotifierConfig
+							 val items: MutableCollection<DevOpsLightItemConfig> = mutableListOf()) : NotifierConfig

@@ -11,11 +11,12 @@ import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.api.ui.CommonIcon
 import com.poterion.monitor.api.utils.factory
-import com.poterion.monitor.data.HttpConfig
 import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.Priority
+import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.auth.BasicAuthConfig
+import com.poterion.monitor.data.notifiers.NotifierConfig
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
@@ -209,17 +210,17 @@ class ConfigurationController {
 		gridPane.rowConstraints.clear()
 
 		if (treeItem?.value?.module != null) {
-			var rows = initializeModule(treeItem)
+			val rows = initializeModule(treeItem)
 			gridPane.rowConstraints.addAll((0 until rows).map {
 				RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, javafx.scene.layout.Priority.ALWAYS, VPos.TOP, true)
 			})
 
-			treeItem.value?.module?.configurationRows?.forEach { (label, content) ->
-				gridPane.addRow(rows++, label, content)
-				(label as? Label)?.alignment = Pos.CENTER_RIGHT
-				gridPane.rowConstraints.add(RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, javafx.scene.layout.Priority.ALWAYS, VPos.TOP, true))
-			}
-			treeItem.value?.module?.configurationAddition?.forEach { vboxContent.children.add(it) }
+//			treeItem.value?.module?.configurationRows?.forEach { (label, content) ->
+//				gridPane.addRow(rows++, label, content)
+//				(label as? Label)?.alignment = Pos.CENTER_RIGHT
+//				gridPane.rowConstraints.add(RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, javafx.scene.layout.Priority.ALWAYS, VPos.TOP, true))
+//			}
+//			treeItem.value?.module?.configurationAddition?.forEach { vboxContent.children.add(it) }
 		}
 	}
 
@@ -272,14 +273,30 @@ class ConfigurationController {
 					}
 				})
 
-		row = treeItem?.value?.module?.let { it as? Service }?.let { initializeServiceModule(row, it) } ?: row
-		row = treeItem?.value?.module?.let { it as? Notifier }?.let { initializeNotifierModule(row, it) } ?: row
+		row = treeItem?.value?.module?.let { it as? Service }?.initializeServiceModule(row) ?: row
+		row = treeItem?.value?.module?.let { it as? Notifier }?.initializeNotifierModule(row) ?: row
+
+		treeItem?.value?.module?.configurationRows?.forEach { (label, content) ->
+			gridPane.addRow(row++, label, content)
+			(label as? Label)?.alignment = Pos.CENTER_RIGHT
+		}
+
+		treeItem?.value?.module?.let { it as? Notifier }?.also { notifier ->
+			notifier.config.let { it as? NotifierConfig }?.also { config ->
+				val plugin = ServiceSettingsPlugin(notifier.controller, config.services)
+				row = plugin.initializeNotifierServiceFilter(row)
+				vboxContent.children.add(plugin.vboxServiceConfigs)
+			}
+		}
+
+		treeItem?.value?.module?.configurationAddition?.forEach { vboxContent.children.add(it) }
 
 		return row
 	}
 
-	private fun initializeServiceModule(row: Int, module: Service<*>): Int = gridPane.run {
-		addRow(row,
+	private fun Service<*>.initializeServiceModule(rowIndex: Int): Int = gridPane.run {
+		var row = rowIndex
+		addRow(row++,
 				Label("Default priority").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -292,30 +309,31 @@ class ConfigurationController {
 					}
 					GridPane.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 					selectionModel.apply {
-						select(module.config.priority)
+						select(config.priority)
 						selectedItemProperty().addListener { _, _, value ->
-							module.config.priority = value
+							config.priority = value
 							controller.saveConfig()
 						}
 					}
 				})
-		addRow(row + 1,
+		addRow(row++,
 				Label("Check interval").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				},
-				HBox(TextField(module.config.checkInterval.toString()).apply {
+				HBox(TextField(config.checkInterval.toString()).apply {
 					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-					textProperty().addListener { _, _, value -> value.toLongOrNull()?.also { module.config.checkInterval = it } }
+					textProperty().addListener { _, _, value -> value.toLongOrNull()?.also { config.checkInterval = it } }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
 
-		return initializeHttpService(row + 2, module.config)
+		return initializeHttpService(row)
 	}
 
-	private fun initializeHttpService(row: Int, config: HttpConfig): Int = gridPane.run {
-		addRow(row,
+	private fun Service<*>.initializeHttpService(rowIndex: Int): Int = gridPane.run {
+		var row = rowIndex
+		addRow(row++,
 				Label("URL").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -329,7 +347,7 @@ class ConfigurationController {
 		val usernameField = TextField(config.auth?.username ?: "")
 		val passwordField = PasswordField()
 
-		addRow(row + 1,
+		addRow(row++,
 				Label("Auth").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -358,7 +376,7 @@ class ConfigurationController {
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						}).apply { alignment = Pos.CENTER })
 
-		addRow(row + 2,
+		addRow(row++,
 				Label("Trust certificate").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -376,7 +394,7 @@ class ConfigurationController {
 		val proxyAddressField = TextField(config.proxy?.address ?: "")
 		val proxyPortField = TextField(config.proxy?.port?.toString() ?: "")
 
-		addRow(row + 3,
+		addRow(row++,
 				Label("Proxy").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -409,7 +427,7 @@ class ConfigurationController {
 		val proxyUsernameField = TextField(config.proxy?.auth?.username ?: "")
 		val proxyPasswordField = PasswordField()
 
-		addRow(row + 4,
+		addRow(row++,
 				Label("Proxy Auth").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -438,7 +456,7 @@ class ConfigurationController {
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						}).apply { alignment = Pos.CENTER })
 
-		addRow(row + 5,
+		addRow(row++,
 				Label("Connection timeout").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -449,7 +467,8 @@ class ConfigurationController {
 					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.connectTimeout = it } }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
-		addRow(row + 6,
+
+		addRow(row++,
 				Label("Read timeout").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -460,7 +479,8 @@ class ConfigurationController {
 					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.readTimeout = it } }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
-		addRow(row + 7,
+
+		addRow(row++,
 				Label("Write timeout").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -471,11 +491,13 @@ class ConfigurationController {
 					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.writeTimeout = it } }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				}, Label("ms")).apply { alignment = Pos.CENTER })
-		return row + 6
+
+		return row
 	}
 
-	private fun initializeNotifierModule(row: Int, module: Notifier<*>): Int = gridPane.run {
-		addRow(row,
+	private fun Notifier<*>.initializeNotifierModule(rowIndex: Int): Int = gridPane.run {
+		var row = rowIndex
+		addRow(row++,
 				Label("Minimum priority").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -488,13 +510,40 @@ class ConfigurationController {
 					}
 					GridPane.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 					selectionModel.apply {
-						select(module.config.minPriority)
+						select(config.minPriority)
 						selectedItemProperty().addListener { _, _, value ->
-							module.config.minPriority = value
+							config.minPriority = value
 							controller.saveConfig()
 						}
 					}
 				})
-		return row + 1
+
+		addRow(row++,
+				Label("Minimum status").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
+				ComboBox<Status>(FXCollections.observableList(Status.values().toList())).apply {
+					factory { item, empty ->
+						text = item?.takeUnless { empty }?.name
+						graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
+					}
+					maxHeight = Double.MAX_VALUE
+					selectionModel.select(config.minStatus)
+					selectionModel.selectedItemProperty().addListener { _, _, value ->
+						config.minStatus = value
+						controller.saveConfig()
+					}
+				})
+
+		return row
+	}
+
+	private fun ServiceSettingsPlugin.initializeNotifierServiceFilter(rowIndex: Int):
+			Int = gridPane.run {
+		var row = rowIndex
+		rowService.also { (label, hbox) -> addRow(row++, label, hbox) }
+		return row
 	}
 }

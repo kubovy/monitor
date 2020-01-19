@@ -275,7 +275,8 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 				.forEach { it.updateConfiguration(config, listConfigurations.selectionModel.selectedItem) }
 
 		// Save config
-		config.configurations = listConfigurations.items
+		config.configurations.clear()
+		config.configurations.addAll(listConfigurations.items)
 
 		notifier.controller.saveConfig()
 		notifier.bluetoothCommunicator

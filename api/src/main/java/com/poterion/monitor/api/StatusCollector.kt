@@ -16,18 +16,21 @@ object StatusCollector {
 		private set
 	val status: PublishSubject<StatusCollector> = PublishSubject.create<StatusCollector>()
 
-	fun maxStatus(minPriority: Priority): Status = topStatus(minPriority)
-			?.status
-			?: Status.NONE
-
-	fun topStatuses(minPriority: Priority) = items
+	fun filter(minPriority: Priority, minStatus: Status = Status.NONE, serviceIds: Set<String> = emptySet()) = items
 			.filter { it.priority >= minPriority }
-			.filter { it.status == maxStatus(minPriority) }
-			.distinctBy { it.serviceId }
+			.filter { it.status >= minStatus }
+			.filter { serviceIds.isEmpty() || serviceIds.contains(it.serviceId) }
 
-	fun topStatus(minPriority: Priority) = items
-			.filter { it.priority >= minPriority }
-			.maxBy { it.status }
+	fun maxStatus(minPriority: Priority, minStatus: Status, serviceIds: Set<String> = emptySet()): Status =
+			topStatus(minPriority, minStatus, serviceIds)?.status ?: Status.NONE
+
+	fun topStatuses(minPriority: Priority, minStatus: Status = Status.NONE, serviceIds: Set<String> = emptySet()) =
+			filter(minPriority, minStatus, serviceIds)
+					.filter { it.status == maxStatus(minPriority, minStatus, serviceIds) }
+					.distinctBy { it.serviceId }
+
+	fun topStatus(minPriority: Priority, minStatus: Status = Status.NONE, serviceIds: Set<String> = emptySet()) =
+			filter(minPriority, minStatus, serviceIds).maxBy { it.status }
 
 	@Synchronized
 	fun update(items: Collection<StatusItem>, update: Boolean) {

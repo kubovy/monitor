@@ -523,7 +523,8 @@ class ConfigWindowController : CommunicatorListener {
 
 	private fun saveConfig() {
 		treeConfigs.selectionModel.selectedItem?.value?.lightConfigs = tableLightConfigs.items.deepCopy()
-		config.items = treeConfigs.root.children
+		config.items.clear()
+		config.items.addAll(treeConfigs.root.children
 				.map { it.value to it.children.map { c -> c.value } }
 				.filter { (_, children) -> children.size == 10 }
 				.filter { (_, children) -> children.all { it.lightConfigs != null } }
@@ -539,7 +540,7 @@ class ConfigWindowController : CommunicatorListener {
 							statusWarning = children[7].lightConfigs ?: emptyList(),
 							statusError = children[8].lightConfigs ?: emptyList(),
 							statusFatal = children[9].lightConfigs ?: emptyList())
-				}
+				})
 		notifier.controller.saveConfig()
 		notifier.bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
 		notifier.usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))

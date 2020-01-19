@@ -165,8 +165,10 @@ class ConfigWindowTabConfigurationController : ConfigurationContributer, Configu
     }
 
     override fun updateConfiguration(config: DeploymentCaseConfig, configuration: Configuration?) {
-        config.testNameHistory = comboboxName.items
-        config.testValueHistory = comboboxValue.items
+        config.testNameHistory.clear()
+        config.testNameHistory.addAll(comboboxName.items.filterNotNull())
+        config.testValueHistory.clear()
+        config.testValueHistory.addAll(comboboxValue.items.filterNotNull())
 
         configuration?.isActive = checkboxActive.isSelected
         configuration?.name = textName.text

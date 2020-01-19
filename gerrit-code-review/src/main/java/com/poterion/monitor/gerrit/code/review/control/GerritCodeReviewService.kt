@@ -102,9 +102,11 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 			graphic = TextField(value).takeUnless { empty }?.apply {
 				textProperty().bindBidirectional(itemProperty())
 				textProperty().addListener { _, _, value ->
-					item?.name = value
-					sortLabelTable()
-					controller.saveConfig()
+					if (value != null) {
+						item?.name = value
+						sortLabelTable()
+						controller.saveConfig()
+					}
 				}
 			}
 		}
@@ -119,9 +121,11 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 			graphic = TextField(value).takeUnless { empty }?.apply {
 				textProperty().bindBidirectional(itemProperty())
 				textProperty().addListener { _, _, value ->
-					item?.query = value
-					sortLabelTable()
-					controller.saveConfig()
+					if (value != null) {
+						item?.query = value
+						sortLabelTable()
+						controller.saveConfig()
+					}
 				}
 			}
 		}
@@ -142,9 +146,11 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 						selectionModel.select(value)
 						valueProperty().bindBidirectional(itemProperty())
 						valueProperty().addListener { _, _, priority ->
-							item?.priority = priority
-							sortLabelTable()
-							controller.saveConfig()
+							if (priority != null) {
+								item?.priority = priority
+								sortLabelTable()
+								controller.saveConfig()
+							}
 						}
 					}
 		}
@@ -165,9 +171,11 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 						selectionModel.select(value)
 						valueProperty().bindBidirectional(itemProperty())
 						valueProperty().addListener { _, _, status ->
-							item?.status = status
-							sortLabelTable()
-							controller.saveConfig()
+							if (status != null) {
+								item?.status = status
+								sortLabelTable()
+								controller.saveConfig()
+							}
 						}
 					}
 		}
