@@ -1,5 +1,8 @@
 package com.poterion.monitor.notifiers.deploymentcase.data
 
+/**
+ * @author Jan Kubovy <jan@kubovy.eu>
+ */
 enum class LcdKey(val key: Int) {
 	MESSAGE(0x50),
 	BACKLIGHT(0x51),

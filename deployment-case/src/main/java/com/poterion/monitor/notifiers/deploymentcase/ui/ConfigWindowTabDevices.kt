@@ -14,7 +14,9 @@ import javafx.scene.control.TableColumn
 import javafx.scene.control.TableView
 import javafx.scene.control.cell.PropertyValueFactory
 
-
+/**
+ * @author Jan Kubovy <jan@kubovy.eu>
+ */
 class ConfigWindowTabDevices {
 	companion object {
 		internal fun getRoot(saveConfig: () -> Unit): Pair<ConfigWindowTabDevices, Parent> =

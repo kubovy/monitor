@@ -12,8 +12,11 @@ import javafx.scene.control.TreeItem
 import javafx.scene.control.TreeView
 import javafx.stage.Stage
 import javafx.util.Callback
+import kotlin.math.max
 
-
+/**
+ * @author Jan Kubovy <jan@kubovy.eu>
+ */
 class StateCompareWindowController {
 	companion object {
 		fun popup(stateMachine1: List<State>, stateMachine2: List<State>) {
@@ -92,7 +95,7 @@ class StateCompareWindowController {
 			differences.add(itemB.value)
 		}
 
-		binarySame = (0 until Math.max(itemA.children.size, itemB.children.size))
+		binarySame = (0 until max(itemA.children.size, itemB.children.size))
 				.map {
 					if (it < itemA.children.size && it < itemB.children.size) {
 						compare(itemA.children[it], itemB.children[it])

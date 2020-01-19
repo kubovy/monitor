@@ -1,5 +1,8 @@
 package com.poterion.monitor.notifiers.deploymentcase.data
 
+/**
+ * @author Jan Kubovy <jan@kubovy.eu>
+ */
 enum class LightPattern(val description: String) {
 	LIGHT("Light"),
 	BLINK("Blink"),
