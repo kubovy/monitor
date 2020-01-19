@@ -13,6 +13,8 @@ import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.data.ApplicationConfiguration
+import com.poterion.monitor.data.auth.AuthConfig
+import com.poterion.monitor.data.auth.AuthDeserializer
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.notifiers.NotifierDeserializer
@@ -40,6 +42,9 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 	private val configFile = File(configFileName)
 	private val mapper
 		get() = ObjectMapper(YAMLFactory()).apply {
+			registerModule(SimpleModule("PolymorphicServiceDeserializerModule", Version.unknownVersion()).apply {
+				addDeserializer(AuthConfig::class.java, AuthDeserializer)
+			})
 			registerModule(SimpleModule("PolymorphicServiceDeserializerModule", Version.unknownVersion()).apply {
 				addDeserializer(ServiceConfig::class.java, ServiceDeserializer)
 			})
