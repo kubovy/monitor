@@ -1,12 +1,12 @@
 package com.poterion.monitor.notifiers.deploymentcase.data
 
-enum class LcdKey(val key: String) {
-	MESSAGE("message"),
-	BACKLIGHT("backlight"),
-	RESET("reset"),
-	CLEAR("clear");
+enum class LcdKey(val key: Int) {
+	MESSAGE(0x50),
+	BACKLIGHT(0x51),
+	RESET(0x52),
+	CLEAR(0x53);
 
 	companion object {
-		fun get(key: String): LcdKey? = LcdKey.values().find { it.key == key }
+		fun get(key: Int): LcdKey? = values().find { it.key == key }
 	}
 }

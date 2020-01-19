@@ -2,10 +2,7 @@ package com.poterion.monitor.notifiers.deploymentcase.ui
 
 import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.notifiers.deploymentcase.control.setStateMachine
-import com.poterion.monitor.notifiers.deploymentcase.data.Evaluation
-import com.poterion.monitor.notifiers.deploymentcase.data.Placeholder
-import com.poterion.monitor.notifiers.deploymentcase.data.State
-import com.poterion.monitor.notifiers.deploymentcase.data.StateMachineItem
+import com.poterion.monitor.notifiers.deploymentcase.data.*
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
@@ -58,7 +55,7 @@ class StateCompareWindowController {
 						text = null
 						graphic = null
 					} else {
-						text = item?.title
+						text = item?.getTitle(SharedUiData.devices, SharedUiData.variables)
 						graphic = item?.icon?.toImageView()
 						style = when {
 							treeView.selectionModel.selectedItem?.value == item -> null
@@ -89,7 +86,7 @@ class StateCompareWindowController {
 	}
 
 	private fun compare(itemA: TreeItem<StateMachineItem>, itemB: TreeItem<StateMachineItem>): Boolean {
-		var binarySame = itemA.value.isBinarySame(itemB.value)
+		var binarySame = itemA.value.isBinarySame(itemB.value, SharedUiData.devices, SharedUiData.variables)
 		if (!binarySame) {
 			differences.add(itemA.value)
 			differences.add(itemB.value)
@@ -110,9 +107,8 @@ class StateCompareWindowController {
 				.takeIf { it.isNotEmpty() }
 				?.reduce { acc, b -> acc && b }
 				?: true
-		if (binarySame) {
-			//itemA.isExpanded = false
-		} else {
+		//if (binarySame) itemA.isExpanded = false
+		if (!binarySame) {
 			childrenDifferences.add(itemA.value)
 			childrenDifferences.add(itemB.value)
 		}
