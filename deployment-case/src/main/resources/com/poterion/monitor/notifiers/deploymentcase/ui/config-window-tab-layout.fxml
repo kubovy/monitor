@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.*?>
 <?import javafx.scene.text.Font?>
-<AnchorPane xmlns="http://javafx.com/javafx/8.0.201" xmlns:fx="http://javafx.com/fxml/1"
+<AnchorPane prefHeight="911.0" prefWidth="1192.0" xmlns="http://javafx.com/javafx/10.0.1"
+            xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowTabLayoutController">
     <children>
         <GridPane AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
@@ -138,18 +140,20 @@
                                 GridPane.halignment="CENTER" GridPane.valignment="CENTER"/>
                         <Circle fx:id="rgb10" fill="DODGERBLUE" radius="10.0" stroke="BLACK" strokeType="INSIDE"
                                 GridPane.halignment="CENTER" GridPane.rowIndex="1" GridPane.valignment="CENTER"/>
-                        <TextArea fx:id="lcd" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                        <TextArea fx:id="lcd" editable="false" maxHeight="-Infinity" maxWidth="-Infinity"
+                                  minHeight="-Infinity" minWidth="-Infinity" prefHeight="130.0" prefWidth="300.0"
                                   text="01234567890132456789&#10;01234567890132456789&#10;01234567890132456789&#10;01234567890132456789"
-                                  GridPane.columnIndex="1" GridPane.columnSpan="4" GridPane.rowSpan="3">
+                                  GridPane.columnIndex="1" GridPane.columnSpan="4" GridPane.halignment="CENTER"
+                                  GridPane.rowSpan="3" GridPane.valignment="CENTER">
                             <font>
-                                <Font name="Monospaced Regular" size="16.0"/>
+                                <Font name="Monospaced Regular" size="22.0"/>
                             </font>
                         </TextArea>
                     </children>
                 </GridPane>
                 <Circle fx:id="led0" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="8"
                         GridPane.halignment="CENTER" GridPane.valignment="BOTTOM"/>
-                <Circle fx:id="led1" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="1"
+                <Circle fx:id="led2" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="1"
                         GridPane.halignment="CENTER" GridPane.valignment="BOTTOM"/>
                 <ToggleButton fx:id="btn13" disable="true" maxHeight="1.7976931348623157E308"
                               maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onTestButton"
@@ -222,15 +226,15 @@
                               maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onTestButton"
                               text="22" GridPane.halignment="CENTER" GridPane.rowIndex="6"
                               GridPane.valignment="CENTER"/>
-                <Circle fx:id="led3" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="4"
+                <Circle fx:id="led4" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="4"
                         GridPane.halignment="CENTER" GridPane.rowIndex="8" GridPane.valignment="BOTTOM"/>
                 <ToggleButton fx:id="btn24" disable="true" maxHeight="1.7976931348623157E308"
                               maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onTestButton"
-                              text="24" GridPane.columnIndex="8" GridPane.halignment="CENTER" GridPane.rowIndex="9"
+                              text="24" GridPane.halignment="CENTER" GridPane.rowIndex="9"
                               GridPane.valignment="CENTER"/>
                 <ToggleButton fx:id="btn25" disable="true" maxHeight="1.7976931348623157E308"
                               maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onTestButton"
-                              text="25" GridPane.halignment="CENTER" GridPane.rowIndex="9"
+                              text="25" GridPane.columnIndex="8" GridPane.halignment="CENTER" GridPane.rowIndex="9"
                               GridPane.valignment="CENTER"/>
                 <GridPane GridPane.columnIndex="6" GridPane.columnSpan="2" GridPane.rowIndex="8" GridPane.rowSpan="2">
                     <columnConstraints>
@@ -312,14 +316,13 @@
                                 GridPane.valignment="CENTER" GridPane.vgrow="ALWAYS"/>
                     </children>
                 </GridPane>
-                <Circle fx:id="led2" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE"
+                <Circle fx:id="led3" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE"
                         GridPane.halignment="CENTER" GridPane.valignment="BOTTOM"/>
                 <VBox alignment="CENTER_LEFT" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
                       GridPane.columnIndex="7" GridPane.halignment="CENTER" GridPane.hgrow="NEVER" GridPane.rowIndex="1"
                       GridPane.valignment="CENTER" GridPane.vgrow="NEVER">
                     <children>
-                        <RadioButton fx:id="btn02" disable="true" mnemonicParsing="false" onAction="#onTestButton"
-                                     text="2">
+                        <RadioButton fx:id="btn02" disable="true" mnemonicParsing="false" onAction="#onTestButton">
                             <toggleGroup>
                                 <ToggleGroup fx:id="rotarySwitch"/>
                             </toggleGroup>
@@ -342,6 +345,80 @@
                 <ToggleButton fx:id="btn00" disable="true" maxHeight="1.7976931348623157E308"
                               maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onTestButton"
                               text="0" GridPane.columnIndex="8" GridPane.rowIndex="1"/>
+                <Circle fx:id="led1" fill="RED" radius="7.0" stroke="BLACK" strokeType="INSIDE" GridPane.columnIndex="7"
+                        GridPane.halignment="CENTER" GridPane.valignment="BOTTOM"/>
+                <GridPane GridPane.columnIndex="1" GridPane.columnSpan="3" GridPane.rowIndex="8" GridPane.rowSpan="2">
+                    <columnConstraints>
+                        <ColumnConstraints maxWidth="-Infinity" minWidth="-Infinity"/>
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0"/>
+                    </columnConstraints>
+                    <rowConstraints>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                    </rowConstraints>
+                    <children>
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="8:" GridPane.rowIndex="8"/>
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="9:" GridPane.rowIndex="9"/>
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="7:" GridPane.rowIndex="7"/>
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="6:" GridPane.rowIndex="6"/>
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="5:" GridPane.rowIndex="5"/>
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="4:" GridPane.rowIndex="4"/>
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="3:" GridPane.rowIndex="3"/>
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="2:" GridPane.rowIndex="2"/>
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="1:" GridPane.rowIndex="1"/>
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="0:"/>
+                        <Label fx:id="lblData0" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="Test data" GridPane.columnIndex="1"/>
+                        <Label fx:id="lblData1" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="Test data" GridPane.columnIndex="1"
+                               GridPane.rowIndex="1"/>
+                        <Label fx:id="lblData2" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="Test data" GridPane.columnIndex="1"
+                               GridPane.rowIndex="2"/>
+                        <Label fx:id="lblData3" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="Test data" GridPane.columnIndex="1"
+                               GridPane.rowIndex="3"/>
+                        <Label fx:id="lblData4" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="Test data" GridPane.columnIndex="1"
+                               GridPane.rowIndex="4"/>
+                        <Label fx:id="lblData5" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="Test data" GridPane.columnIndex="1"
+                               GridPane.rowIndex="5"/>
+                        <Label fx:id="lblData6" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="Test data" GridPane.columnIndex="1"
+                               GridPane.rowIndex="6"/>
+                        <Label fx:id="lblData7" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="Test data" GridPane.columnIndex="1"
+                               GridPane.rowIndex="7"/>
+                        <Label fx:id="lblData8" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="Test data" GridPane.columnIndex="1"
+                               GridPane.rowIndex="8"/>
+                        <Label fx:id="lblData9" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               minHeight="-Infinity" minWidth="-Infinity" text="Test data" GridPane.columnIndex="1"
+                               GridPane.rowIndex="9"/>
+                    </children>
+                    <GridPane.margin>
+                        <Insets left="30.0" right="30.0"/>
+                    </GridPane.margin>
+                </GridPane>
             </children>
         </GridPane>
     </children>

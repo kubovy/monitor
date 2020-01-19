@@ -5,6 +5,7 @@ import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
+import com.poterion.monitor.api.data.RGBColor
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.CommonIcon
 import com.poterion.monitor.api.ui.Icon
@@ -17,7 +18,6 @@ import com.poterion.monitor.notifiers.devops.light.DevOpsLight
 import com.poterion.monitor.notifiers.devops.light.DevOpsLightIcon
 import com.poterion.monitor.notifiers.devops.light.data.DevOpsLightConfig
 import com.poterion.monitor.notifiers.devops.light.data.DevOpsLightItemConfig
-import com.poterion.monitor.notifiers.devops.light.data.LightColor
 import com.poterion.monitor.notifiers.devops.light.data.LightConfig
 import com.poterion.monitor.notifiers.devops.light.ui.ConfigWindowController
 import javafx.application.Platform
@@ -193,7 +193,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 		}
 	}
 
-	private fun LightColor.components(): Array<Int> =
+	private fun RGBColor.components(): Array<Int> =
 			if (config.grbColors) arrayOf(green, red, blue) else arrayOf(red, green, blue)
 
 	override fun execute(action: NotifierAction): Unit = when (action) {

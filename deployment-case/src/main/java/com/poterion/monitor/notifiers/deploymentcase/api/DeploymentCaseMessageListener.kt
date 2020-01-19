@@ -1,6 +1,6 @@
 package com.poterion.monitor.notifiers.deploymentcase.api
 
-import com.poterion.monitor.notifiers.deploymentcase.data.Action
+import com.poterion.monitor.notifiers.deploymentcase.data.Device
 
 /**
  * Deployment case message listener interface.
@@ -21,9 +21,10 @@ interface DeploymentCaseMessageListener {
 	/**
 	 * On action callback.
 	 *
-	 * @param action Action
+	 * @param device Device
+	 * @param value Value
 	 */
-	fun onAction(action: Action) {
+	fun onAction(device: Device, value: String) {
 	}
 
 	/**

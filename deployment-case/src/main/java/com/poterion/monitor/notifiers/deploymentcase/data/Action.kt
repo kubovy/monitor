@@ -2,23 +2,27 @@ package com.poterion.monitor.notifiers.deploymentcase.data
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
+import com.poterion.monitor.notifiers.deploymentcase.control.toDevice
 import com.poterion.monitor.notifiers.deploymentcase.getDisplayName
+import com.poterion.monitor.notifiers.deploymentcase.toVariable
 
-data class Action(var device: Device? = null,
-				  var value: Variable? = null,
+data class Action(var device: Int? = null,
+				  var value: String? = null,
 				  var includingEnteringState: Boolean = false) : StateMachineItem {
-	override val title: String
-		@JsonIgnore
-		get() = "${device.getDisplayName()} = ${value?.getDisplayName()}${if (includingEnteringState) " (including entering state)" else ""}"
+
+	@JsonIgnore
+	override fun getTitle(devices: Collection<Device>, variables: Collection<Variable>): String =
+			"${device?.toDevice(devices)?.getDisplayName()} = ${value?.toVariable(variables)?.getDisplayName()}" +
+					(if (includingEnteringState) " (including entering state)" else "")
 
 	override val icon: DeploymentCaseIcon?
 		@JsonIgnore
 		get() = DeploymentCaseIcon.ACTION
 
-	override fun isBinarySame(other: StateMachineItem): Boolean = other is Action
-			&& device?.kind == other.device?.kind
-			&& device?.key == other.device?.key
-			&& value?.type == other.value?.type
-			&& value?.value == other.value?.value
+	override fun isBinarySame(other: StateMachineItem, devices: Collection<Device>, variables: Collection<Variable>): Boolean = other is Action
+			&& device?.toDevice(devices)?.kind == other.device?.toDevice(devices)?.kind
+			&& device?.toDevice(devices)?.key == other.device?.toDevice(devices)?.key
+			&& value?.toVariable(variables)?.type == other.value?.toVariable(variables)?.type
+			&& value?.toVariable(variables)?.value == other.value?.toVariable(variables)?.value
 			&& includingEnteringState == other.includingEnteringState
 }
