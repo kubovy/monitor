@@ -42,10 +42,11 @@ import java.time.Instant
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-data class StatusItem(val serviceId: String,
-					  val priority: Priority,
-					  val status: Status,
-					  val title: String,
+data class StatusItem(val id: String = "",
+					  val serviceId: String = "",
+					  val priority: Priority = Priority.NONE,
+					  val status: Status = Status.NONE,
+					  val title: String = "",
 					  val group: String? = null,
 					  val detail: String? = null,
 					  val labels: Map<String, String> = emptyMap(),

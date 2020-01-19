@@ -10,6 +10,7 @@ import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.serviceName
+import com.poterion.monitor.notification.tabs.NotificationTabsIcon
 import com.poterion.monitor.notification.tabs.data.NotificationTabsConfig
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
@@ -69,7 +70,7 @@ class TabController {
 
 	@FXML
 	fun initialize() {
-		treeTableAlerts.root = TreeItem(StatusItem("ROOT", Priority.NONE, Status.NONE, ""))
+		treeTableAlerts.root = TreeItem(StatusItem("", "ROOT", Priority.NONE, Status.NONE, ""))
 		treeTableAlerts.isShowRoot = false
 		treeTableAlerts.setOnItemClick { item, event ->
 			if (event.clickCount == 2 && !isEmpty) item?.link?.toUriOrNull()?.also { Desktop.getDesktop().browse(it) }
@@ -84,6 +85,7 @@ class TabController {
 				item?.priority == Priority.NONE -> "-fx-text-fill: #999; -fx-font-style: italic;"
 				else -> null
 			}
+			contextMenu = item?.takeUnless { empty }?.contextMenu()
 		}
 
 		columnAlertsService.cell("serviceId") { item, _, empty ->
@@ -93,6 +95,7 @@ class TabController {
 				item?.priority == Priority.NONE -> "-fx-text-fill: #999; -fx-font-style: italic;"
 				else -> null
 			}
+			contextMenu = item?.takeUnless { empty }?.contextMenu()
 		}
 
 		columnAlertsPriority.cell("priority") { item, value, empty ->
@@ -104,11 +107,12 @@ class TabController {
 				item?.priority == Priority.NONE -> "-fx-text-fill: #999; -fx-font-style: italic;"
 				else -> null
 			}
+			contextMenu = item?.takeUnless { empty }?.contextMenu()
 		}
 
-		columnAlertsLabels.cell("labels") { _, value, _ ->
+		columnAlertsLabels.cell("labels") { item, value, empty ->
 			//text = value?.takeUnless { empty }?.map { (k, v) -> "${k}: ${v}" }?.joinToString(", ")
-			val labels = value?.entries?.sortedBy { (k, _) -> k }?.map { (k, v) ->
+			val labels = value?.takeUnless { empty }?.entries?.sortedBy { (k, _) -> k }?.map { (k, v) ->
 				Label("${k}: ${v}").apply {
 					val (background, border) = labelColorMap
 							.getOrPut(k, { labelColors[labelColorMap.size % labelColors.size] })
@@ -122,7 +126,8 @@ class TabController {
 				}
 			} ?: emptyList()
 			graphic = HBox(2.0, *labels.toTypedArray())
-					.apply {
+					.takeUnless { empty }
+					?.apply {
 						minWidth = Region.USE_COMPUTED_SIZE
 						minHeight = Region.USE_COMPUTED_SIZE
 						prefWidth = Region.USE_COMPUTED_SIZE
@@ -131,6 +136,7 @@ class TabController {
 						maxHeight = Double.MAX_VALUE
 						//style = "-fx-border-color: red"
 					}
+			contextMenu = item?.takeUnless { empty }?.contextMenu()
 		}
 
 		columnAlertsStarted.cell("startedAt") { item, value, empty ->
@@ -143,6 +149,7 @@ class TabController {
 				item?.priority == Priority.NONE -> "-fx-text-fill: #999; -fx-font-style: italic;"
 				else -> null
 			}
+			contextMenu = item?.takeUnless { empty }?.contextMenu()
 		}
 	}
 
@@ -168,6 +175,14 @@ class TabController {
 		treeTableAlerts.root.children.setAll(statusItems.map { TreeItem(it) })
 		treeTableAlerts.root.children.sortWith(tableAlertComparator)
 	}
+
+	private fun StatusItem.contextMenu() = ContextMenu(
+			MenuItem("Silence", NotificationTabsIcon.SILENCE.toImageView()).also { menuItem ->
+				menuItem.setOnAction {
+					controller.applicationConfiguration.silenced[id] = this
+					controller.saveConfig()
+				}
+			})
 
 	private val StatusItem.groupOrder: Int
 		get() = if (serviceName(controller.applicationConfiguration.services) == ""

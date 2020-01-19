@@ -5,6 +5,10 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule
+import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
@@ -27,6 +31,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.time.LocalDateTime
+import java.util.concurrent.TimeUnit
 import kotlin.system.exitProcess
 
 /**
@@ -42,6 +47,9 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 	private val configFile = File(configFileName)
 	private val mapper
 		get() = ObjectMapper(YAMLFactory()).apply {
+			registerModule(ParameterNamesModule())
+			registerModule(Jdk8Module())
+			registerModule(JavaTimeModule())
 			registerModule(SimpleModule("PolymorphicServiceDeserializerModule", Version.unknownVersion()).apply {
 				addDeserializer(AuthConfig::class.java, AuthDeserializer)
 			})
@@ -107,6 +115,11 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 		ControllerWorker.start(services)
 
 		stage.setOnCloseRequest { if (notifiers.map { it.exitRequest }.reduce { acc, b -> acc && b }) quit() }
+
+		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe { collector ->
+			val map = collector.items.map { it.id to it }.toMap()
+			applicationConfiguration.silenced.replaceAll { id, item -> map[id] ?: item }
+		}
 	}
 
 	override fun add(module: Module<*, *>): ModuleInstanceInterface<*>? {

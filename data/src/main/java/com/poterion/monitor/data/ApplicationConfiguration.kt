@@ -14,4 +14,5 @@ data class ApplicationConfiguration(
 		var windowHeight: Double = 1000.0,
 		var commonSplit: Double = 0.3,
 		val services: MutableMap<String, ServiceConfig> = mutableMapOf(),
-		val notifiers: MutableMap<String, NotifierConfig> = mutableMapOf())
+		val notifiers: MutableMap<String, NotifierConfig> = mutableMapOf(),
+		val silenced: MutableMap<String, StatusItem> = mutableMapOf())

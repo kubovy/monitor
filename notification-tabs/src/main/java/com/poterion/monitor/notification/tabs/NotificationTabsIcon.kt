@@ -9,6 +9,7 @@ import java.io.InputStream
  * @author Jan Kubovy <jan@kubovy.eu>
  */
 enum class NotificationTabsIcon(private val file: String) : Icon {
+	SILENCE("/icons/silence.png"),
 	TABS("/icons/tabs.png");
 
 	override val inputStream: InputStream

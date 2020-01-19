@@ -10,7 +10,6 @@ import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.utils.toUriOrNull
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
-import com.poterion.monitor.data.key
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifications.NotificationsModule
 import com.poterion.monitor.notifications.data.NotificationsConfig
@@ -94,8 +93,11 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 		}
 
 	override fun initialize() {
+		super.initialize()
 		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe {
-			Platform.runLater { update(it.filter(config.minPriority, config.minStatus, config.services)) }
+			Platform.runLater {
+				update(it.filter(controller.applicationConfiguration.silenced.keys, config.minPriority, config.minStatus, config.services))
+			}
 		}
 	}
 
@@ -113,18 +115,18 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 	}
 
 	private fun update(statusItems: Collection<StatusItem>) {
-		for (statusItem in statusItems) {
+		if (config.enabled) for (statusItem in statusItems) {
 			val now = Instant.now()
 			//val lastStarted = statusItemCache[key]?.startedAt
-			val lastStatus = statusItemCache[statusItem.key]?.status
-			val lastShown = statusItemLastShownAtCache[statusItem.key] ?: Instant.EPOCH
+			val lastStatus = statusItemCache[statusItem.id]?.status
+			val lastShown = statusItemLastShownAtCache[statusItem.id] ?: Instant.EPOCH
 			val repeatAfter = config.repeatAfter
 
 			if (lastStatus != statusItem.status
 					|| repeatAfter == null
 					|| lastShown.isBefore(now.minusMillis(repeatAfter))) {
-				statusItemCache[statusItem.key] = statusItem
-				statusItemLastShownAtCache[statusItem.key] = now
+				statusItemCache[statusItem.id] = statusItem
+				statusItemLastShownAtCache[statusItem.id] = now
 
 				val formatter = listOf(statusItem.startedAt, now)
 						.map { it.atOffset(ZoneOffset.UTC) }

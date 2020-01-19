@@ -5,4 +5,5 @@ out/
 *.iml
 *.log
 /*.yaml
+/deployment-case/*.bin
 .DS_Store
