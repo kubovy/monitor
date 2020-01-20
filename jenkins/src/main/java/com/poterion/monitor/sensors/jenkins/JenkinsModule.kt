@@ -7,7 +7,6 @@ import com.poterion.monitor.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.jenkins.control.JenkinsService
 import com.poterion.monitor.sensors.jenkins.data.JenkinsConfig
-import com.poterion.monitor.sensors.jenkins.ui.JenkinsIcon
 import kotlin.reflect.KClass
 
 object JenkinsModule : ServiceModule<JenkinsConfig, JenkinsService> {

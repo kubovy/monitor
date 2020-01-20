@@ -152,7 +152,8 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 											priority = it.priority,
 											status = it.severity,
 											title = it.name,
-											link = "${config.url}dashboard/index/${it.id}")
+											link = "${config.url}dashboard/index/${it.id}",
+											isRepeatable = false)
 								}
 								?.also(updater)
 					} else {
@@ -165,7 +166,8 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 											priority = it.priority,
 											status = Status.SERVICE_ERROR,
 											title = it.name,
-											link = config.url)
+											link = config.url,
+											isRepeatable = false)
 								}
 								.also(updater)
 					}
@@ -183,7 +185,8 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 										priority = it.priority,
 										status = Status.CONNECTION_ERROR,
 										title = it.name,
-										link = config.url)
+										link = config.url,
+										isRepeatable = false)
 							}
 							.also(updater)
 				}
@@ -199,7 +202,8 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 								priority = it.priority,
 								status = Status.CONNECTION_ERROR,
 								title = it.name,
-								link = config.url)
+								link = config.url,
+								isRepeatable = false)
 					}
 					.also(updater)
 		}

@@ -7,14 +7,9 @@ import java.io.InputStream
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
-enum class SystemTrayIcon(private val file: String) : Icon {
-	TRAY("/icons/tray.png"),
-	ABOUT("/icons/about.png"),
-	REFRESH("/icons/refresh.png"),
-	QUIT("/icons/quit.png");
-
-	override val inputStream: InputStream
-		get() = SystemTrayIcon::class.java.getResourceAsStream(file)
-				.use { it.readBytes() }
-				.let { ByteArrayInputStream(it) }
+enum class SystemTrayIcon : Icon {
+	TRAY,
+	ABOUT,
+	REFRESH,
+	QUIT
 }

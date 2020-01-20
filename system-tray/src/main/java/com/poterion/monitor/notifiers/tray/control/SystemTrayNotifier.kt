@@ -9,7 +9,7 @@ import com.poterion.monitor.api.lib.open
 import com.poterion.monitor.api.lib.toIcon
 import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.Module
-import com.poterion.monitor.api.ui.CommonIcon
+import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.ui.Icon
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.data.ModuleConfig
@@ -217,7 +217,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 				.filter { it.priority > Priority.NONE }
 				.maxBy { it.status }
 				?.status
-				?.toIcon() ?: CommonIcon.OK
+				?.toIcon() ?: CommonIcon.STATUS_OK
 		icon.inputStream.use { setImage(it) }
 	}
 

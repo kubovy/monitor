@@ -2,7 +2,7 @@ package com.poterion.monitor.ui
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.lib.toImageView
-import com.poterion.monitor.api.ui.CommonIcon
+import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.utils.cell
 import com.poterion.monitor.api.utils.factory
 import com.poterion.monitor.data.Status
@@ -106,7 +106,7 @@ internal class ServiceSettingsPlugin(private val controller: ControllerInterface
 			controller.saveConfig()
 		}
 		comboboxNewServiceConfig.items.setAll(unusedServiceConfigs)
-		comboboxNewServiceConfig.selectionModel.select(null)
+		comboboxNewServiceConfig.selectionModel.clearSelection()
 	}
 
 	private fun removeLabel(serviceConfig: ServiceConfig) {

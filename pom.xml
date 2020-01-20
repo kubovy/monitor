@@ -23,6 +23,7 @@
         <module>gerrit-code-review</module>
         <module>jenkins</module>
         <module>sonar</module>
+        <module>storyboard</module>
         <!-- Notifiers -->
         <module>devops-light</module>
         <module>deployment-case</module>
@@ -80,6 +81,11 @@
             <dependency>
                 <groupId>com.poterion.monitor</groupId>
                 <artifactId>sonar</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.poterion.monitor</groupId>
+                <artifactId>storyboard</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

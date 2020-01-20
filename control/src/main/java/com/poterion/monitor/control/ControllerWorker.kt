@@ -39,9 +39,9 @@ class ControllerWorker private constructor(private val services: Collection<Serv
 		Thread.currentThread().name = "Controller Worker"
 		while (running) try {
 			val now = System.currentTimeMillis()
-			services
-					.filter { (now - (serviceLastChecked[it.config.name] ?: 0L)) > it.config.checkInterval }
+			services.filter { it.refresh || (now - (serviceLastChecked[it.config.name] ?: 0L)) > it.config.checkInterval }
 					.forEach { service ->
+						service.refresh = false
 						serviceLastChecked[service.config.name] = System.currentTimeMillis()
 						try {
 							service.check {

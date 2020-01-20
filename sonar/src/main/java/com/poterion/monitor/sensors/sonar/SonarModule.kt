@@ -7,7 +7,6 @@ import com.poterion.monitor.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.sonar.control.SonarService
 import com.poterion.monitor.sensors.sonar.data.SonarConfig
-import com.poterion.monitor.sensors.sonar.ui.SonarIcon
 import kotlin.reflect.KClass
 
 /**
