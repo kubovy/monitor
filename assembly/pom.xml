@@ -64,6 +64,10 @@
         </dependency>
         <dependency>
             <groupId>com.poterion.monitor</groupId>
+            <artifactId>storyboard</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.poterion.monitor</groupId>
             <artifactId>deployment-case</artifactId>
         </dependency>
         <dependency>

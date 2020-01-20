@@ -10,7 +10,7 @@ import com.poterion.monitor.api.lib.toImage
 import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.modules.ServiceModule
-import com.poterion.monitor.api.ui.CommonIcon
+import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.utils.cell
 import com.poterion.monitor.api.utils.factory
 import com.poterion.monitor.data.*
@@ -22,6 +22,7 @@ import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
+import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.geometry.VPos
 import javafx.scene.Parent
@@ -40,7 +41,7 @@ class ConfigurationController {
 
 	companion object {
 		fun create(controller: ControllerInterface) {
-			val loader = FXMLLoader(ConfigurationController::class.java.getResource("configuration.fxml"))
+			val loader = FXMLLoader(ConfigurationController::class.java.getResource("/configuration.fxml"))
 			val root = loader.load<Parent>()
 			loader.getController<ConfigurationController>().apply {
 				this.controller = controller
@@ -448,11 +449,19 @@ class ConfigurationController {
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				},
-				HBox(TextField(config.checkInterval.toString()).apply {
-					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-					textProperty().addListener { _, _, value -> value.toLongOrNull()?.also { config.checkInterval = it } }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-				}, Label("ms")).apply { alignment = Pos.CENTER })
+				HBox(
+						TextField(config.checkInterval.toString()).apply {
+							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+							textProperty().addListener { _, _, value -> value.toLongOrNull()?.also { config.checkInterval = it } }
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+						},
+						Label("ms").apply {
+							maxWidth = Double.MAX_VALUE
+							maxHeight = Double.MAX_VALUE
+							padding = Insets(5.0)
+						},
+						Button("", CommonIcon.REFRESH.toImageView()).apply { setOnAction { refresh = true } }
+				).apply { alignment = Pos.CENTER })
 
 		return initializeHttpService(row)
 	}
@@ -588,11 +597,17 @@ class ConfigurationController {
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				},
-				HBox(TextField(config.connectTimeout?.toString() ?: "").apply {
-					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.connectTimeout = it } }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-				}, Label("ms")).apply { alignment = Pos.CENTER })
+				HBox(
+						TextField(config.connectTimeout?.toString() ?: "").apply {
+							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+							textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.connectTimeout = it } }
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+						},
+						Label("ms").apply {
+							maxWidth = Double.MAX_VALUE
+							maxHeight = Double.MAX_VALUE
+							padding = Insets(5.0)
+						}).apply { alignment = Pos.CENTER })
 
 		addRow(row++,
 				Label("Read timeout").apply {
@@ -600,11 +615,17 @@ class ConfigurationController {
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				},
-				HBox(TextField(config.readTimeout?.toString() ?: "").apply {
-					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.readTimeout = it } }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-				}, Label("ms")).apply { alignment = Pos.CENTER })
+				HBox(
+						TextField(config.readTimeout?.toString() ?: "").apply {
+							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+							textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.readTimeout = it } }
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+						},
+						Label("ms").apply {
+							maxWidth = Double.MAX_VALUE
+							maxHeight = Double.MAX_VALUE
+							padding = Insets(5.0)
+						}).apply { alignment = Pos.CENTER })
 
 		addRow(row++,
 				Label("Write timeout").apply {
@@ -612,11 +633,17 @@ class ConfigurationController {
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				},
-				HBox(TextField(config.writeTimeout?.toString() ?: "").apply {
-					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-					textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.writeTimeout = it } }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-				}, Label("ms")).apply { alignment = Pos.CENTER })
+				HBox(
+						TextField(config.writeTimeout?.toString() ?: "").apply {
+							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+							textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.writeTimeout = it } }
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+						},
+						Label("ms").apply {
+							maxWidth = Double.MAX_VALUE
+							maxHeight = Double.MAX_VALUE
+							padding = Insets(5.0)
+						}).apply { alignment = Pos.CENTER })
 
 		return row
 	}

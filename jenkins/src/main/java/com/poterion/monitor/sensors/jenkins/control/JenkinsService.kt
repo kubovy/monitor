@@ -141,7 +141,8 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 											priority = it.priority,
 											status = it.severity,
 											title = it.name,
-											link = it.url)
+											link = it.url,
+											isRepeatable = false)
 								}
 								?.also(updater)
 					} else {
@@ -154,7 +155,8 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 											priority = it.priority,
 											status = Status.SERVICE_ERROR,
 											title = it.name,
-											link = config.url)
+											link = config.url,
+											isRepeatable = false)
 								}
 								.also(updater)
 					}
@@ -172,7 +174,8 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 										priority = it.priority,
 										status = Status.CONNECTION_ERROR,
 										title = it.name,
-										link = config.url)
+										link = config.url,
+										isRepeatable = false)
 							}
 							.also(updater)
 				}
@@ -188,7 +191,8 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 								priority = it.priority,
 								status = Status.CONNECTION_ERROR,
 								title = it.name,
-								link = config.url)
+								link = config.url,
+								isRepeatable = false)
 					}
 					.also(updater)
 		}

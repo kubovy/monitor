@@ -7,7 +7,6 @@ import com.poterion.monitor.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.alertmanager.control.AlertManagerService
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerConfig
-import com.poterion.monitor.sensors.alertmanager.ui.AlertManagerIcon
 import kotlin.reflect.KClass
 
 object AlertManagerModule : ServiceModule<AlertManagerConfig, AlertManagerService> {
@@ -17,9 +16,6 @@ object AlertManagerModule : ServiceModule<AlertManagerConfig, AlertManagerServic
 		get() = "Alert Manager"
 
 	override val icon: Icon = AlertManagerIcon.ALERT_MANAGER
-
-	override val staticNotificationSet: Boolean
-		get() = false
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
 			AlertManagerService = AlertManagerConfig(uuid = applicationConfiguration.services.nextUUID(), name = title)

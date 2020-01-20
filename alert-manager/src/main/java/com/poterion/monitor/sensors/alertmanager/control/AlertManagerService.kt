@@ -6,7 +6,7 @@ import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.lib.toIcon
 import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.Module
-import com.poterion.monitor.api.ui.CommonIcon
+import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.utils.cell
 import com.poterion.monitor.api.utils.factory
 import com.poterion.monitor.api.utils.toSet
@@ -263,7 +263,8 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 										serviceId = config.uuid,
 										priority = config.priority,
 										status = Status.OK,
-										title = "No alerts"))
+										title = "No alerts",
+										isRepeatable = false))
 						updater(alerts)
 					} else {
 						updater(getStatusItems("Service error", Status.SERVICE_ERROR))
@@ -292,7 +293,8 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 					serviceId = config.uuid,
 					priority = config.priority,
 					status = rewriteStatus ?: Status.OK,
-					title = defaultTitle))
+					title = defaultTitle,
+					isRepeatable = false))
 
 	private fun createStatusItem(title: String,
 								 labelConfig: AlertManagerLabelConfig,
@@ -318,6 +320,7 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 								.let { it.isEmpty() || !it.contains(k) }
 					},
 			link = response.generatorURL,
+			isRepeatable = true,
 			startedAt = try {
 				Instant.parse(response.startsAt)
 			} catch (e: DateTimeParseException) {

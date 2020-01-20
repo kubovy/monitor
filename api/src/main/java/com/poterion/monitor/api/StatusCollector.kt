@@ -16,22 +16,41 @@ object StatusCollector {
 		private set
 	val status: PublishSubject<StatusCollector> = PublishSubject.create<StatusCollector>()
 
-	fun filter(silencedIds: Collection<String>, minPriority: Priority, minStatus: Status = Status.NONE, serviceIds: Set<String> = emptySet()) = items
+	fun filter(silencedIds: Collection<String>,
+			   minPriority: Priority,
+			   minStatus: Status = Status.NONE,
+			   serviceIds: Set<String> = emptySet(),
+			   includingChildren: Boolean = false) = items
+			.asSequence()
+			.filter { it.parentId == null || includingChildren }
 			.filterNot { silencedIds.contains(it.id) }
 			.filter { it.priority >= minPriority }
 			.filter { it.status >= minStatus }
 			.filter { serviceIds.isEmpty() || serviceIds.contains(it.serviceId) }
+			.toList()
 
-	fun maxStatus(silencedIds: Collection<String>, minPriority: Priority, minStatus: Status = Status.NONE, serviceIds: Set<String> = emptySet()): Status =
-			topStatus(silencedIds, minPriority, minStatus, serviceIds)?.status ?: Status.NONE
+	fun maxStatus(silencedIds: Collection<String>,
+				  minPriority: Priority,
+				  minStatus: Status = Status.NONE,
+				  serviceIds: Set<String> = emptySet(),
+				  includingChildren: Boolean = false): Status =
+			topStatus(silencedIds, minPriority, minStatus, serviceIds, includingChildren)?.status ?: Status.NONE
 
-	fun topStatuses(silencedIds: Collection<String>, minPriority: Priority, minStatus: Status = Status.NONE, serviceIds: Set<String> = emptySet()) =
-			filter(silencedIds, minPriority, minStatus, serviceIds)
+	fun topStatuses(silencedIds: Collection<String>,
+					minPriority: Priority,
+					minStatus: Status = Status.NONE,
+					serviceIds: Set<String> = emptySet(),
+					includingChildren: Boolean = false) =
+			filter(silencedIds, minPriority, minStatus, serviceIds, includingChildren)
 					.filter { it.status == maxStatus(silencedIds, minPriority, minStatus, serviceIds) }
 					.distinctBy { it.serviceId }
 
-	fun topStatus(silencedIds: Collection<String>, minPriority: Priority, minStatus: Status = Status.NONE, serviceIds: Set<String> = emptySet()) =
-			filter(silencedIds, minPriority, minStatus, serviceIds).maxBy { it.status }
+	fun topStatus(silencedIds: Collection<String>,
+				  minPriority: Priority,
+				  minStatus: Status = Status.NONE,
+				  serviceIds: Set<String> = emptySet(),
+				  includingChildren: Boolean = false) =
+			filter(silencedIds, minPriority, minStatus, serviceIds, includingChildren).maxBy { it.status }
 
 	@Synchronized
 	fun update(statusItems: Collection<StatusItem>, update: Boolean) {
@@ -39,7 +58,6 @@ object StatusCollector {
 		itemMap.putAll(statusItems.groupBy { it.serviceId })
 
 		items = itemMap.values.flatten()
-		LOGGER.info("Updating status: ${items}")
 		status.onNext(this)
 	}
 }

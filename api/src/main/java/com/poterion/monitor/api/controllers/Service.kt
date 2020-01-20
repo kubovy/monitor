@@ -20,6 +20,7 @@ abstract class Service<out Config : ServiceConfig>(config: Config) : AbstractMod
 				sub = mutableListOf())
 
 	val http = HttpServiceModule(config)
+	var refresh: Boolean = false
 
 	protected val retrofit: Retrofit?
 		get() = http.retrofit
