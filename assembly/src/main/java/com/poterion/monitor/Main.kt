@@ -1,14 +1,15 @@
 package com.poterion.monitor
 
 import com.poterion.monitor.control.ApplicationController
-import com.poterion.monitor.sensors.gerritcodereview.GerritCodeReviewModule
-import com.poterion.monitor.notifiers.tabs.NotificationTabsModule
-import com.poterion.monitor.notifiers.notifications.NotificationsModule
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
 import com.poterion.monitor.notifiers.devopslight.DevOpsLight
+import com.poterion.monitor.notifiers.notifications.NotificationsModule
+import com.poterion.monitor.notifiers.tabs.NotificationTabsModule
 import com.poterion.monitor.notifiers.tray.SystemTrayModule
 import com.poterion.monitor.sensors.alertmanager.AlertManagerModule
+import com.poterion.monitor.sensors.gerritcodereview.GerritCodeReviewModule
 import com.poterion.monitor.sensors.jenkins.JenkinsModule
+import com.poterion.monitor.sensors.jira.JiraModule
 import com.poterion.monitor.sensors.sonar.SonarModule
 import com.poterion.monitor.sensors.storyboard.StoryboardModule
 import com.poterion.monitor.ui.ConfigurationController
@@ -72,6 +73,7 @@ class Main : Application() {
 				AlertManagerModule,
 				GerritCodeReviewModule,
 				JenkinsModule,
+				JiraModule,
 				SonarModule,
 				StoryboardModule,
 				DeploymentCaseModule,

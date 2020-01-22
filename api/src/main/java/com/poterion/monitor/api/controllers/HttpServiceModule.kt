@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.poterion.monitor.api.utils.noop
 import com.poterion.monitor.data.HttpConfig
 import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.auth.AuthConfig
@@ -24,6 +25,7 @@ import java.net.Proxy
 import java.nio.charset.Charset
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
+import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
@@ -46,11 +48,9 @@ class HttpServiceModule(private val config: HttpConfig) {
 			.registerModule(KotlinModule())
 
 	private val trustAllCerts = arrayOf(object : X509TrustManager {
-		override fun checkClientTrusted(p0: Array<out X509Certificate>?, p1: String?) {
-		}
+		override fun checkClientTrusted(p0: Array<out X509Certificate>?, p1: String?) = noop()
 
-		override fun checkServerTrusted(p0: Array<out X509Certificate>?, p1: String?) {
-		}
+		override fun checkServerTrusted(p0: Array<out X509Certificate>?, p1: String?) = noop()
 
 		override fun getAcceptedIssuers() = emptyArray<X509Certificate>()
 	})
@@ -82,20 +82,21 @@ class HttpServiceModule(private val config: HttpConfig) {
 										}.socketFactory, trustAllCerts[0]).hostnameVerifier { _, _ -> true }
 									}
 								}
-//								.addInterceptor { chain ->
-//									val requestBuilder = chain.request().newBuilder()
-//									val auth = config.auth
-//									authCache = auth
-//
-//									if (auth is BasicAuthConfig) requestBuilder.header("Authorization",
-//											Base64.getEncoder()
-//													.encodeToString("${auth.username}:${auth.password}".toByteArray())
-//													.let { "Basic ${it}" })
-//
-//									val request = requestBuilder.build()
-//									LOGGER.debug("${request.method()} ${request.url()}...")
-//									chain.proceed(request)
-//								}
+								.addInterceptor { chain ->
+									val requestBuilder = chain.request().newBuilder()
+									val auth = config.auth
+									//authCache = auth
+
+									if (auth is BasicAuthConfig) requestBuilder.header("Authorization",
+											Base64.getEncoder()
+													.encodeToString("${auth.username}:${auth.password}".toByteArray())
+													.let { "Basic ${it}" })
+
+									val request = requestBuilder
+											.build()
+									LOGGER.debug("${request.method()} ${request.url()}...")
+									chain.proceed(request)
+								}
 								.build())
 						.addConverterFactory(ScalarsConverterFactory.create())
 						.addConverterFactory(JacksonConverterFactory.create(objectMapper))

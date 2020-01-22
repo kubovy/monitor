@@ -15,6 +15,7 @@ data class NotificationsConfig(override var type: String = NotificationsConfig::
 							   override var minPriority: Priority = Priority.LOW,
 							   override var minStatus: Status = Status.NONE,
 							   override val services: MutableSet<String> = mutableSetOf(),
+							   override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
 							   var repeatAfter: Long? = null,
 							   var durations: MutableMap<String, Long?> = mutableMapOf(),
 							   var lastUpdated: MutableMap<String, MutableMap<String, LastUpdatedConfig>> = mutableMapOf()) : NotifierConfig

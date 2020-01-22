@@ -1,4 +1,4 @@
-package com.poterion.monitor.api.lib
+package com.poterion.monitor.api.utils
 
 import com.poterion.monitor.api.data.RGBColor
 import javafx.scene.paint.Color

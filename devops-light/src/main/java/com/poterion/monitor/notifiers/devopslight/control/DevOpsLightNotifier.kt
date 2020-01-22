@@ -1,15 +1,16 @@
 package com.poterion.monitor.notifiers.devopslight.control
 
 import com.poterion.communication.serial.*
+import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.data.RGBColor
 import com.poterion.monitor.api.modules.Module
-import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.ui.Icon
 import com.poterion.monitor.api.ui.NavigationItem
+import com.poterion.monitor.api.utils.noop
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.notifiers.NotifierAction
@@ -84,8 +85,8 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 			.filter { (_, lights) -> lights.isNotEmpty() }
 			.map { (item, lights) -> item.also { it.action = { changeLights(lights) } } }
 
-	override val configurationRows: List<Pair<Node, Node>>?
-		get() = listOf(
+	override val configurationRows: List<Pair<Node, Node>>
+		get() = super.configurationRows + listOf(
 				Label("Bluetooth Address").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -217,20 +218,15 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 		NotifierAction.SHUTDOWN -> changeLights(listOf(LightConfig()))
 	}
 
-	override fun onConnecting(channel: Channel) {
-	}
+	override fun onConnecting(channel: Channel) = noop()
 
-	override fun onConnect(channel: Channel) {
-	}
+	override fun onConnect(channel: Channel) = noop()
 
-	override fun onDisconnect(channel: Channel) {
-	}
+	override fun onDisconnect(channel: Channel) = noop()
 
-	override fun onMessageReceived(channel: Channel, message: IntArray) {
-	}
+	override fun onMessageReceived(channel: Channel, message: IntArray) = noop()
 
-	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) {
-	}
+	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) = noop()
 
 	private fun StatusItem?.toLightConfig(): List<LightConfig>? {
 		val lightConfig = config.items

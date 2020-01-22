@@ -3,13 +3,12 @@ package com.poterion.monitor.sensors.alertmanager.control
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Service
-import com.poterion.monitor.api.lib.toIcon
-import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.Module
-import com.poterion.monitor.api.CommonIcon
-import com.poterion.monitor.api.utils.cell
-import com.poterion.monitor.api.utils.factory
+import com.poterion.monitor.api.ui.TableSettingsPlugin
+import com.poterion.monitor.api.utils.toIcon
+import com.poterion.monitor.api.utils.toImageView
 import com.poterion.monitor.api.utils.toSet
+import com.poterion.monitor.api.utils.toUriOrNull
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
@@ -17,22 +16,22 @@ import com.poterion.monitor.sensors.alertmanager.AlertManagerModule
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerConfig
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerLabelConfig
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerResponse
-import javafx.collections.FXCollections
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
-import javafx.scene.control.*
-import javafx.scene.input.KeyCode
-import javafx.scene.layout.HBox
+import javafx.scene.control.Button
+import javafx.scene.control.Label
+import javafx.scene.control.TextArea
+import javafx.scene.control.TextField
 import javafx.scene.layout.Pane
-import javafx.scene.layout.Region
-import javafx.scene.layout.VBox
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.awt.Desktop
 import java.io.IOException
+import java.net.URLEncoder
 import java.time.Instant
 import java.time.format.DateTimeParseException
 
@@ -51,8 +50,59 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 
 	private var lastFound = listOf<Triple<String, AlertManagerLabelConfig, AlertManagerResponse>>()
 
-	override val configurationRows: List<Pair<Node, Node>>?
-		get() = listOf(
+	private val labelTableSettingsPlugin = TableSettingsPlugin(
+			tableName = "labelTable",
+			buttonText = "Add label",
+			controller = controller,
+			config = config,
+			createItem = { AlertManagerLabelConfig() },
+			items = config.labels,
+			displayName = { name },
+			columnDefinitions = listOf(
+					TableSettingsPlugin.ColumnDefinition(
+							name = "Label",
+							getter = { name },
+							setter = { name = it },
+							initialValue = "",
+							isEditable = true),
+					TableSettingsPlugin.ColumnDefinition(
+							name = "Value",
+							getter = { value },
+							setter = { value = it },
+							initialValue = "",
+							isEditable = true),
+					TableSettingsPlugin.ColumnDefinition(
+							name = "Priority",
+							getter = { priority },
+							setter = { priority = it },
+							initialValue = Priority.NONE,
+							isEditable = true,
+							icon = { toIcon() },
+							options = { Priority.values().toList() }),
+					TableSettingsPlugin.ColumnDefinition(
+							name = "Status",
+							getter = { status },
+							setter = { status = it },
+							initialValue = Status.NONE,
+							isEditable = true,
+							icon = { toIcon() },
+							options = { Status.values().toList() })),
+			comparator = compareBy(
+					{ -it.priority.ordinal },
+					{ -it.status.ordinal },
+					{ it.name },
+					{ it.value }),
+			actions = listOf { item ->
+				item.let { URLEncoder.encode("{${it.name}=\"${it.value}\"}", Charsets.UTF_8.name()) }
+						.let { "/#/alerts?silenced=true&inhibited=true&active=true&filter=${it}" }
+						.let { path -> config.url.toUriOrNull()?.resolve(path) }
+						?.let { uri -> Button("", com.poterion.monitor.api.CommonIcon.LINK.toImageView()) to uri }
+						?.also { (btn, uri) -> btn.setOnAction { Desktop.getDesktop().browse(uri) } }
+						?.first
+			})
+
+	override val configurationRows: List<Pair<Node, Node>>
+		get() = super.configurationRows + listOf(
 				Label("Name annotation/label").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -61,8 +111,8 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 					textProperty().addListener { _, _, value -> config.nameRefs = value.toSet(",") }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				},
-				Pane() to Label("Comma separated list of annotations and/or labels. First found will be used."),
-				Label("Description annotation/label").apply {
+				Pane() to Label("Comma separated list of annotations or labels. First found will be used."),
+				Label("Description").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
@@ -70,7 +120,7 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 					textProperty().addListener { _, _, value -> config.descriptionRefs = value.toSet(",") }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				},
-				Pane() to Label("Comma separated list of annotations and/or labels. First found will be used."),
+				Pane() to Label("Comma separated list of annotations or labels. First found will be used."),
 				Label("Receivers").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -81,163 +131,29 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				},
 				Pane() to Label("Comma separated list of receivers to take into account."),
-				Label("Labels/annotations").apply {
+				Label("Labels").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
-				} to TextField(config.labelFilter.joinToString(",")).apply {
+				} to TextArea(config.labelFilter.joinToString(",")).apply {
 					promptText = "All labels and annotations"
-					textProperty().addListener { _, _, value -> config.labelFilter = value.toSet(",") }
+					prefHeight = 60.0
+					textProperty().addListener { _, _, value ->
+						config.labelFilter = value.replace("[\\n\\r\\t]".toRegex(), "").toSet(",")
+					}
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				},
-				Pane() to Label("Comma separated list labels and annotation to be used in status items. Use ! for negation."))
+				Pane() to Label("Comma separated list labels or annotation to be used in status items. Use ! for negation."),
+				labelTableSettingsPlugin.rowNewItem)
 
-	override val configurationAddition: List<Parent>?
-		get() = listOf(
-				VBox(
-						HBox(
-								Label("Name").apply { maxHeight = Double.MAX_VALUE }, newLabelName,
-								Label("Value").apply { maxHeight = Double.MAX_VALUE }, newLabelValue,
-								Button("Add").apply { setOnAction { addLabel() } }),
-						labelTable).apply {
-					VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS)
-				})
-
-	private val newLabelName = TextField("").apply {
-		HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-		setOnKeyReleased { event -> if (event.code == KeyCode.ENTER) addLabel() }
-	}
-
-	private val newLabelValue = TextField("").apply {
-		HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-		setOnKeyReleased { event -> if (event.code == KeyCode.ENTER) addLabel() }
-	}
-
-	private val labelTable = TableView<AlertManagerLabelConfig>().apply {
-		minWidth = Region.USE_COMPUTED_SIZE
-		minHeight = Region.USE_COMPUTED_SIZE
-		prefWidth = Region.USE_COMPUTED_SIZE
-		prefHeight = Region.USE_COMPUTED_SIZE
-		maxWidth = Double.MAX_VALUE
-		maxHeight = Double.MAX_VALUE
-		VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS)
-		setOnKeyReleased { event ->
-			when (event.code) {
-				KeyCode.HELP, // MacOS mapping of INSERT key
-				KeyCode.INSERT -> newLabelName.requestFocus()
-				KeyCode.DELETE -> selectionModel.selectedItem?.also { removeLabel(it) }
-				else -> {
-					// Nothing to do
-				}
-			}
-		}
-	}
-
-	private val labelTableNameColumn = TableColumn<AlertManagerLabelConfig, String>("Label").apply {
-		isSortable = false
-		minWidth = 150.0
-		prefWidth = Region.USE_COMPUTED_SIZE
-		maxWidth = Double.MAX_VALUE
-		cell("name") { item, value, empty ->
-			graphic = TextField(value).takeUnless { empty }?.apply {
-				textProperty().bindBidirectional(itemProperty())
-				textProperty().addListener { _, _, value ->
-					item?.name = value
-					sortLabelTable()
-					controller.saveConfig()
-				}
-
-			}
-		}
-	}
-
-	private val labelTableValueColumn = TableColumn<AlertManagerLabelConfig, String>("Value").apply {
-		isSortable = false
-		minWidth = 200.0
-		prefWidth = Region.USE_COMPUTED_SIZE
-		maxWidth = Double.MAX_VALUE
-		cell("value") { item, value, empty ->
-			graphic = TextField(value).takeUnless { empty }?.apply {
-				textProperty().bindBidirectional(itemProperty())
-				textProperty().addListener { _, _, value ->
-					item?.value = value
-					sortLabelTable()
-					controller.saveConfig()
-				}
-			}
-		}
-	}
-
-	private val labelTablePriorityColumn = TableColumn<AlertManagerLabelConfig, Priority>("Priority").apply {
-		isSortable = false
-		minWidth = 150.0
-		prefWidth = Region.USE_COMPUTED_SIZE
-		maxWidth = Region.USE_PREF_SIZE
-		cell("priority") { item, value, empty ->
-			graphic = ComboBox<Priority>(FXCollections.observableList(Priority.values().toList())).takeUnless { empty }
-					?.apply {
-						factory { item, empty ->
-							text = item?.takeUnless { empty }?.name
-							graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
-						}
-						selectionModel.select(value)
-						valueProperty().bindBidirectional(itemProperty())
-						valueProperty().addListener { _, _, priority ->
-							item?.priority = priority
-							sortLabelTable()
-							controller.saveConfig()
-						}
-					}
-		}
-	}
-
-	private val labelTableStatusColumn = TableColumn<AlertManagerLabelConfig, Status>("Status").apply {
-		isSortable = false
-		minWidth = 200.0
-		prefWidth = Region.USE_COMPUTED_SIZE
-		maxWidth = Region.USE_PREF_SIZE
-		cell("status") { item, value, empty ->
-			graphic = ComboBox<Status>(FXCollections.observableList(Status.values().toList())).takeUnless { empty }
-					?.apply {
-						factory { item, empty ->
-							text = item?.takeUnless { empty }?.name
-							graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
-						}
-						selectionModel.select(value)
-						valueProperty().bindBidirectional(itemProperty())
-						valueProperty().addListener { _, _, status ->
-							item?.status = status
-							sortLabelTable()
-							controller.saveConfig()
-						}
-					}
-		}
-	}
-
-	private val labelTableActionColumn = TableColumn<AlertManagerLabelConfig, Status>("").apply {
-		isSortable = false
-		minWidth = 48.0
-		prefWidth = Region.USE_COMPUTED_SIZE
-		maxWidth = Region.USE_PREF_SIZE
-		cell { item, _, empty ->
-			graphic = Button("", CommonIcon.TRASH.toImageView()).takeUnless { empty }?.apply {
-				setOnAction { item?.also { removeLabel(it) } }
-			}
-		}
-	}
-
-	init {
-		labelTable.items.setAll(config.labels)
-		labelTable.columns.addAll(labelTablePriorityColumn, labelTableNameColumn, labelTableValueColumn, labelTableStatusColumn,
-				labelTableActionColumn)
-		sortLabelTable()
-	}
+	override val configurationAddition: List<Parent>
+		get() = super.configurationAddition + listOf(labelTableSettingsPlugin.vbox)
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		if (config.enabled && config.url.isNotEmpty()) try {
 			service?.check()?.enqueue(object : Callback<List<AlertManagerResponse>> {
 				override fun onResponse(call: Call<List<AlertManagerResponse>>?, response: Response<List<AlertManagerResponse>>?) {
-					LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}: ${response?.code()} ${response?.message()}")
+					//LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}: ${response?.code()} ${response?.message()}")
 
 					if (response?.isSuccessful == true) {
 						val configPairs = config.labels.map { "${it.name}:${it.value}" to it }.toMap()
@@ -327,43 +243,4 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 				LOGGER.error(e.message, e)
 				Instant.now()
 			})
-
-	private fun addLabel() {
-		newLabelName.text.takeIf { it.isNotEmpty() && it.isNotBlank() }?.also { name ->
-			val newLabel = AlertManagerLabelConfig(
-					name = name,
-					value = newLabelValue.text,
-					priority = config.priority,
-					status = Status.NONE)
-			labelTable.items
-					.apply { add(newLabel) }
-			//.sortWith(compareBy({-it.priority.ordinal}, { it.name }, {it.value}))
-			config.labels.add(newLabel)
-			controller.saveConfig()
-		}
-		newLabelName.text = ""
-	}
-
-	private fun removeLabel(labelConfig: AlertManagerLabelConfig) {
-		Alert(Alert.AlertType.CONFIRMATION).apply {
-			title = "Delete confirmation"
-			headerText = "Delete confirmation"
-			contentText = "Do you really want to delete label ${labelConfig.name}=\"${labelConfig.value}\"?"
-			buttonTypes.setAll(ButtonType.YES, ButtonType.NO)
-		}.showAndWait().ifPresent {
-			it.takeIf { it == ButtonType.YES }?.also {
-				labelTable.items.remove(labelConfig)
-				config.labels.remove(labelConfig)
-				controller.saveConfig()
-			}
-		}
-	}
-
-	private fun sortLabelTable() {
-		labelTable.items.sortWith(compareBy(
-				{ -it.priority.ordinal },
-				{ -it.status.ordinal },
-				{ it.name },
-				{ it.value }))
-	}
 }

@@ -60,6 +60,10 @@
         </dependency>
         <dependency>
             <groupId>com.poterion.monitor</groupId>
+            <artifactId>jira</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.poterion.monitor</groupId>
             <artifactId>sonar</artifactId>
         </dependency>
         <dependency>

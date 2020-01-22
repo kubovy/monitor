@@ -1,5 +1,6 @@
 package com.poterion.monitor.api.utils
 
+import com.sun.javafx.scene.control.skin.TableViewSkin
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.value.ObservableValue
 import javafx.scene.control.*
@@ -7,17 +8,58 @@ import javafx.scene.control.cell.PropertyValueFactory
 import javafx.scene.control.cell.TreeItemPropertyValueFactory
 import javafx.scene.input.MouseEvent
 import javafx.util.Callback
+import org.slf4j.LoggerFactory
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Method
 
-fun <T> ComboBox<T>.factory(factory: ListCell<T>.(T?, Boolean) -> Unit) {
-	cellFactory = Callback<ListView<T>, ListCell<T>> {
-		object : ListCell<T>() {
-			override fun updateItem(item: T, empty: Boolean) {
-				super.updateItem(item, empty)
-				factory(item, empty)
+private val LOGGER = LoggerFactory.getLogger("FXUtils")
+
+private var columnToFitMethod: Method? = null
+
+fun TableView<*>.autoFitTable() {
+	if (columnToFitMethod == null) {
+		try {
+			columnToFitMethod = TableViewSkin::class.java.getDeclaredMethod("resizeColumnToFitContent", TableColumn::class.java, Int::class.javaPrimitiveType)
+			columnToFitMethod?.isAccessible = true
+		} catch (e: NoSuchMethodException) {
+			e.printStackTrace()
+		}
+	}
+
+	skin?.also { tableViewSkin ->
+		for (column in columns) {
+			try {
+				columnToFitMethod?.invoke(tableViewSkin, column, -1)
+			} catch (e: IllegalAccessException) {
+				LOGGER.error(e.message, e)
+			} catch (e: InvocationTargetException) {
+				LOGGER.error(e.message, e)
 			}
 		}
 	}
-	buttonCell = cellFactory.call(null)
+}
+
+fun TreeTableView<*>.autoFitTable() {
+	if (columnToFitMethod == null) {
+		try {
+			columnToFitMethod = TableViewSkin::class.java.getDeclaredMethod("resizeColumnToFitContent", TableColumn::class.java, Int::class.javaPrimitiveType)
+			columnToFitMethod?.isAccessible = true
+		} catch (e: NoSuchMethodException) {
+			e.printStackTrace()
+		}
+	}
+
+	skin?.also { tableViewSkin ->
+		for (column in columns) {
+			try {
+				columnToFitMethod?.invoke(tableViewSkin, column, -1)
+			} catch (e: IllegalAccessException) {
+				LOGGER.error(e.message, e)
+			} catch (e: InvocationTargetException) {
+				LOGGER.error(e.message, e)
+			}
+		}
+	}
 }
 
 fun <T> TreeView<T>.factory(factory: TreeCell<T>.(T?, Boolean) -> Unit) {
@@ -42,10 +84,12 @@ fun <S, T> TableColumn<S, T>.cellFactoryInternal(factory: (TableCell<S, T>.(S?, 
 	}
 }
 
-fun <S, T> TableColumn<S, T>.cell(getter: (S?) -> T) {
+fun <S, T> TableColumn<S, T>.cell(getter: (S?) -> T,
+								  factory: (TableCell<S, T>.(S?, T?, Boolean) -> Unit)? = null) {
 	cellValueFactory = Callback<TableColumn.CellDataFeatures<S, T>, ObservableValue<T>> {
 		SimpleObjectProperty(getter(it.value))
 	}
+	cellFactoryInternal(factory)
 }
 
 fun <S, T> TableColumn<S, T>.cell(property: String? = null,

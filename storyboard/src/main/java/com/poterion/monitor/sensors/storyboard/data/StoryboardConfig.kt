@@ -23,4 +23,5 @@ class StoryboardConfig(override var type: String = StoryboardConfig::class.java.
 					   override var connectTimeout: Long? = null,
 					   override var readTimeout: Long? = null,
 					   override var writeTimeout: Long? = null,
+					   override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
 					   var projects: MutableSet<StoryboardProjectConfig> = mutableSetOf()) : ServiceConfig

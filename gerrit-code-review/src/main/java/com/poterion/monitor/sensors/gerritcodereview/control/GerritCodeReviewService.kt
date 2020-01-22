@@ -1,14 +1,13 @@
 package com.poterion.monitor.sensors.gerritcodereview.control
 
+import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Service
-import com.poterion.monitor.api.lib.toIcon
-import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.Module
-import com.poterion.monitor.api.CommonIcon
-import com.poterion.monitor.api.utils.cell
-import com.poterion.monitor.api.utils.factory
+import com.poterion.monitor.api.ui.TableSettingsPlugin
+import com.poterion.monitor.api.utils.toIcon
+import com.poterion.monitor.api.utils.toImageView
 import com.poterion.monitor.api.utils.toUriOrNull
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
@@ -17,13 +16,9 @@ import com.poterion.monitor.sensors.gerritcodereview.GerritCodeReviewModule
 import com.poterion.monitor.sensors.gerritcodereview.data.GerritCodeReviewConfig
 import com.poterion.monitor.sensors.gerritcodereview.data.GerritCodeReviewQueryConfig
 import com.poterion.monitor.sensors.gerritcodereview.data.GerritCodeReviewQueryResponse
-import javafx.collections.FXCollections
+import javafx.scene.Node
 import javafx.scene.Parent
-import javafx.scene.control.*
-import javafx.scene.input.KeyCode
-import javafx.scene.layout.HBox
-import javafx.scene.layout.Region
-import javafx.scene.layout.VBox
+import javafx.scene.control.Button
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.awt.Desktop
@@ -51,161 +46,59 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 	private var lastFound: MutableMap<String, MutableCollection<StatusItem>> = mutableMapOf()
 	private val executor = Executors.newSingleThreadExecutor()
 
-	override val configurationAddition: List<Parent>?
-		get() = listOf(
-				VBox(
-						HBox(
-								Label("Name").apply { maxHeight = Double.MAX_VALUE }, textNewName,
-								Label("Query").apply { maxHeight = Double.MAX_VALUE }, textNewQuery,
-								Button("Add").apply { setOnAction { addQuery() } }),
-						labelTable).apply {
-					VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS)
-				})
+	private val queryTableSettingsPlugin = TableSettingsPlugin(
+			tableName = "queryTable",
+			newLabel = "Query name",
+			buttonText = "Add query",
+			controller = controller,
+			config = config,
+			createItem = { GerritCodeReviewQueryConfig() },
+			items = config.queries,
+			displayName = { name },
+			columnDefinitions = listOf(
+					TableSettingsPlugin.ColumnDefinition(
+							name = "Name",
+							getter = { name },
+							setter = { name = it },
+							initialValue = "",
+							isEditable = true),
+					TableSettingsPlugin.ColumnDefinition(
+							name = "Query",
+							getter = { query },
+							setter = { query = it },
+							initialValue = "",
+							isEditable = true),
+					TableSettingsPlugin.ColumnDefinition(
+							name = "Priority",
+							getter = { priority },
+							setter = { priority = it },
+							initialValue = Priority.NONE,
+							isEditable = true,
+							icon = { toIcon() },
+							options = { Priority.values().toList() }),
+					TableSettingsPlugin.ColumnDefinition(
+							name = "Status",
+							getter = { status },
+							setter = { status = it },
+							initialValue = Status.NONE,
+							isEditable = true,
+							icon = { toIcon() },
+							options = { Status.values().toList() })),
+			comparator = compareBy({ -it.priority.ordinal }, { -it.status.ordinal }, { it.name }),
+			actions = listOf { item ->
+				item.let { URLEncoder.encode(it.query, Charsets.UTF_8.name()) }
+						.let { "/#/q/${it}" }
+						.let { path -> config.url.toUriOrNull()?.resolve(path) }
+						?.let { uri -> Button("", CommonIcon.LINK.toImageView()) to uri }
+						?.also { (btn, uri) -> btn.setOnAction { Desktop.getDesktop().browse(uri) } }
+						?.first
+			})
 
-	private val textNewName = TextField("").apply {
-		HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-		setOnKeyReleased { event -> if (event.code == KeyCode.ENTER) addQuery() }
-	}
+	override val configurationRows: List<Pair<Node, Node>>
+		get() = super.configurationRows + listOf(queryTableSettingsPlugin.rowNewItem)
 
-	private val textNewQuery = TextField("").apply {
-		HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-		setOnKeyReleased { event -> if (event.code == KeyCode.ENTER) addQuery() }
-	}
-
-	private val labelTable = TableView<GerritCodeReviewQueryConfig>().apply {
-		minWidth = Region.USE_COMPUTED_SIZE
-		minHeight = Region.USE_COMPUTED_SIZE
-		prefWidth = Region.USE_COMPUTED_SIZE
-		prefHeight = Region.USE_COMPUTED_SIZE
-		maxWidth = Double.MAX_VALUE
-		maxHeight = Double.MAX_VALUE
-		VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS)
-		setOnKeyReleased { event ->
-			when (event.code) {
-				KeyCode.HELP, // MacOS mapping of INSERT key
-				KeyCode.INSERT -> textNewName.requestFocus()
-				KeyCode.DELETE -> selectionModel.selectedItem?.also { removeQuery(it) }
-				else -> {
-					// Nothing to do
-				}
-			}
-		}
-	}
-
-	private val labelTableNameColumn = TableColumn<GerritCodeReviewQueryConfig, String>("Name").apply {
-		isSortable = false
-		minWidth = 150.0
-		prefWidth = Region.USE_COMPUTED_SIZE
-		maxWidth = Double.MAX_VALUE
-		cell("name") { item, value, empty ->
-			graphic = TextField(value).takeUnless { empty }?.apply {
-				text = value
-				focusedProperty().addListener { _, _, value ->
-					if (!value) {
-						item?.name = text
-						sortLabelTable()
-						controller.saveConfig()
-					}
-				}
-			}
-		}
-	}
-
-	private val labelTableQueryColumn = TableColumn<GerritCodeReviewQueryConfig, String>("Query").apply {
-		isSortable = false
-		minWidth = 200.0
-		prefWidth = Region.USE_COMPUTED_SIZE
-		maxWidth = Double.MAX_VALUE
-		cell("query") { item, value, empty ->
-			graphic = TextField(value).takeUnless { empty }?.apply {
-				text = value
-				focusedProperty().addListener { _, _, value ->
-					if (!value) {
-						item?.query = text
-						sortLabelTable()
-						controller.saveConfig()
-					}
-				}
-			}
-		}
-	}
-
-	private val labelTablePriorityColumn = TableColumn<GerritCodeReviewQueryConfig, Priority>("Priority").apply {
-		isSortable = false
-		minWidth = 150.0
-		prefWidth = Region.USE_COMPUTED_SIZE
-		maxWidth = Region.USE_PREF_SIZE
-		cell("priority") { item, value, empty ->
-			graphic = ComboBox<Priority>(FXCollections.observableList(Priority.values().toList())).takeUnless { empty }
-					?.apply {
-						factory { item, empty ->
-							text = item?.takeUnless { empty }?.name
-							graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
-						}
-						selectionModel.select(value)
-						valueProperty().addListener { _, _, priority ->
-							if (priority != null) {
-								item?.priority = priority
-								sortLabelTable()
-								controller.saveConfig()
-							}
-						}
-					}
-		}
-	}
-
-	private val labelTableStatusColumn = TableColumn<GerritCodeReviewQueryConfig, Status>("Status").apply {
-		isSortable = false
-		minWidth = 200.0
-		prefWidth = Region.USE_COMPUTED_SIZE
-		maxWidth = Region.USE_PREF_SIZE
-		cell("status") { item, value, empty ->
-			graphic = ComboBox<Status>(FXCollections.observableList(Status.values().toList())).takeUnless { empty }
-					?.apply {
-						factory { item, empty ->
-							text = item?.takeUnless { empty }?.name
-							graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
-						}
-						selectionModel.select(value)
-						valueProperty().addListener { _, _, status ->
-							if (status != null) {
-								item?.status = status
-								sortLabelTable()
-								controller.saveConfig()
-							}
-						}
-					}
-		}
-	}
-
-	private val labelTableActionColumn = TableColumn<GerritCodeReviewQueryConfig, Status>("").apply {
-		isSortable = false
-		minWidth = 96.0
-		prefWidth = Region.USE_COMPUTED_SIZE
-		maxWidth = Region.USE_PREF_SIZE
-		cell { item, _, empty ->
-			graphic = if (!empty && item != null) HBox(
-					Button("", CommonIcon.LINK.toImageView()).apply {
-						setOnAction {
-							val url = item
-									.let { URLEncoder.encode(it.query, Charsets.UTF_8.name()) }
-									.let { "${config.url}/#/q/${it}" }
-									.replace("//", "/")
-									.toUriOrNull()
-							if (url != null) Desktop.getDesktop().browse(url)
-						}
-					},
-					Button("", CommonIcon.TRASH.toImageView()).apply { setOnAction { removeQuery(item) } })
-			else null
-		}
-	}
-
-	init {
-		labelTable.items.addAll(config.queries)
-		labelTable.columns.addAll(labelTablePriorityColumn, labelTableNameColumn, labelTableQueryColumn,
-				labelTableStatusColumn, labelTableActionColumn)
-		sortLabelTable()
-	}
+	override val configurationAddition: List<Parent>
+		get() = super.configurationAddition + listOf(queryTableSettingsPlugin.vbox)
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		lastFound.keys
@@ -247,45 +140,6 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 				status = status,
 				title = "[${query.name}] ${error}",
 				isRepeatable = false))
-	}
-
-	private fun addQuery() {
-		textNewName.text.takeIf { it.isNotEmpty() && it.isNotBlank() }?.also { name ->
-			val newLabel = GerritCodeReviewQueryConfig(
-					name = name,
-					query = textNewQuery.text,
-					priority = config.priority,
-					status = Status.NONE)
-			labelTable.items
-					.apply { add(newLabel) }
-			//.sortWith(compareBy({-it.priority.ordinal}, { it.name }, {it.value}))
-			config.queries.add(newLabel)
-			controller.saveConfig()
-		}
-		textNewName.text = ""
-		textNewQuery.text = ""
-	}
-
-	private fun removeQuery(queryConfig: GerritCodeReviewQueryConfig) {
-		Alert(Alert.AlertType.CONFIRMATION).apply {
-			title = "Delete confirmation"
-			headerText = "Delete confirmation"
-			contentText = "Do you really want to delete query ${queryConfig.name}?"
-			buttonTypes.setAll(ButtonType.YES, ButtonType.NO)
-		}.showAndWait().ifPresent {
-			it.takeIf { it == ButtonType.YES }?.also {
-				labelTable.items.remove(queryConfig)
-				config.queries.remove(queryConfig)
-				controller.saveConfig()
-			}
-		}
-	}
-
-	private fun sortLabelTable() {
-		labelTable.items.sortWith(compareBy(
-				{ -it.priority.ordinal },
-				{ -it.status.ordinal },
-				{ it.name }))
 	}
 
 	private fun GerritCodeReviewQueryResponse.toStatusItem(query: GerritCodeReviewQueryConfig) = StatusItem(

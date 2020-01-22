@@ -4,7 +4,8 @@ import com.poterion.communication.serial.BluetoothCommunicator
 import com.poterion.communication.serial.Channel
 import com.poterion.communication.serial.Communicator
 import com.poterion.communication.serial.CommunicatorListener
-import com.poterion.monitor.api.lib.toImage
+import com.poterion.monitor.api.utils.noop
+import com.poterion.monitor.api.utils.toImage
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import com.poterion.monitor.notifiers.deploymentcase.api.ConfigurationWindowActionListener
 import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageListener
@@ -249,8 +250,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 		textLog.scrollTop = Double.MAX_VALUE
 	}
 
-	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) {
-	}
+	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) = noop()
 
 	override fun onProgress(progress: Int, count: Int, disable: Boolean) {
 		super.onProgress(progress, count, disable)

@@ -15,6 +15,7 @@ data class DeploymentCaseConfig(override var type: String = DeploymentCaseConfig
 								override var minPriority: Priority = Priority.LOW,
 								override var minStatus: Status = Status.NONE,
 								override val services: MutableSet<String> = mutableSetOf(),
+								override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
 								var debug: Boolean = false,
 								var deviceAddress: String = "",
 								val testNameHistory: MutableList<String> = mutableListOf(),

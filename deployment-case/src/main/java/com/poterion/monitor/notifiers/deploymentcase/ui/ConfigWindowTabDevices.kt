@@ -1,6 +1,6 @@
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.poterion.monitor.api.lib.autoFitTable
+import com.poterion.monitor.api.utils.autoFitTable
 import com.poterion.monitor.notifiers.deploymentcase.control.toData
 import com.poterion.monitor.notifiers.deploymentcase.data.Device
 import com.poterion.monitor.notifiers.deploymentcase.data.DeviceKind

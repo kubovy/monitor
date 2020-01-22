@@ -53,5 +53,6 @@ data class StatusItem(val id: String = "",
 					  val link: String? = null,
 					  val parentId: String? = null,
 					  val parentRequired: Boolean = false,
+					  val children: Collection<String> = emptyList(),
 					  val isRepeatable: Boolean = false,
 					  val startedAt: Instant? = null)

@@ -1,14 +1,10 @@
 package com.poterion.monitor.api.controllers
 
-import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.Module
-import com.poterion.monitor.api.ui.Icon
 import com.poterion.monitor.api.ui.NavigationItem
+import com.poterion.monitor.api.utils.noop
 import com.poterion.monitor.data.ModuleConfig
 import javafx.beans.property.ObjectProperty
-import javafx.beans.property.SimpleObjectProperty
-import javafx.beans.value.ObservableValue
-import javafx.beans.value.WritableObjectValue
 import javafx.scene.Node
 import javafx.scene.Parent
 
@@ -30,12 +26,16 @@ interface ModuleInstanceInterface<out Config : ModuleConfig> {
 		get() = null
 
 	/** Configuration rows for the module if any. */
-	val configurationRows: List<Pair<Node, Node>>?
-		get() = null
+	val configurationRows: List<Pair<Node, Node>>
+		get() = emptyList()
+
+	/** Configuration rows for the module if any. */
+	val configurationRowsLast: List<Pair<Node, Node>>
+		get() = emptyList()
 
 	/** Additional configuration if not fitting the rows pattern. */
-	val configurationAddition: List<Parent>?
-		get() = null
+	val configurationAddition: List<Parent>
+		get() = emptyList()
 
 	/** Own tab for the module if any. */
 	val configurationTab: Parent?
@@ -47,9 +47,7 @@ interface ModuleInstanceInterface<out Config : ModuleConfig> {
 		get() = true
 
 	/** Initialization of a module controller. Call after controllers are created. */
-	fun initialize() {
-	}
+	fun initialize() = noop()
 
-	fun destroy() {
-	}
+	fun destroy() = noop()
 }

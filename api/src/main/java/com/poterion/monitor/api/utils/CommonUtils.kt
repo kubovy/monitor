@@ -1,4 +1,4 @@
-package com.poterion.monitor.api.lib
+package com.poterion.monitor.api.utils
 
 import org.slf4j.LoggerFactory
 import java.awt.Desktop
@@ -25,4 +25,8 @@ fun open(path: String): Boolean = try {
 } catch (e: Exception) {
 	LOGGER.warn("Can't open ${path}!", e)
 	false
+}
+
+fun noop() {
+	// This is a no-op helper
 }

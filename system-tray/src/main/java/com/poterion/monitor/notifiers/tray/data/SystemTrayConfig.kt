@@ -15,4 +15,5 @@ data class SystemTrayConfig(override var type: String = SystemTrayConfig::class.
 							override var minPriority: Priority = Priority.LOW,
 							override var minStatus: Status = Status.NONE,
 							override val services: MutableSet<String> = mutableSetOf(),
+							override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
 							var refresh: Boolean = false) : NotifierConfig

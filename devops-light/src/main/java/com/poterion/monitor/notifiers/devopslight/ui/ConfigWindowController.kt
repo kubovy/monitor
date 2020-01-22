@@ -1,17 +1,12 @@
 package com.poterion.monitor.notifiers.devopslight.ui
 
-import com.poterion.monitor.api.data.RGBColor
-import com.poterion.monitor.api.lib.toColor
 import com.poterion.communication.serial.BluetoothCommunicator
 import com.poterion.communication.serial.Channel
 import com.poterion.communication.serial.CommunicatorListener
 import com.poterion.communication.serial.USBCommunicator
-import com.poterion.monitor.api.lib.toImage
-import com.poterion.monitor.api.lib.toImageView
-import com.poterion.monitor.api.lib.toRGBColor
 import com.poterion.monitor.api.CommonIcon
-import com.poterion.monitor.api.utils.cell
-import com.poterion.monitor.api.utils.factory
+import com.poterion.monitor.api.data.RGBColor
+import com.poterion.monitor.api.utils.*
 import com.poterion.monitor.notifiers.devopslight.DevOpsLightIcon
 import com.poterion.monitor.notifiers.devopslight.control.DevOpsLightNotifier
 import com.poterion.monitor.notifiers.devopslight.data.*
@@ -192,7 +187,7 @@ class ConfigWindowController : CommunicatorListener {
 		columnLightFading.cell("fading") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
 		columnLightMinimum.cell("min") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
 		columnLightMaximum.cell("max") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
-		columnLightTimeout.cell("timeout") { _, value, empty -> text = value?.takeUnless { empty }.toString() }
+		columnLightTimeout.cell("timeout") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
 		treeConfigs.selectionModel.clearSelection()
 		selectStateConfig(null)
 		selectLightConfig(null)
@@ -440,11 +435,9 @@ class ConfigWindowController : CommunicatorListener {
 		}
 	}
 
-	override fun onMessageReceived(channel: Channel, message: IntArray) {
-	}
+	override fun onMessageReceived(channel: Channel, message: IntArray) = noop()
 
-	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) {
-	}
+	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) = noop()
 
 	private fun selectStateConfig(treeItem: TreeItem<StateConfig>?) {
 		val lightConfigs = treeItem?.value?.lightConfigs?.deepCopy()

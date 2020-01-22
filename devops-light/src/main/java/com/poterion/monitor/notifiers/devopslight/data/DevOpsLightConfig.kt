@@ -15,6 +15,7 @@ data class DevOpsLightConfig(override var type: String = DevOpsLightConfig::clas
 							 override var minPriority: Priority = Priority.LOW,
 							 override var minStatus: Status = Status.NONE,
 							 override val services: MutableSet<String> = mutableSetOf(),
+							 override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
 							 var deviceAddress: String = "",
 							 var usbPort: String = "",
 							 var grbColors: Boolean = false,

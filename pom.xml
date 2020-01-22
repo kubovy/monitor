@@ -22,6 +22,7 @@
         <module>alert-manager</module>
         <module>gerrit-code-review</module>
         <module>jenkins</module>
+        <module>jira</module>
         <module>sonar</module>
         <module>storyboard</module>
         <!-- Notifiers -->
@@ -71,6 +72,11 @@
             <dependency>
                 <groupId>com.poterion.monitor</groupId>
                 <artifactId>jenkins</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.poterion.monitor</groupId>
+                <artifactId>jira</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

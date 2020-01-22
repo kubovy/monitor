@@ -1,6 +1,6 @@
 package com.poterion.monitor.api.controllers
 
-import com.poterion.monitor.api.lib.toImageView
+import com.poterion.monitor.api.utils.toImageView
 import com.poterion.monitor.data.ModuleConfig
 import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty

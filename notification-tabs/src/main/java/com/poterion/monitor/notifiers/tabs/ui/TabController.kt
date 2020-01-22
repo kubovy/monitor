@@ -1,14 +1,9 @@
 package com.poterion.monitor.notifiers.tabs.ui
 
+import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.Service
-import com.poterion.monitor.api.lib.toIcon
-import com.poterion.monitor.api.lib.toImageView
-import com.poterion.monitor.api.CommonIcon
-import com.poterion.monitor.api.utils.cell
-import com.poterion.monitor.api.utils.factory
-import com.poterion.monitor.api.utils.setOnItemClick
-import com.poterion.monitor.api.utils.toUriOrNull
+import com.poterion.monitor.api.utils.*
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
@@ -19,6 +14,7 @@ import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.control.*
+import javafx.scene.input.KeyCode
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Region
 import java.awt.Desktop
@@ -48,6 +44,7 @@ class TabController {
 	@FXML private lateinit var comboboxStatus: ComboBox<Status>
 	@FXML private lateinit var comboboxPriority: ComboBox<Priority>
 	@FXML private lateinit var checkboxShowWatched: CheckBox
+	@FXML private lateinit var checkboxShowSilenced: CheckBox
 	@FXML private lateinit var btnRefresh: Button
 	@FXML private lateinit var treeTableAlerts: TreeTableView<StatusItem>
 	@FXML private lateinit var columnAlertsTitle: TreeTableColumn<StatusItem, String>
@@ -62,14 +59,19 @@ class TabController {
 	private val statusItemCache: MutableMap<String?, MutableCollection<StatusItem>> = mutableMapOf()
 
 	private val StatusItem.isWatched: Boolean
-		get() = config.showWatched && config.watchedItems.contains(id)
+		get() = config.watchedItems.contains(id)
+
+	private val StatusItem.isSilenced: Boolean
+		get() = controller.applicationConfiguration.silenced.keys.contains(id)
 
 	private val filtered: Collection<StatusItem>
 		get() = statusItemCache
 				.getOrDefault(null, mutableListOf())
-				.filter { item -> item.isWatched || config.selectedStatus?.ordinal?.let { it <= item.status.ordinal } ?: true }
-				.filter { item -> item.isWatched || config.selectedPriority?.ordinal?.let { it <= item.priority.ordinal } ?: true }
-				.filter { item -> item.isWatched || config.selectedServiceId?.let { it == item.serviceId } ?: true }
+				.filter { item -> config.showSilenced || !item.isSilenced }
+				.filter { item -> config.showWatched && item.isWatched || config.selectedStatus?.ordinal?.let { it <= item.status.ordinal } ?: true }
+				.filter { item -> config.showWatched && item.isWatched || config.selectedPriority?.ordinal?.let { it <= item.priority.ordinal } ?: true }
+				.filter { item -> config.showWatched && item.isWatched || config.selectedServiceId?.let { it == item.serviceId } ?: true }
+				.map { if (it.isSilenced) it.copy(priority = Priority.NONE) else it }
 
 
 	private var labelColors = listOf(
@@ -97,8 +99,26 @@ class TabController {
 		btnRefresh.text = ""
 		treeTableAlerts.root = TreeItem(StatusItem("", "ROOT", Priority.NONE, Status.NONE, ""))
 		treeTableAlerts.isShowRoot = false
+		treeTableAlerts.selectionModel.selectionMode = SelectionMode.MULTIPLE
 		treeTableAlerts.setOnItemClick { item, event ->
 			if (event.clickCount == 2 && !isEmpty) item?.link?.toUriOrNull()?.also { Desktop.getDesktop().browse(it) }
+		}
+		treeTableAlerts.setOnKeyPressed { event ->
+			if (event.isControlDown) when (event.code) {
+				KeyCode.S -> {
+					treeTableAlerts.selectionModel.selectedItems
+							.forEach { it.value?.toggleSilence(refresh = false, save = false) }
+					refreshTable()
+					controller.saveConfig()
+				}
+				KeyCode.W -> {
+					treeTableAlerts.selectionModel.selectedItems
+							.forEach { it.value?.toggleWatch(refresh = false, save = false) }
+					refreshTable()
+					controller.saveConfig()
+				}
+				else -> noop()
+			}
 		}
 	}
 
@@ -146,6 +166,13 @@ class TabController {
 		checkboxShowWatched.isSelected = config.showWatched
 		checkboxShowWatched.selectedProperty().addListener { _, _, value ->
 			config.showWatched = value
+			refreshTable()
+			controller.saveConfig()
+		}
+
+		checkboxShowSilenced.isSelected = config.showSilenced
+		checkboxShowSilenced.selectedProperty().addListener { _, _, value ->
+			config.showSilenced = value
 			refreshTable()
 			controller.saveConfig()
 		}
@@ -233,7 +260,7 @@ class TabController {
 		}
 
 		columnAlertsStarted.cell("startedAt") { item, value, empty ->
-			text = if (empty) null else DateTimeFormatter
+			text = if (value == null || empty) null else DateTimeFormatter
 					.ofPattern("YYYY-MM-dd HH:mm:ss")
 					.withZone(ZoneId.systemDefault())
 					.format(value)
@@ -245,6 +272,7 @@ class TabController {
 			}
 			contextMenu = item?.takeUnless { empty }?.contextMenu()
 		}
+		refreshTable()
 	}
 
 	@FXML
@@ -261,9 +289,12 @@ class TabController {
 				for (child in children) {
 					if (!statusItemCache.getOrDefault(parentId, mutableListOf()).contains(child)) {
 						statusItemCache.getOrPut(parentId, { mutableListOf() }).also { cache ->
-							cache.removeIf { it.id == child.id }
-							cache.add(child)
-							changed = true
+							if (!cache.contains(child)) {
+								cache.removeIf { it.id == child.id }
+								changed = child.buildChildren() || changed
+								cache.add(child)
+								changed = true
+							}
 						}
 					}
 				}
@@ -276,10 +307,23 @@ class TabController {
 				}
 			} else {
 				statusItemCache[parentId] = children.toMutableList()
-				changed = true
+				changed = children.map { it.buildChildren() }.reduce { acc, b -> acc || b } || changed
 			}
 		}
 		if (changed) refreshTable()
+	}
+
+	private fun StatusItem.buildChildren(): Boolean {
+		var changed = false
+		for (child in this.children.mapNotNull { id -> statusItemCache.values.flatten().find { it.id == id } }) {
+			val cache = statusItemCache.getOrPut(id, { mutableListOf() })
+			if (!cache.contains(child)) {
+				cache.removeIf { it.id == child.id }
+				cache.add(child)
+				changed = true
+			}
+		}
+		return changed
 	}
 
 	private fun refreshTable() {
@@ -293,6 +337,7 @@ class TabController {
 		//comboboxPriority.items.setAll(Priority.values().filter { it.ordinal >= config.minPriority.ordinal })
 		//comboboxPriority.selectionModel.select(selectedPriority?.takeIf { it.ordinal >= config.minStatus.ordinal } ?: config.minPriority)
 
+		val selectedStatusItem = treeTableAlerts.selectionModel.selectedItem
 		val treeItems = filtered.map { TreeItem(it).monitorExpanded() }
 		treeItems.map { it to statusItemCache.getOrDefault(it.value.id, mutableListOf()) }
 				.map { (parent, children) -> parent to children.map { TreeItem(it).monitorExpanded() } }
@@ -303,30 +348,28 @@ class TabController {
 		treeTableAlerts.root.children.setAll(treeItems)
 		treeTableAlerts.root.children.sortWith(tableAlertComparator)
 		treeTableAlerts.refresh()
+		treeTableAlerts.selectionModel.select(selectedStatusItem)
 	}
 
 	private fun StatusItem.contextMenu() = ContextMenu(
-			if (config.watchedItems.contains(id)) MenuItem("Unwatch", NotificationTabsIcon.UNWATCH.toImageView()).also {
-				it.setOnAction {
-					config.watchedItems.remove(id)
-					//treeTableAlerts.refresh()
-					refreshTable()
-					controller.saveConfig()
-				}
-			} else MenuItem("Watch", NotificationTabsIcon.WATCH.toImageView()).also {
-				it.setOnAction {
-					config.watchedItems.add(id)
-					//treeTableAlerts.refresh()
-					refreshTable()
-					controller.saveConfig()
-				}
-			},
-			MenuItem("Silence", NotificationTabsIcon.SILENCE.toImageView()).also { menuItem ->
-				menuItem.setOnAction {
-					controller.applicationConfiguration.silenced[id] = this
-					controller.saveConfig()
-				}
-			})
+			MenuItem(if (isWatched) "Unwatch [Ctrl+W]" else "Watch [Ctrl+W]",
+					(if (isWatched) NotificationTabsIcon.UNWATCH else NotificationTabsIcon.WATCH).toImageView())
+					.also { it.setOnAction { toggleWatch() } },
+			MenuItem(if (isSilenced) "Unsilence [Ctrl+S]" else "Silence [Ctrl+S]",
+					(if (isSilenced) NotificationTabsIcon.UNSILENCE else NotificationTabsIcon.SILENCE).toImageView())
+					.also { it.setOnAction { toggleSilence() } })
+
+	private fun StatusItem.toggleWatch(refresh: Boolean = true, save: Boolean = true) {
+		config.watchedItems.also { if (isWatched) it.remove(id) else it.add(id) }
+		if (refresh) refreshTable()
+		if (save) controller.saveConfig()
+	}
+
+	private fun StatusItem.toggleSilence(refresh: Boolean = true, save: Boolean = true) {
+		controller.applicationConfiguration.silenced.also { if (isSilenced) it.remove(id) else it[id] = this }
+		if (refresh) refreshTable()
+		if (save) controller.saveConfig()
+	}
 
 	private val StatusItem.groupOrder: Int
 		get() = if (serviceName(controller.applicationConfiguration.services) == ""
