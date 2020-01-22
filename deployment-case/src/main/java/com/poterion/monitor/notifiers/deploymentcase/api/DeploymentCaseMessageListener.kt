@@ -1,5 +1,6 @@
 package com.poterion.monitor.notifiers.deploymentcase.api
 
+import com.poterion.monitor.api.utils.noop
 import com.poterion.monitor.notifiers.deploymentcase.data.Device
 
 /**
@@ -15,8 +16,7 @@ interface DeploymentCaseMessageListener {
 	 * @param count Total work to be done
 	 * @param disable Whether controls should be disabled until done
 	 */
-	fun onProgress(progress: Int, count: Int, disable: Boolean) {
-	}
+	fun onProgress(progress: Int, count: Int, disable: Boolean) = noop()
 
 	/**
 	 * On action callback.
@@ -24,14 +24,12 @@ interface DeploymentCaseMessageListener {
 	 * @param device Device
 	 * @param value Value
 	 */
-	fun onAction(device: Device, value: String) {
-	}
+	fun onAction(device: Device, value: String) = noop()
 
 	/**
 	 * On verification callback.
 	 *
 	 * @param verified Whether state machine was verified or not.
 	 */
-	fun onVerification(verified: Boolean) {
-	}
+	fun onVerification(verified: Boolean) = noop()
 }

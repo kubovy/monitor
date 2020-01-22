@@ -1,6 +1,6 @@
 package com.poterion.monitor.notifiers.deploymentcase.control
 
-import com.poterion.monitor.api.lib.toRGBColor
+import com.poterion.monitor.api.utils.toRGBColor
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import com.poterion.monitor.notifiers.deploymentcase.data.*
 import com.poterion.monitor.notifiers.deploymentcase.toVariable

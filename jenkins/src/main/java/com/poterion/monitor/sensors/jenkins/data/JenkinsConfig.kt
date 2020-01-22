@@ -23,5 +23,6 @@ class JenkinsConfig(override var type: String = JenkinsConfig::class.java.simple
 					override var connectTimeout: Long? = null,
 					override var readTimeout: Long? = null,
 					override var writeTimeout: Long? = null,
+					override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
 					var jobs: MutableCollection<JenkinsJobConfig> = mutableListOf(),
 					var filter: String? = null) : ServiceConfig

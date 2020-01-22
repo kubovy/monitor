@@ -1,12 +1,8 @@
 package com.poterion.monitor.api.controllers
 
-import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.services.ServiceConfig
-import javafx.beans.property.ObjectProperty
-import javafx.beans.property.SimpleObjectProperty
-import javafx.scene.Node
 import retrofit2.Retrofit
 
 /**

@@ -1,4 +1,4 @@
-package com.poterion.monitor.api.lib
+package com.poterion.monitor.api.utils
 
 inline fun <T> Iterable<T>.intermediate(action: (T) -> Unit): Iterable<T> = apply {
 	for (element in this) action(element)

@@ -3,6 +3,7 @@ package com.poterion.monitor.control
 import com.fasterxml.jackson.core.Version
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module
@@ -24,6 +25,7 @@ import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.notifiers.NotifierDeserializer
 import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.data.services.ServiceDeserializer
+import io.reactivex.subjects.PublishSubject
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.stage.Stage
@@ -59,6 +61,17 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 			registerModule(SimpleModule("PolymorphicNotifierDeserializerModule", Version.unknownVersion()).apply {
 				addDeserializer(NotifierConfig::class.java, NotifierDeserializer)
 			})
+			configure(SerializationFeature.CLOSE_CLOSEABLE, true)
+			configure(SerializationFeature.FLUSH_AFTER_WRITE_VALUE, true)
+			configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, true)
+			configure(SerializationFeature.WRITE_DATE_KEYS_AS_TIMESTAMPS, true)
+			//configure(SerializationFeature.WRITE_ENUMS_USING_TO_STRING, true)
+			configure(DeserializationFeature.WRAP_EXCEPTIONS, true)
+			configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
+			configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false)
+			configure(DeserializationFeature.FAIL_ON_NULL_CREATOR_PROPERTIES, false)
+			configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false)
+			configure(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES, false)
 			configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 		}
 	override val modules = mutableListOf<Module<*, *>>()
@@ -66,6 +79,7 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 	override val notifiers: ObservableList<Notifier<NotifierConfig>> = FXCollections.observableArrayList()
 
 	override lateinit var applicationConfiguration: ApplicationConfiguration
+	private val configuration: PublishSubject<ApplicationConfiguration> = PublishSubject.create<ApplicationConfiguration>()
 	private val configListeners = mutableListOf<(ApplicationConfiguration) -> Unit>()
 
 	init {
@@ -120,6 +134,26 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 			val map = collector.items.map { it.id to it }.toMap()
 			applicationConfiguration.silenced.replaceAll { id, item -> map[id] ?: item }
 		}
+
+		configuration.sample(1, TimeUnit.SECONDS).subscribe { configuration ->
+			val backupFile = File(configFile.absolutePath + "-" + LocalDateTime.now().toString())
+			try {
+				configListeners.forEach { it.invoke(configuration) }
+				val tempFile = File(configFile.absolutePath + ".tmp")
+				mapper.writeValue(tempFile, configuration)
+				var success = (!backupFile.exists() || backupFile.delete())
+				success = success && configFile.renameTo(backupFile)
+				success = success && tempFile.renameTo(configFile.absoluteFile)
+				if (success) backupFile.delete()
+				else LOGGER.error("Failed saving configuration to ${configFile.absolutePath} (backup ${backupFile})")
+			} catch (e: Exception) {
+				LOGGER.error(e.message, e)
+			} finally {
+				if (!configFile.exists() && backupFile.exists()) {
+					if (!backupFile.renameTo(configFile)) LOGGER.error("Restoring ${backupFile} failed!")
+				}
+			}
+		}
 	}
 
 	override fun add(module: Module<*, *>): ModuleInstanceInterface<*>? {
@@ -147,10 +181,7 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 		configListeners.add(listener)
 	}
 
-	override fun saveConfig() = try {
-		configListeners.forEach { it.invoke(applicationConfiguration) }
-		mapper.writeValue(configFile, applicationConfiguration)
-	} catch (e: Exception) {
-		LOGGER.error(e.message, e)
+	override fun saveConfig() {
+		configuration.onNext(applicationConfiguration.copy())
 	}
 }

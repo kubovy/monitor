@@ -4,10 +4,9 @@ import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
-import com.poterion.monitor.api.lib.toIcon
-import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.Module
-import com.poterion.monitor.api.ui.Icon
+import com.poterion.monitor.api.utils.toIcon
+import com.poterion.monitor.api.utils.toImageView
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.tabs.NotificationTabsModule
 import com.poterion.monitor.notifiers.tabs.data.NotificationTabsConfig
@@ -47,7 +46,7 @@ class NotificationTabsNotifier(override val controller: ControllerInterface, con
 			Platform.runLater {
 				configurationTabIcon.set(it.maxStatus(controller.applicationConfiguration.silenced.keys,
 						config.minPriority, config.minStatus, config.services).toIcon().toImageView())
-				tabController?.update(it.filter(controller.applicationConfiguration.silenced.keys, config.minPriority,
+				tabController?.update(it.filter(emptyList(), config.minPriority,
 						config.minStatus, config.services, includingChildren = true))
 			}
 		}

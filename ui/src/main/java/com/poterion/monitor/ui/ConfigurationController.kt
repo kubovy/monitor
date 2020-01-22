@@ -1,38 +1,35 @@
 package com.poterion.monitor.ui
 
+import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.controllers.Service
-import com.poterion.monitor.api.lib.toIcon
-import com.poterion.monitor.api.lib.toImage
-import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.modules.ServiceModule
-import com.poterion.monitor.api.CommonIcon
-import com.poterion.monitor.api.utils.cell
-import com.poterion.monitor.api.utils.factory
+import com.poterion.monitor.api.utils.*
 import com.poterion.monitor.data.*
 import com.poterion.monitor.data.Priority
+import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.monitor.data.auth.BasicAuthConfig
-import com.poterion.monitor.data.notifiers.NotifierConfig
+import com.poterion.monitor.data.auth.TokenAuthConfig
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
+import javafx.geometry.HPos
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.geometry.VPos
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.scene.control.*
+import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.layout.*
-import java.util.*
 import java.util.concurrent.TimeUnit
-import kotlin.Comparator
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
@@ -41,7 +38,7 @@ class ConfigurationController {
 
 	companion object {
 		fun create(controller: ControllerInterface) {
-			val loader = FXMLLoader(ConfigurationController::class.java.getResource("/configuration.fxml"))
+			val loader = FXMLLoader(ConfigurationController::class.java.getResource("configuration.fxml"))
 			val root = loader.load<Parent>()
 			loader.getController<ConfigurationController>().apply {
 				this.controller = controller
@@ -75,6 +72,7 @@ class ConfigurationController {
 	@FXML private lateinit var tabCommon: Tab
 	@FXML private lateinit var splitPane: SplitPane
 	@FXML private lateinit var tree: TreeView<ModuleItem>
+	@FXML private lateinit var imageViewLogo: ImageView
 	@FXML private lateinit var vboxContent: VBox
 	@FXML private lateinit var gridPane: GridPane
 
@@ -137,19 +135,25 @@ class ConfigurationController {
 
 	@FXML
 	fun initialize() {
+		tree.setOnKeyPressed { event ->
+			when (event.code) {
+				KeyCode.DELETE -> tree.selectionModel.selectedItem?.delete()
+				else -> noop()
+			}
+		}
 		tree.apply {
 			isShowRoot = false
 			selectionModel.selectionMode = SelectionMode.SINGLE
 			factory { item, empty ->
 				//text = item?.takeUnless { empty }?.title?.get()
-				graphic = item?.takeUnless { empty }?.graphic
-						?: item?.takeUnless { empty }?.module?.definition?.icon?.toImageView()
+				graphic = item?.takeUnless { empty }?.let { it.icon ?: it.module?.definition?.icon }?.toImageView()
 
 				if (item != null && !empty) {
 					item.module?.config?.name?.also { item.title.set(it) }
 					textProperty().bind(item.title)
 				} else {
 					if (textProperty().isBound) textProperty().unbind()
+					text = null
 				}
 
 				contextMenu = when (item?.takeUnless { empty }?.title?.value) {
@@ -177,12 +181,8 @@ class ConfigurationController {
 								}
 							}
 							.let { ContextMenu(*it.toTypedArray()) }
-					is String -> ContextMenu(MenuItem("Delete").apply {
-						setOnAction {
-							treeItem.value.module?.destroy()
-							treeItem.remove()
-							treeView.refresh()
-						}
+					is String -> ContextMenu(MenuItem("Delete [Delete]", CommonIcon.TRASH.toImageView()).apply {
+						setOnAction { treeItem?.delete() }
 					})
 					else -> null
 				}
@@ -206,8 +206,8 @@ class ConfigurationController {
 
 		tree.root = TreeItem<ModuleItem>().apply {
 			children.addAll(
-					TreeItem(ModuleItem(SimpleStringProperty("Application"), CommonIcon.SETTINGS.toImageView())),
-					TreeItem(ModuleItem(SimpleStringProperty("Services"), UiIcon.SERVICES.toImageView())).apply {
+					TreeItem(ModuleItem(SimpleStringProperty("Application"), CommonIcon.SETTINGS)),
+					TreeItem(ModuleItem(SimpleStringProperty("Services"), UiIcon.SERVICES)).apply {
 						controller.services.forEach { children.addItem(it) }
 						//?.sortedBy { it.config.name }
 						//?.map { TreeItem(ModuleItem(module = it)) }
@@ -215,7 +215,7 @@ class ConfigurationController {
 						//?.also { children.addAll(it) }
 						isExpanded = true
 					},
-					TreeItem(ModuleItem(SimpleStringProperty("Notifiers"), UiIcon.NOTIFIERS.toImageView())).apply {
+					TreeItem(ModuleItem(SimpleStringProperty("Notifiers"), UiIcon.NOTIFIERS)).apply {
 						controller.notifiers.forEach { children.addItem(it) }
 						//?.sortedBy { it.config.name }?.map { TreeItem(ModuleItem(module = it)) }
 						//?.also { children.addAll(it) }
@@ -227,6 +227,21 @@ class ConfigurationController {
 		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe {
 			tableSilencedStatusItems.items.setAll(controller.applicationConfiguration.silenced.values)
 		}
+
+		//tabPaneMain.tabs
+		//		.find { it.text == controller.applicationConfiguration.selectedTab }
+		//		?.also { tabPaneMain.selectionModel.select(it) }
+		//
+		//tabPaneMain.selectionModel.selectedItemProperty().addListener { _, previous, current ->
+		//	controller.applicationConfiguration.previousTab = previous?.text
+		//	controller.applicationConfiguration.selectedTab = current?.text
+		//}
+		//
+		//tabPaneMain.setOnKeyPressed { event ->
+		//	if (event.isControlDown && event.code == KeyCode.TAB) tabPaneMain.tabs
+		//			.find { it.text == controller.applicationConfiguration.selectedTab }
+		//			?.also { tabPaneMain.selectionModel.select(it) }
+		//}
 	}
 
 	private fun ObservableList<TreeItem<ModuleItem>>.addItem(module: ModuleInstanceInterface<*>) {
@@ -239,10 +254,6 @@ class ConfigurationController {
 				?.let { Tab(module.config.name, it) }
 				?.also { tab ->
 					tab.userData = module
-					//tab.graphic = module.configurationTabIcon.value
-					//module.configurationTabIcon.addListener { _, _, icon ->
-					//	tab.graphic = icon
-					//}
 					tab.graphicProperty().bind(module.configurationTabIcon)
 					tab.textProperty().bind(item.value.title)
 					tabPaneMain.tabs.add(tab)
@@ -273,20 +284,16 @@ class ConfigurationController {
 	private fun select(treeItem: TreeItem<ModuleItem>?) {
 		vboxContent.children.clear()
 		vboxContent.children.add(gridPane)
-		gridPane.children.clear()
-		gridPane.rowConstraints.clear()
+		gridPane.apply {
+			padding = Insets(5.0)
+			children.clear()
+			rowConstraints.clear()
+		}
 
 		val rowCount = if (treeItem?.value?.module == null) when (treeItem?.value?.title?.get()) {
 			"Application" -> initializeApplication()
-			else -> 0
+			else -> initializeContainer(treeItem)
 		} else initializeModule(treeItem)
-
-//			treeItem.value?.module?.configurationRows?.forEach { (label, content) ->
-//				gridPane.addRow(rows++, label, content)
-//				(label as? Label)?.alignment = Pos.CENTER_RIGHT
-//				gridPane.rowConstraints.add(RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, javafx.scene.layout.Priority.ALWAYS, VPos.TOP, true))
-//			}
-//			treeItem.value?.module?.configurationAddition?.forEach { vboxContent.children.add(it) }
 
 		gridPane.rowConstraints.addAll((0 until rowCount).map {
 			RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, javafx.scene.layout.Priority.ALWAYS, VPos.TOP, true)
@@ -294,6 +301,7 @@ class ConfigurationController {
 	}
 
 	private fun initializeApplication(): Int = gridPane.run {
+		imageViewLogo.image = null
 		var row = 0
 		addRow(row++,
 				Label("Show on startup").apply {
@@ -324,20 +332,6 @@ class ConfigurationController {
 					}
 				})
 		addRow(row++,
-				Label("Bluetooth discovery").apply {
-					maxWidth = Double.MAX_VALUE
-					maxHeight = Double.MAX_VALUE
-					alignment = Pos.CENTER_RIGHT
-				},
-				CheckBox().apply {
-					maxHeight = Double.MAX_VALUE
-					isSelected = controller.applicationConfiguration.btDiscovery
-					selectedProperty().addListener { _, _, value ->
-						controller.applicationConfiguration.btDiscovery = value
-						controller.saveConfig()
-					}
-				})
-		addRow(row++,
 				Label("Silenced status items:").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -351,24 +345,95 @@ class ConfigurationController {
 		return row
 	}
 
-	private fun initializeModule(treeItem: TreeItem<ModuleItem>?): Int = gridPane.run {
+	private fun initializeContainer(treeItem: TreeItem<ModuleItem>?): Int = gridPane.run {
 		var row = 0
-		addRow(row++,
-				Label("Type").apply {
-					maxWidth = Double.MAX_VALUE
-					maxHeight = Double.MAX_VALUE
-					alignment = Pos.CENTER_RIGHT
-				},
-				ComboBox<String>().apply {
-					GridPane.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-					val loader = ServiceLoader.load(ModuleConfig::class.java)
-					items.add(null)
-					items.addAll(loader.map { it::class.simpleName })
-					isDisable = true
-					selectionModel.apply {
-						treeItem?.value?.module?.config?.type?.also(::select)
-					}
-				})
+		imageViewLogo.image = treeItem?.value?.icon?.toImage(64, 64)
+		when (treeItem?.value?.title?.value) {
+			"Services" -> {
+				addRow(row++,
+						CheckBox().apply {
+							//maxHeight = Double.MAX_VALUE
+							alignment = Pos.CENTER_RIGHT
+							isSelected = controller.applicationConfiguration.btDiscovery
+							selectedProperty().addListener { _, _, value ->
+								controller.applicationConfiguration.btDiscovery = value
+								controller.saveConfig()
+							}
+							GridPane.setHalignment(this, HPos.RIGHT)
+						},
+						Label("Bluetooth discovery").apply {
+							maxWidth = Double.MAX_VALUE
+							maxHeight = Double.MAX_VALUE
+							padding = Insets(5.0)
+						})
+				row = controller.applicationConfiguration.services.values.initializeModuleReferences(row, "Services:")
+			}
+			"Notifiers" -> {
+				row = controller.applicationConfiguration.notifiers.values.initializeModuleReferences(row, "Notifiers:")
+			}
+			else -> noop()
+		}
+		return row
+	}
+
+	private fun Collection<ModuleConfig>.initializeModuleReferences(rowCount: Int, title: String): Int = gridPane.run {
+		var row = rowCount
+		addRow(row++, Label(title).apply {
+			maxWidth = Double.MAX_VALUE
+			maxHeight = Double.MAX_VALUE
+			alignment = Pos.CENTER_RIGHT
+		}, Pane())
+		this@initializeModuleReferences.sortedBy { it.name }.forEach { module ->
+			addRow(row++,
+					CheckBox().apply {
+						//maxHeight = Double.MAX_VALUE
+						alignment = Pos.CENTER_RIGHT
+						isSelected = module.enabled
+						selectedProperty().addListener { _, _, value ->
+							module.enabled = value
+							controller.saveConfig()
+						}
+						GridPane.setHalignment(this, HPos.RIGHT)
+					},
+					HBox(
+							(controller.modules
+									.find { it.configClass == module::class }
+									?.icon
+									?: UiIcon.SERVICES)
+									.toImageView(16, 16)
+									.apply { maxHeight = Double.MAX_VALUE },
+							Label(module.name).apply {
+								maxWidth = Double.MAX_VALUE
+								maxHeight = Double.MAX_VALUE
+								padding = Insets(5.0)
+							}).apply {
+						spacing = 5.0
+						maxWidth = Double.MAX_VALUE
+						maxHeight = Double.MAX_VALUE
+					})
+		}
+		return row
+	}
+
+	private fun initializeModule(treeItem: TreeItem<ModuleItem>?): Int = gridPane.run {
+		imageViewLogo.image = treeItem?.value?.let { it.icon ?: it.module?.definition?.icon }?.toImage(64, 64)
+		var row = 0
+		//addRow(row++,
+		//		Label("Type").apply {
+		//			maxWidth = Double.MAX_VALUE
+		//			maxHeight = Double.MAX_VALUE
+		//			alignment = Pos.CENTER_RIGHT
+		//		},
+		//		ComboBox<String>().apply {
+		//			GridPane.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+		//			val loader = ServiceLoader.load(ModuleConfig::class.java)
+		//			items.add(null)
+		//			items.addAll(loader.map { it::class.simpleName })
+		//			isDisable = true
+		//			selectionModel.apply {
+		//				treeItem?.value?.module?.config?.type?.also(::select)
+		//			}
+		//		})
 		addRow(row++,
 				Label("Name").apply {
 					maxWidth = Double.MAX_VALUE
@@ -396,6 +461,16 @@ class ConfigurationController {
 					isSelected = treeItem?.value?.module?.config?.enabled == true
 					selectedProperty().addListener { _, _, value ->
 						treeItem?.value?.module?.config?.enabled = value
+						val module = treeItem?.value?.module
+						if (value) when (module) {
+							is Service<*> -> module.refresh = true
+							is Notifier<*> -> module.config.services.also { services ->
+								controller.services
+										.map { it.config.uuid to it }
+										.filter { (uuid, _) -> services.let { it.isEmpty() || it.contains(uuid) } }
+										.forEach { (_, service) -> service.refresh = true }
+							}
+						}
 						controller.saveConfig()
 					}
 				})
@@ -408,12 +483,9 @@ class ConfigurationController {
 			(label as? Label)?.alignment = Pos.CENTER_RIGHT
 		}
 
-		treeItem?.value?.module?.let { it as? Notifier }?.also { notifier ->
-			notifier.config.let { it as? NotifierConfig }?.also { config ->
-				val plugin = ServiceSettingsPlugin(notifier.controller, config.services)
-				row = plugin.initializeNotifierServiceFilter(row)
-				vboxContent.children.add(plugin.vboxServiceConfigs)
-			}
+		treeItem?.value?.module?.configurationRowsLast?.forEach { (label, content) ->
+			gridPane.addRow(row++, label, content)
+			(label as? Label)?.alignment = Pos.CENTER_RIGHT
 		}
 
 		treeItem?.value?.module?.configurationAddition?.forEach { vboxContent.children.add(it) }
@@ -479,37 +551,7 @@ class ConfigurationController {
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				})
 
-		val usernameField = TextField(config.auth?.let { it as? BasicAuthConfig }?.username ?: "")
-		val passwordField = PasswordField()
-
-		addRow(row++,
-				Label("Auth").apply {
-					maxWidth = Double.MAX_VALUE
-					maxHeight = Double.MAX_VALUE
-					alignment = Pos.CENTER_RIGHT
-				},
-				HBox(
-						usernameField.apply {
-							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							textProperty().addListener { _, _, value ->
-								val usr = value.takeIf { it.isNotEmpty() }
-								val pwd = passwordField.text.takeIf { it.isNotEmpty() }
-								config.auth = if (usr == null && pwd == null)
-									null else BasicAuthConfig(username = usr ?: "", password = pwd ?: "")
-							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-						},
-						passwordField.apply {
-							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							text = config.auth?.let { it as? BasicAuthConfig }?.password ?: ""
-							textProperty().addListener { _, _, value ->
-								val usr = usernameField.text.takeIf { it.isNotEmpty() }
-								val pwd = value.takeIf { it.isNotEmpty() }
-								config.auth = if (usr == null && pwd == null)
-									null else BasicAuthConfig(username = usr ?: "", password = pwd ?: "")
-							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-						}).apply { alignment = Pos.CENTER })
+		row = initializeAuthentication(row, { config.auth }, { config.auth = it })
 
 		addRow(row++,
 				Label("Trust certificate").apply {
@@ -526,8 +568,8 @@ class ConfigurationController {
 					}
 				})
 
-		val proxyAddressField = TextField(config.proxy?.address ?: "")
-		val proxyPortField = TextField(config.proxy?.port?.toString() ?: "")
+		val textFieldProxyAddress = TextField(config.proxy?.address ?: "")
+		val textFieldProxyPort = TextField(config.proxy?.port?.toString() ?: "")
 
 		addRow(row++,
 				Label("Proxy").apply {
@@ -536,22 +578,22 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				HBox(
-						proxyAddressField.apply {
+						textFieldProxyAddress.apply {
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							textProperty().addListener { _, _, value ->
 								val address = value.takeIf { it.isNotEmpty() }
-								val port = proxyPortField.text.takeIf { it.isNotEmpty() }?.toIntOrNull() ?: 80
+								val port = textFieldProxyPort.text.takeIf { it.isNotEmpty() }?.toIntOrNull() ?: 80
 								config.proxy = if (address == null)
 									null else HttpProxy(address, port)
 							}
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						},
-						proxyPortField.apply {
+						textFieldProxyPort.apply {
 							minWidth = 75.0
 							promptText = "80"
 							HBox.setHgrow(this, javafx.scene.layout.Priority.NEVER)
 							textProperty().addListener { _, _, value ->
-								val address = proxyAddressField.text.takeIf { it.isNotEmpty() }
+								val address = textFieldProxyAddress.text.takeIf { it.isNotEmpty() }
 								val port = value.takeIf { it.isNotEmpty() }?.toIntOrNull() ?: 80
 								config.proxy = if (address == null)
 									null else HttpProxy(address, port)
@@ -559,37 +601,7 @@ class ConfigurationController {
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						}).apply { alignment = Pos.CENTER })
 
-		val proxyUsernameField = TextField(config.proxy?.auth?.let { it as? BasicAuthConfig }?.username ?: "")
-		val proxyPasswordField = PasswordField()
-
-		addRow(row++,
-				Label("Proxy Auth").apply {
-					maxWidth = Double.MAX_VALUE
-					maxHeight = Double.MAX_VALUE
-					alignment = Pos.CENTER_RIGHT
-				},
-				HBox(
-						proxyUsernameField.apply {
-							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							textProperty().addListener { _, _, value ->
-								val usr = value.takeIf { it.isNotEmpty() }
-								val pwd = proxyPasswordField.text.takeIf { it.isNotEmpty() }
-								config.proxy?.auth = if (usr == null && pwd == null)
-									null else BasicAuthConfig(username = usr ?: "", password = pwd ?: "")
-							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-						},
-						proxyPasswordField.apply {
-							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							text = config.proxy?.auth?.let { it as? BasicAuthConfig }?.password ?: ""
-							textProperty().addListener { _, _, value ->
-								val usr = proxyUsernameField.text.takeIf { it.isNotEmpty() }
-								val pwd = value.takeIf { it.isNotEmpty() }
-								config.proxy?.auth = if (usr == null && pwd == null)
-									null else BasicAuthConfig(username = usr ?: "", password = pwd ?: "")
-							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-						}).apply { alignment = Pos.CENTER })
+		row = initializeAuthentication(row, { config.proxy?.auth }, { config.proxy?.auth = it })
 
 		addRow(row++,
 				Label("Connection timeout").apply {
@@ -648,6 +660,95 @@ class ConfigurationController {
 		return row
 	}
 
+	private fun Service<*>.initializeAuthentication(rowIndex: Int,
+													getter: () -> AuthConfig?,
+													setter: (AuthConfig?) -> Unit): Int = gridPane.run {
+		var row = rowIndex
+
+		val toggleGroupAuth = ToggleGroup()
+		val radioBasicAuth = RadioButton().apply { toggleGroup = toggleGroupAuth }
+		val textFieldUsername = TextField(getter()?.let { it as? BasicAuthConfig }?.username ?: "")
+		val textFieldPassword = PasswordField()
+		val radioTokenAuth = RadioButton().apply { toggleGroup = toggleGroupAuth }
+		val textFieldToken = TextField(getter()?.let { it as? TokenAuthConfig }?.token ?: "")
+
+		addRow(row++,
+				Label("Basic Auth").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
+				HBox(
+						radioBasicAuth.apply {
+							maxHeight = Double.MAX_VALUE
+							isSelected = getter() is BasicAuthConfig
+							selectedProperty().addListener { _, _, value ->
+								if (value) {
+									val usr = textFieldUsername.text.takeIf { it.isNotBlank() }
+									val pwd = textFieldPassword.text.takeIf { it.isNotBlank() }
+									setter(if (usr == null && pwd == null)
+										null else BasicAuthConfig(username = usr ?: "", password = pwd ?: ""))
+									controller.saveConfig()
+								}
+							}
+						},
+						textFieldUsername.apply {
+							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+							textProperty().addListener { _, _, value ->
+								if (radioBasicAuth.isSelected) {
+									val usr = value.takeIf { it.isNotBlank() }
+									val pwd = textFieldPassword.text.takeIf { it.isNotBlank() }
+									setter(if (usr == null && pwd == null)
+										null else BasicAuthConfig(username = usr ?: "", password = pwd ?: ""))
+								}
+							}
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+						},
+						textFieldPassword.apply {
+							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+							text = getter()?.let { it as? BasicAuthConfig }?.password ?: ""
+							textProperty().addListener { _, _, value ->
+								if (radioBasicAuth.isSelected) {
+									val usr = textFieldUsername.text.takeIf { it.isNotBlank() }
+									val pwd = value.takeIf { it.isNotBlank() }
+									setter(if (usr == null && pwd == null)
+										null else BasicAuthConfig(username = usr ?: "", password = pwd ?: ""))
+								}
+							}
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+						}).apply { alignment = Pos.CENTER })
+
+		addRow(row++,
+				Label("Bearer Token").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
+				HBox(
+						radioTokenAuth.apply {
+							maxHeight = Double.MAX_VALUE
+							isSelected = getter() is TokenAuthConfig
+							selectedProperty().addListener { _, _, value ->
+								if (value) {
+									setter(textFieldToken.text
+											.takeIf { it.isNotEmpty() }
+											?.let { TokenAuthConfig(token = it) })
+									controller.saveConfig()
+								}
+							}
+						},
+						textFieldToken.apply {
+							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+							textProperty().addListener { _, _, value ->
+								if (radioTokenAuth.isSelected) setter(value
+										.takeIf { it.isNotBlank() }
+										?.let { TokenAuthConfig(token = it) })
+							}
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+						}).apply { alignment = Pos.CENTER })
+		return row
+	}
+
 	private fun Notifier<*>.initializeNotifierModule(rowIndex: Int): Int = gridPane.run {
 		var row = rowIndex
 		addRow(row++,
@@ -682,7 +783,6 @@ class ConfigurationController {
 						text = item?.takeUnless { empty }?.name
 						graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
 					}
-					maxHeight = Double.MAX_VALUE
 					selectionModel.select(config.minStatus)
 					selectionModel.selectedItemProperty().addListener { _, _, value ->
 						config.minStatus = value
@@ -693,25 +793,21 @@ class ConfigurationController {
 		return row
 	}
 
-	private fun ServiceSettingsPlugin.initializeNotifierServiceFilter(rowIndex: Int):
-			Int = gridPane.run {
-		var row = rowIndex
-		rowService.also { (label, hbox) -> addRow(row++, label, hbox) }
-		return row
+	private fun TreeItem<ModuleItem>.delete() {
+		confirm(title = "Delete confirmation",
+				content = "Do you really want to delete ${this.value.title.get()}?") {
+			this.value.module?.destroy()
+			this.remove()
+			tree.refresh()
+		}
 	}
 
 	private fun removeSilencedStatusItem(statusItem: StatusItem) {
-		Alert(Alert.AlertType.CONFIRMATION).apply {
-			title = "Delete confirmation"
-			headerText = "Delete confirmation"
-			contentText = "Do you really want to unsilence ${statusItem.title}?"
-			buttonTypes.setAll(ButtonType.YES, ButtonType.NO)
-		}.showAndWait().ifPresent {
-			it.takeIf { it == ButtonType.YES }?.also {
-				tableSilencedStatusItems.items.remove(statusItem)
-				controller.applicationConfiguration.silenced.remove(statusItem.id)
-				controller.saveConfig()
-			}
+		confirm(title = "Unsilence confirmation",
+				content = "Do you really want to unsilence ${statusItem.title}?") {
+			tableSilencedStatusItems.items.remove(statusItem)
+			controller.applicationConfiguration.silenced.remove(statusItem.id)
+			controller.saveConfig()
 		}
 	}
 }

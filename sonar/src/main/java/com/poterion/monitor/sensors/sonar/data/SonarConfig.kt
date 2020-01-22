@@ -23,5 +23,6 @@ class SonarConfig(override var type: String = SonarConfig::class.java.simpleName
 				  override var connectTimeout: Long? = null,
 				  override var readTimeout: Long? = null,
 				  override var writeTimeout: Long? = null,
+				  override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
 				  var projects: MutableCollection<SonarProjectConfig> = mutableListOf(),
 				  var filter: String? = null) : ServiceConfig

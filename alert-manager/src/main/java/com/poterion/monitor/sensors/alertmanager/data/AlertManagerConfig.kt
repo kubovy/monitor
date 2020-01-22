@@ -23,6 +23,7 @@ class AlertManagerConfig(override var type: String = AlertManagerConfig::class.j
 						 override var connectTimeout: Long? = null,
 						 override var readTimeout: Long? = null,
 						 override var writeTimeout: Long? = null,
+						 override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
 						 var nameRefs: Set<String> = emptySet(),
 						 var descriptionRefs: Set<String> = emptySet(),
 						 var receivers: Set<String> = emptySet(),

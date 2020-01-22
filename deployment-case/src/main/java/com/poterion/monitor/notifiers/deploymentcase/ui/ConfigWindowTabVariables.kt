@@ -1,8 +1,9 @@
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.poterion.monitor.api.lib.autoFitTable
-import com.poterion.monitor.api.lib.toColor
-import com.poterion.monitor.api.lib.toHex
+import com.poterion.monitor.api.utils.autoFitTable
+import com.poterion.monitor.api.utils.noop
+import com.poterion.monitor.api.utils.toColor
+import com.poterion.monitor.api.utils.toHex
 import com.poterion.monitor.notifiers.deploymentcase.control.findInStateMachine
 import com.poterion.monitor.notifiers.deploymentcase.data.*
 import com.poterion.monitor.notifiers.deploymentcase.getDisplayString
@@ -125,8 +126,7 @@ class ConfigWindowTabVariables {
 					}
 					?.also { tableVariables.items.remove(it) }
 					?.also { saveConfig() }
-			else -> {
-			}
+			else -> noop()
 		}
 	}
 

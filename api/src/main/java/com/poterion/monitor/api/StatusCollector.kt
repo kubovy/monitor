@@ -4,13 +4,11 @@ import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import io.reactivex.subjects.PublishSubject
-import org.slf4j.LoggerFactory
 
 /**
  * @author Jan Kubovy <jan@kubovy.eu>
  */
 object StatusCollector {
-	private val LOGGER = LoggerFactory.getLogger(StatusCollector::class.java)
 	private val itemMap = mutableMapOf<String, Collection<StatusItem>>()
 	var items = emptyList<StatusItem>()
 		private set

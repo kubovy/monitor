@@ -4,9 +4,11 @@ import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
-import com.poterion.monitor.api.lib.toIcon
-import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.Module
+import com.poterion.monitor.api.ui.CollectionSettingsPlugin
+import com.poterion.monitor.api.utils.cut
+import com.poterion.monitor.api.utils.toIcon
+import com.poterion.monitor.api.utils.toImageView
 import com.poterion.monitor.api.utils.toUriOrNull
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
@@ -22,7 +24,6 @@ import javafx.scene.Scene
 import javafx.scene.control.Label
 import javafx.scene.control.TextField
 import javafx.scene.layout.HBox
-import javafx.scene.layout.Pane
 import javafx.scene.layout.StackPane
 import javafx.scene.paint.Color
 import javafx.stage.Screen
@@ -68,15 +69,15 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 			}
 			.also { it.show() }
 
-	override val configurationRows: List<Pair<Node, Node>>?
-		get() = listOf(
+	override val configurationRows: List<Pair<Node, Node>>
+		get() = super.configurationRows + listOf(
 				Label("Repeat after").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to HBox(TextField(config.repeatAfter?.let { it / 1000 }?.toInt()?.toString() ?: "")
 						.apply {
-							maxHeight = Double.MAX_VALUE
+							prefWidth = 130.0
 							promptText = "Every occurrence"
 							focusedProperty().addListener { _, _, focused ->
 								if (!focused) {
@@ -84,35 +85,23 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 									controller.saveConfig()
 								}
 							}
-						}, Label("sec").apply { maxHeight = Double.MAX_VALUE }).apply {
+						}, Label("seconds").apply { maxHeight = Double.MAX_VALUE }).apply {
 					spacing = 5.0
-				},
-				Label("Durations:").apply {
-					maxWidth = Double.MAX_VALUE
-					maxHeight = Double.MAX_VALUE
-					alignment = Pos.CENTER_RIGHT
-				} to Pane()) + Status.values().map { status ->
-			HBox(
-					status.toIcon().toImageView(24, 24),
-					Label(status.name).apply {
-						maxWidth = Double.MAX_VALUE
-						maxHeight = Double.MAX_VALUE
-					}).apply {
-				spacing = 5.0
-			} to HBox(TextField(config.durations[status.name]?.let { it / 1000 }?.toInt()?.toString() ?: "")
-					.apply {
-						maxHeight = Double.MAX_VALUE
-						promptText = "Indefinite"
-						focusedProperty().addListener { _, _, focused ->
-							if (!focused) {
-								config.durations[status.name] = text.toLongOrNull()?.let { it * 1000 }
-								controller.saveConfig()
-							}
+				}) +
+				CollectionSettingsPlugin(
+						subject = "Durations:",
+						items = Status.values().toList(),
+						value = { config.durations[name]?.let { it / 1000 }?.toInt()?.toString() ?: "" },
+						promptText = "Indefinite",
+						width = 130.0,
+						suffix = "seconds",
+						icon = { toIcon() },
+						setter = { text ->
+							val value = text.toLongOrNull()?.let { it * 1000 }
+							if (value == null) config.durations.remove(name) else config.durations[name] = value
+							controller.saveConfig()
 						}
-					}, Label("sec").apply { maxHeight = Double.MAX_VALUE }).apply {
-				spacing = 5.0
-			}
-		}
+				).rowItems
 
 	override fun initialize() {
 		super.initialize()
@@ -184,14 +173,5 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 				notification.show()
 			}
 		}
-	}
-
-	fun String.cut(maxLength: Int = 30): String {
-		var value = this
-		while (value.length > maxLength) {
-			value = value.substringBeforeLast(" ", value.substring(0, value.length - 1))
-		}
-		if (value != this) value += "..."
-		return value
 	}
 }

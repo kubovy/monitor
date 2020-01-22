@@ -7,6 +7,7 @@ import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.Icon
 import com.poterion.monitor.api.ui.NavigationItem
+import com.poterion.monitor.api.utils.noop
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
@@ -72,8 +73,8 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 					}))
 		}
 
-	override val configurationRows: List<Pair<Node, Node>>?
-		get() = listOf(
+	override val configurationRows: List<Pair<Node, Node>>
+		get() = super.configurationRows + listOf(
 				Label("Bluetooth Address").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
@@ -122,8 +123,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	 */
 	fun register(listener: DeploymentCaseMessageListener) = listeners.add(listener)
 
-	override fun onConnecting(channel: Channel) {
-	}
+	override fun onConnecting(channel: Channel) = noop()
 
 	override fun onConnect(channel: Channel) {
 		if (channel == Channel.BLUETOOTH) {
@@ -350,8 +350,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 				val device = Device(kind = DeviceKind.VIRTUAL, key = VirtualKey.ENTER.key)
 				Platform.runLater { listeners.forEach { it.onAction(device, "${num}|${value}") } }
 			}
-			else -> {
-			}
+			else -> noop()
 		}
 	}
 

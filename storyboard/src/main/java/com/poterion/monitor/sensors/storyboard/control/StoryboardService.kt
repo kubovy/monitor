@@ -1,14 +1,13 @@
 package com.poterion.monitor.sensors.storyboard.control
 
+import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Service
-import com.poterion.monitor.api.lib.toIcon
-import com.poterion.monitor.api.lib.toImageView
 import com.poterion.monitor.api.modules.Module
-import com.poterion.monitor.api.CommonIcon
-import com.poterion.monitor.api.utils.cell
-import com.poterion.monitor.api.utils.factory
+import com.poterion.monitor.api.ui.TableSettingsPlugin
+import com.poterion.monitor.api.utils.toIcon
+import com.poterion.monitor.api.utils.toImageView
 import com.poterion.monitor.api.utils.toUriOrNull
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
@@ -18,13 +17,9 @@ import com.poterion.monitor.sensors.storyboard.data.Story
 import com.poterion.monitor.sensors.storyboard.data.StoryboardConfig
 import com.poterion.monitor.sensors.storyboard.data.StoryboardProjectConfig
 import com.poterion.monitor.sensors.storyboard.data.Task
-import javafx.collections.FXCollections
+import javafx.scene.Node
 import javafx.scene.Parent
-import javafx.scene.control.*
-import javafx.scene.input.KeyCode
-import javafx.scene.layout.HBox
-import javafx.scene.layout.Region
-import javafx.scene.layout.VBox
+import javafx.scene.control.Button
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.awt.Desktop
@@ -50,111 +45,45 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 	private var lastFound: MutableMap<String, MutableCollection<StatusItem>> = mutableMapOf()
 	private val executor = Executors.newSingleThreadExecutor()
 
-	override val configurationAddition: List<Parent>?
-		get() = listOf(
-				VBox(
-						HBox(
-								Label("Project").apply { maxHeight = Double.MAX_VALUE }, textNewProjectName,
-								Button("Add").apply { setOnAction { addProject() } }),
-						tableProjects).apply {
-					VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS)
-				})
+	private val projectTableSettingsPlugin = TableSettingsPlugin(
+			tableName = "projectTable",
+			newLabel = "Project name",
+			buttonText = "Add project",
+			controller = controller,
+			config = config,
+			createItem = { StoryboardProjectConfig() },
+			items = config.projects,
+			displayName = { name },
+			columnDefinitions = listOf(
+					TableSettingsPlugin.ColumnDefinition(
+							name = "Name",
+							getter = { name },
+							setter = { name = it },
+							initialValue = "",
+							isEditable = true),
+					TableSettingsPlugin.ColumnDefinition(
+							name = "Priority",
+							getter = { priority },
+							setter = { priority = it },
+							initialValue = Priority.NONE,
+							isEditable = true,
+							icon = { toIcon() },
+							options = { Priority.values().toList() })),
+			comparator = compareBy({ -it.priority.ordinal }, { it.name }),
+			actions = listOf { item ->
+				item.let { URLEncoder.encode(it.name, Charsets.UTF_8.name()) }
+						.let { "/#!/project/${it}" }
+						.let { path -> config.url.toUriOrNull()?.resolve(path) }
+						?.let { uri -> Button("", CommonIcon.LINK.toImageView()) to uri }
+						?.also { (btn, uri) -> btn.setOnAction { Desktop.getDesktop().browse(uri) } }
+						?.first
+			})
 
-	private val textNewProjectName = TextField("").apply {
-		HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-		setOnKeyReleased { event -> if (event.code == KeyCode.ENTER) addProject() }
-	}
+	override val configurationRows: List<Pair<Node, Node>>
+		get() = super.configurationRows + listOf(projectTableSettingsPlugin.rowNewItem)
 
-	private val tableProjects = TableView<StoryboardProjectConfig>().apply {
-		minWidth = Region.USE_COMPUTED_SIZE
-		minHeight = Region.USE_COMPUTED_SIZE
-		prefWidth = Region.USE_COMPUTED_SIZE
-		prefHeight = Region.USE_COMPUTED_SIZE
-		maxWidth = Double.MAX_VALUE
-		maxHeight = Double.MAX_VALUE
-		VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS)
-		setOnKeyReleased { event ->
-			when (event.code) {
-				KeyCode.HELP, // MacOS mapping of INSERT key
-				KeyCode.INSERT -> textNewProjectName.requestFocus()
-				KeyCode.DELETE -> selectionModel.selectedItem?.also { removeQuery(it) }
-				else -> {
-					// Nothing to do
-				}
-			}
-		}
-	}
-
-	private val tableColumnProjectName = TableColumn<StoryboardProjectConfig, String>("Name").apply {
-		isSortable = false
-		minWidth = 150.0
-		prefWidth = Region.USE_COMPUTED_SIZE
-		maxWidth = Double.MAX_VALUE
-		cell("name") { item, value, empty ->
-			graphic = TextField(value).takeUnless { empty }?.apply {
-				text = value
-				focusedProperty().addListener { _, _, value ->
-					if (!value) {
-						item?.name = text
-						sortLabelTable()
-						controller.saveConfig()
-					}
-				}
-			}
-		}
-	}
-
-	private val tableColumnProjectPriority = TableColumn<StoryboardProjectConfig, Priority>("Priority").apply {
-		isSortable = false
-		minWidth = 150.0
-		prefWidth = Region.USE_COMPUTED_SIZE
-		maxWidth = Region.USE_PREF_SIZE
-		cell("priority") { item, value, empty ->
-			graphic = ComboBox<Priority>(FXCollections.observableList(Priority.values().toList())).takeUnless { empty }
-					?.apply {
-						factory { item, empty ->
-							text = item?.takeUnless { empty }?.name
-							graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
-						}
-						selectionModel.select(value)
-						valueProperty().addListener { _, _, priority ->
-							if (priority != null) {
-								item?.priority = priority
-								sortLabelTable()
-								controller.saveConfig()
-							}
-						}
-					}
-		}
-	}
-
-	private val tableColumnProjectAction = TableColumn<StoryboardProjectConfig, Status>("").apply {
-		isSortable = false
-		minWidth = 96.0
-		prefWidth = Region.USE_COMPUTED_SIZE
-		maxWidth = Region.USE_PREF_SIZE
-		cell { item, _, empty ->
-			graphic = if (!empty && item != null) HBox(
-					Button("", CommonIcon.LINK.toImageView()).apply {
-						setOnAction {
-							val url = item
-									.let { URLEncoder.encode(it.name, Charsets.UTF_8.name()) }
-									.let { "${config.url}/#!/project/${it}" }
-									.replace("//", "/")
-									.toUriOrNull()
-							if (url != null) Desktop.getDesktop().browse(url)
-						}
-					},
-					Button("", CommonIcon.TRASH.toImageView()).apply { setOnAction { removeQuery(item) } })
-			else null
-		}
-	}
-
-	init {
-		tableProjects.items.addAll(config.projects)
-		tableProjects.columns.addAll(tableColumnProjectPriority, tableColumnProjectName, tableColumnProjectAction)
-		sortLabelTable()
-	}
+	override val configurationAddition: List<Parent>
+		get() = super.configurationAddition + listOf(projectTableSettingsPlugin.vbox)
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		lastFound.keys
@@ -211,38 +140,6 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 				status = status,
 				title = "[${project.name}] ${error}",
 				isRepeatable = false))
-	}
-
-	private fun addProject() {
-		textNewProjectName.text.takeIf { it.isNotEmpty() && it.isNotBlank() }?.also { name ->
-			val newProject = StoryboardProjectConfig(name = name, priority = config.priority)
-			tableProjects.items.apply { add(newProject) }
-			//.sortWith(compareBy({-it.priority.ordinal}, { it.name }, {it.value}))
-			config.projects.add(newProject)
-			controller.saveConfig()
-		}
-		textNewProjectName.text = ""
-	}
-
-	private fun removeQuery(projectConfig: StoryboardProjectConfig) {
-		Alert(Alert.AlertType.CONFIRMATION).apply {
-			title = "Delete confirmation"
-			headerText = "Delete confirmation"
-			contentText = "Do you really want to delete query ${projectConfig.name}?"
-			buttonTypes.setAll(ButtonType.YES, ButtonType.NO)
-		}.showAndWait().ifPresent {
-			it.takeIf { it == ButtonType.YES }?.also {
-				tableProjects.items.remove(projectConfig)
-				config.projects.remove(projectConfig)
-				controller.saveConfig()
-			}
-		}
-	}
-
-	private fun sortLabelTable() {
-		tableProjects.items.sortWith(compareBy(
-				{ -it.priority.ordinal },
-				{ it.name }))
 	}
 
 	private fun Story.toStatusItem(project: StoryboardProjectConfig) = StatusItem(
