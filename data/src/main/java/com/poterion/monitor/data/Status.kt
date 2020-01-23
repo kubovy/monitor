@@ -1,7 +1,7 @@
 package com.poterion.monitor.data
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 enum class Status {
 	NONE,

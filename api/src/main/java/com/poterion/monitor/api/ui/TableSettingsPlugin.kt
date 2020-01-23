@@ -2,11 +2,12 @@ package com.poterion.monitor.api.ui
 
 import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.controllers.ControllerInterface
-import com.poterion.monitor.api.utils.cell
-import com.poterion.monitor.api.utils.factory
-import com.poterion.monitor.api.utils.noop
-import com.poterion.monitor.api.utils.toImageView
+import com.poterion.utils.javafx.cell
+import com.poterion.utils.javafx.factory
+import com.poterion.utils.kotlin.noop
+import com.poterion.utils.javafx.toImageView
 import com.poterion.monitor.data.ModuleConfig
+import com.poterion.utils.javafx.Icon
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.control.*

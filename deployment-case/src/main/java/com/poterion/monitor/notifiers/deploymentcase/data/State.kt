@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class State(var name: String = "0", var evaluations: List<Evaluation> = listOf()) : StateMachineItem {
 

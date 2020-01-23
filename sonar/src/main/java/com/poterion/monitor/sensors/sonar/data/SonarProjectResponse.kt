@@ -1,7 +1,7 @@
 package com.poterion.monitor.sensors.sonar.data
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class SonarProjectResponse(var id: Int = -1,
 								var key: String = "",

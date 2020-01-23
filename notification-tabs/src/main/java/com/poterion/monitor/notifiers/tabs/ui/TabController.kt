@@ -3,13 +3,20 @@ package com.poterion.monitor.notifiers.tabs.ui
 import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.Service
-import com.poterion.monitor.api.utils.*
+import com.poterion.monitor.api.utils.toIcon
+import com.poterion.utils.javafx.*
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.serviceName
 import com.poterion.monitor.notifiers.tabs.NotificationTabsIcon
 import com.poterion.monitor.notifiers.tabs.data.NotificationTabsConfig
+import com.poterion.utils.javafx.cell
+import com.poterion.utils.javafx.factory
+import com.poterion.utils.javafx.setOnItemClick
+import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.kotlin.noop
+import com.poterion.utils.kotlin.toUriOrNull
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
@@ -23,7 +30,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class TabController {
 	companion object {
@@ -101,7 +108,7 @@ class TabController {
 		treeTableAlerts.isShowRoot = false
 		treeTableAlerts.selectionModel.selectionMode = SelectionMode.MULTIPLE
 		treeTableAlerts.setOnItemClick { item, event ->
-			if (event.clickCount == 2 && !isEmpty) item?.link?.toUriOrNull()?.also { Desktop.getDesktop().browse(it) }
+			if (event.clickCount == 2 && !isEmpty) item?.link?.toUriOrNull()?.also { it.openInExternalApplication() }
 		}
 		treeTableAlerts.setOnKeyPressed { event ->
 			if (event.isControlDown) when (event.code) {

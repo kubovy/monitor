@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * Triggers a Jenkins job, if not already running and checks its status including all downstream jobs until the root
  * job is finished.
  *
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class DeploymentTask(private val configuration: Configuration,
 					 context: Map<String, Any?>,

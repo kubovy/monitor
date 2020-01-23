@@ -3,7 +3,7 @@ package com.poterion.monitor.api
 import java.util.*
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 object Props {
 	private val values = Properties().apply {

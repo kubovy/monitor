@@ -3,7 +3,7 @@ package com.poterion.monitor.sensors.gerritcodereview.data
 import com.fasterxml.jackson.annotation.JsonProperty
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class GerritCodeReviewQueryResponse(var id: String? = null,
 										 var project: String? = null,

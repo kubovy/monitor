@@ -2,7 +2,7 @@ package com.poterion.monitor.notifiers.notifications
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.NotifierModule
-import com.poterion.monitor.api.ui.Icon
+import com.poterion.utils.javafx.Icon
 import com.poterion.monitor.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.notifiers.notifications.control.NotificationsNotifier
@@ -10,7 +10,7 @@ import com.poterion.monitor.notifiers.notifications.data.NotificationsConfig
 import kotlin.reflect.KClass
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 object NotificationsModule : NotifierModule<NotificationsConfig, NotificationsNotifier> {
 	override val configClass: KClass<out NotificationsConfig> = NotificationsConfig::class

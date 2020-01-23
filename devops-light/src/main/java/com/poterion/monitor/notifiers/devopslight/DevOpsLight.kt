@@ -2,7 +2,7 @@ package com.poterion.monitor.notifiers.devopslight
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.NotifierModule
-import com.poterion.monitor.api.ui.Icon
+import com.poterion.utils.javafx.Icon
 import com.poterion.monitor.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.notifiers.devopslight.control.DevOpsLightNotifier

@@ -6,7 +6,7 @@ import com.poterion.monitor.data.notifiers.NotifierConfig
 import java.util.*
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class DeploymentCaseConfig(override var type: String = DeploymentCaseConfig::class.java.simpleName,
 								override val uuid: String = UUID.randomUUID().toString(),

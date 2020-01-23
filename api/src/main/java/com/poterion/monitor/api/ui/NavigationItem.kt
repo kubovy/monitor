@@ -1,7 +1,9 @@
 package com.poterion.monitor.api.ui
 
+import com.poterion.utils.javafx.Icon
+
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class NavigationItem(val title: String? = null,
 						  val icon: Icon? = null,

@@ -6,7 +6,7 @@ import com.poterion.monitor.data.StatusItem
 import io.reactivex.subjects.PublishSubject
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 object StatusCollector {
 	private val itemMap = mutableMapOf<String, Collection<StatusItem>>()

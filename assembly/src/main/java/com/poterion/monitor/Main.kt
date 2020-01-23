@@ -54,7 +54,7 @@ import javafx.stage.Stage
  * @enduml
  */
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class Main : Application() {
 	companion object {

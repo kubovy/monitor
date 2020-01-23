@@ -3,7 +3,7 @@ package com.poterion.monitor.data
 import com.fasterxml.jackson.annotation.JsonInclude
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)
 interface ModuleConfig {

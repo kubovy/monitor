@@ -7,8 +7,7 @@ import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.TableSettingsPlugin
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.monitor.api.utils.toImageView
-import com.poterion.monitor.api.utils.toUriOrNull
+import com.poterion.utils.javafx.toImageView
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
@@ -17,6 +16,8 @@ import com.poterion.monitor.sensors.storyboard.data.Story
 import com.poterion.monitor.sensors.storyboard.data.StoryboardConfig
 import com.poterion.monitor.sensors.storyboard.data.StoryboardProjectConfig
 import com.poterion.monitor.sensors.storyboard.data.Task
+import com.poterion.utils.javafx.openInExternalApplication
+import com.poterion.utils.kotlin.toUriOrNull
 import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.Button
@@ -31,7 +32,7 @@ import java.time.format.DateTimeParseException
 import java.util.concurrent.Executors
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class StoryboardService(override val controller: ControllerInterface, config: StoryboardConfig) : Service<StoryboardConfig>(config) {
 
@@ -75,7 +76,7 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 						.let { "/#!/project/${it}" }
 						.let { path -> config.url.toUriOrNull()?.resolve(path) }
 						?.let { uri -> Button("", CommonIcon.LINK.toImageView()) to uri }
-						?.also { (btn, uri) -> btn.setOnAction { Desktop.getDesktop().browse(uri) } }
+						?.also { (btn, uri) -> btn.setOnAction { uri.openInExternalApplication() } }
 						?.first
 			})
 

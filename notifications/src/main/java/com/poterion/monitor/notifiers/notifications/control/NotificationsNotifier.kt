@@ -6,10 +6,8 @@ import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.CollectionSettingsPlugin
-import com.poterion.monitor.api.utils.cut
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.monitor.api.utils.toImageView
-import com.poterion.monitor.api.utils.toUriOrNull
+import com.poterion.utils.javafx.toImageView
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.notifiers.NotifierAction
@@ -17,6 +15,9 @@ import com.poterion.monitor.data.serviceName
 import com.poterion.monitor.notifiers.notifications.NotificationsModule
 import com.poterion.monitor.notifiers.notifications.data.LastUpdatedConfig
 import com.poterion.monitor.notifiers.notifications.data.NotificationsConfig
+import com.poterion.utils.javafx.openInExternalApplication
+import com.poterion.utils.kotlin.cutLastWords
+import com.poterion.utils.kotlin.toUriOrNull
 import javafx.application.Platform
 import javafx.geometry.Pos
 import javafx.scene.Node
@@ -43,7 +44,7 @@ import java.util.concurrent.TimeUnit
 
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class NotificationsNotifier(override val controller: ControllerInterface, config: NotificationsConfig) : Notifier<NotificationsConfig>(config) {
 	companion object {
@@ -160,14 +161,14 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 				val notification = Notifications.create()
 						.owner(owner)
 						.graphic(statusItem.status.toIcon().toImageView(48, 48))
-						.title("${title.cut(30)} since ${formatter.format(statusItem.startedAt)}")
-						.text(statusItem.title.cut(40))
+						.title("${title.cutLastWords(30)} since ${formatter.format(statusItem.startedAt)}")
+						.text(statusItem.title.cutLastWords(40))
 						//.threshold(5)
 						.position(Pos.BOTTOM_RIGHT)
 						.hideAfter(duration)
 				val link = statusItem.link?.toUriOrNull()
 				if (link != null) {
-					notification.onAction { Desktop.getDesktop().browse(link) }
+					notification.onAction { link.openInExternalApplication() }
 					//notification.action(Action("Goto") { Desktop.getDesktop().browse(link) })
 				}
 				notification.show()

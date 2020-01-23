@@ -5,7 +5,7 @@ import com.poterion.monitor.api.data.RGBColor
 /**
  * WS281x light configuration.
  *
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class LightConfig(var pattern: LightPattern = LightPattern.OFF,
 					   var color1: RGBColor = RGBColor(),

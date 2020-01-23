@@ -2,7 +2,7 @@ package com.poterion.monitor.sensors.alertmanager
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.ServiceModule
-import com.poterion.monitor.api.ui.Icon
+import com.poterion.utils.javafx.Icon
 import com.poterion.monitor.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.alertmanager.control.AlertManagerService

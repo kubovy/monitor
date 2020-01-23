@@ -7,7 +7,7 @@ import com.poterion.monitor.data.services.ServiceConfig
 import java.util.*
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class SonarConfig(override var type: String = SonarConfig::class.java.simpleName,
 				  override val uuid: String = UUID.randomUUID().toString(),

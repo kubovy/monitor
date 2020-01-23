@@ -2,13 +2,13 @@ package com.poterion.monitor.api.modules
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
-import com.poterion.monitor.api.ui.Icon
+import com.poterion.utils.javafx.Icon
 import com.poterion.monitor.data.ApplicationConfiguration
 import com.poterion.monitor.data.ModuleConfig
 import kotlin.reflect.KClass
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 interface Module<out Configuration : ModuleConfig, out Controller : ModuleInstanceInterface<Configuration>> {
 	/** Configuration class */

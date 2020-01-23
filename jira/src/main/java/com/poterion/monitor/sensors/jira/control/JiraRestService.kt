@@ -7,7 +7,7 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 interface JiraRestService {
 	@POST("/rest/api/2/search")

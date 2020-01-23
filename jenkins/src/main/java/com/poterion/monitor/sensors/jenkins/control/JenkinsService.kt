@@ -28,7 +28,7 @@ import java.io.IOException
 
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class JenkinsService(override val controller: ControllerInterface, config: JenkinsConfig) : Service<JenkinsConfig>(config) {
 	companion object {

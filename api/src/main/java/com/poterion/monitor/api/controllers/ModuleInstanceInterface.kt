@@ -2,14 +2,14 @@ package com.poterion.monitor.api.controllers
 
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.NavigationItem
-import com.poterion.monitor.api.utils.noop
+import com.poterion.utils.kotlin.noop
 import com.poterion.monitor.data.ModuleConfig
 import javafx.beans.property.ObjectProperty
 import javafx.scene.Node
 import javafx.scene.Parent
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 interface ModuleInstanceInterface<out Config : ModuleConfig> {
 	/** Module definition singleton */

@@ -8,13 +8,14 @@ import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.CollectionSettingsPlugin
 import com.poterion.monitor.api.ui.TableSettingsPlugin
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.monitor.api.utils.toImageView
-import com.poterion.monitor.api.utils.toUriOrNull
+import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.kotlin.toUriOrNull
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.sensors.jira.JiraModule
 import com.poterion.monitor.sensors.jira.data.*
+import com.poterion.utils.javafx.openInExternalApplication
 import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.Button
@@ -33,7 +34,7 @@ import kotlin.math.min
 import kotlin.math.round
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class JiraService(override val controller: ControllerInterface, config: JiraConfig) : Service<JiraConfig>(config) {
 
@@ -76,7 +77,7 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 						.let { "/issues/?jql=${it}" }
 						.let { path -> config.url.toUriOrNull()?.resolve(path) }
 						?.let { uri -> Button("", CommonIcon.LINK.toImageView()) to uri }
-						?.also { (btn, uri) -> btn.setOnAction { Desktop.getDesktop().browse(uri) } }
+						?.also { (btn, uri) -> btn.setOnAction { uri.openInExternalApplication() } }
 						?.first
 			})
 

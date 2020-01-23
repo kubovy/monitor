@@ -1,12 +1,12 @@
 package com.poterion.monitor.notifiers.deploymentcase.api
 
-import com.poterion.monitor.api.utils.noop
+import com.poterion.utils.kotlin.noop
 import com.poterion.monitor.notifiers.deploymentcase.data.Device
 
 /**
  * Deployment case message listener interface.
  *
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 interface DeploymentCaseMessageListener {
 	/**

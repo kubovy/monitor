@@ -3,7 +3,7 @@ package com.poterion.monitor.sensors.storyboard.data
 import com.fasterxml.jackson.annotation.JsonProperty
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class Story(var id: Int? = null,
 				 var title: String? = null,

@@ -40,7 +40,7 @@ import java.time.Instant
  * @enduml
  */
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class StatusItem(val id: String = "",
 					  val serviceId: String = "",

@@ -2,7 +2,7 @@ package com.poterion.monitor.sensors.jira
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.ServiceModule
-import com.poterion.monitor.api.ui.Icon
+import com.poterion.utils.javafx.Icon
 import com.poterion.monitor.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.jira.control.JiraService
@@ -10,7 +10,7 @@ import com.poterion.monitor.sensors.jira.data.JiraConfig
 import kotlin.reflect.KClass
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 object JiraModule : ServiceModule<JiraConfig, JiraService> {
 	override val configClass: KClass<JiraConfig> = JiraConfig::class

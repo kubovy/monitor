@@ -5,9 +5,9 @@ import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.modules.Module
-import com.poterion.monitor.api.ui.Icon
+import com.poterion.utils.javafx.Icon
 import com.poterion.monitor.api.ui.NavigationItem
-import com.poterion.monitor.api.utils.noop
+import com.poterion.utils.kotlin.noop
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
@@ -33,7 +33,7 @@ import java.nio.charset.Charset
 /**
  * Deployment case notifier.
  *
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class DeploymentCaseNotifier(override val controller: ControllerInterface, config: DeploymentCaseConfig) :
 		Notifier<DeploymentCaseConfig>(config), CommunicatorListener {

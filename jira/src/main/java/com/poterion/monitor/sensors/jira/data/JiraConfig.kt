@@ -8,7 +8,7 @@ import com.poterion.monitor.data.services.ServiceConfig
 import java.util.*
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class JiraConfig(override var type: String = JiraConfig::class.java.simpleName,
 				 override val uuid: String = UUID.randomUUID().toString(),

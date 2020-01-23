@@ -5,7 +5,7 @@ import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.auth.AuthConfig
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class Configuration(var name: String = "",
 						 var isActive: Boolean = false,

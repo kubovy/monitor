@@ -6,7 +6,7 @@ import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.monitor.api.utils.toImageView
+import com.poterion.utils.javafx.toImageView
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.tabs.NotificationTabsModule
 import com.poterion.monitor.notifiers.tabs.data.NotificationTabsConfig
@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class NotificationTabsNotifier(override val controller: ControllerInterface, config: NotificationTabsConfig) : Notifier<NotificationTabsConfig>(config) {
 	companion object {
