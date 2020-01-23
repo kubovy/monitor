@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import com.poterion.monitor.api.utils.noop
+import com.poterion.utils.kotlin.noop
 import com.poterion.monitor.data.HttpConfig
 import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.auth.AuthConfig

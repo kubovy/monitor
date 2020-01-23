@@ -5,7 +5,7 @@ import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.services.ServiceConfig
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)
 data class ApplicationConfiguration(

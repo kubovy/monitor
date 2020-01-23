@@ -1,7 +1,7 @@
 package com.poterion.monitor.notifiers.devopslight.data
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class DevOpsLightItemConfig(var id: String = "",
 								 var statusNone: List<LightConfig> = emptyList(),

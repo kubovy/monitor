@@ -3,7 +3,7 @@ package com.poterion.monitor.notifiers.devopslight.data
 /**
  * WS281x light patterns.
  *
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 enum class LightPattern(val code: Int,
 						val delay: Int?,

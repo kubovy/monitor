@@ -6,7 +6,7 @@ import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 interface NotifierConfig : ModuleConfig {
 	var minPriority: Priority

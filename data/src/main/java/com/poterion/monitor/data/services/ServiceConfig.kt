@@ -6,7 +6,7 @@ import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.Priority
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 interface ServiceConfig : ModuleConfig, HttpConfig {
 	var order: Int

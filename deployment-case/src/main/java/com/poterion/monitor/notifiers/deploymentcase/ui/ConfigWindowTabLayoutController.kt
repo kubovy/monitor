@@ -16,7 +16,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class ConfigWindowTabLayoutController : DeploymentCaseMessageListener {
 	companion object {

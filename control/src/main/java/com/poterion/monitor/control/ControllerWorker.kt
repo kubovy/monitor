@@ -9,7 +9,7 @@ import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class ControllerWorker private constructor(private val services: Collection<Service<ServiceConfig>>) : Callable<Boolean> {
 	companion object {

@@ -1,6 +1,7 @@
 package com.poterion.monitor.api.ui
 
-import com.poterion.monitor.api.utils.toImageView
+import com.poterion.utils.javafx.Icon
+import com.poterion.utils.javafx.toImageView
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Node

@@ -5,7 +5,7 @@ import retrofit2.Call
 import retrofit2.http.GET
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 interface JenkinsRestService {
 	@GET("api/json?pretty=1")

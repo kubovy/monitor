@@ -10,7 +10,7 @@ import retrofit2.http.Url
 /**
  * Jenkins REST service for deployment case.
  *
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 interface JenkinsRestService {
 

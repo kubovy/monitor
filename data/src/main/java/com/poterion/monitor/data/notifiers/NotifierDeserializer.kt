@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer
 import kotlin.reflect.KClass
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 object NotifierDeserializer : StdDeserializer<NotifierConfig>(NotifierConfig::class.java) {
 	private val registry = mutableMapOf<String, KClass<out NotifierConfig>>()

@@ -4,8 +4,8 @@ import com.poterion.communication.serial.BluetoothCommunicator
 import com.poterion.communication.serial.Channel
 import com.poterion.communication.serial.Communicator
 import com.poterion.communication.serial.CommunicatorListener
-import com.poterion.monitor.api.utils.noop
-import com.poterion.monitor.api.utils.toImage
+import com.poterion.utils.kotlin.noop
+import com.poterion.utils.javafx.toImage
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import com.poterion.monitor.notifiers.deploymentcase.api.ConfigurationWindowActionListener
 import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageListener
@@ -27,7 +27,7 @@ import javafx.scene.layout.HBox
 /**
  * Deployment case configuration window notifier.
  *
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListener {
 

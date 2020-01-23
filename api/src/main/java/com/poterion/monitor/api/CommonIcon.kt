@@ -1,9 +1,9 @@
 package com.poterion.monitor.api
 
-import com.poterion.monitor.api.ui.Icon
+import com.poterion.utils.javafx.Icon
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 enum class CommonIcon : Icon {
 	APPLICATION,

@@ -6,9 +6,9 @@ import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.TableSettingsPlugin
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.monitor.api.utils.toImageView
-import com.poterion.monitor.api.utils.toSet
-import com.poterion.monitor.api.utils.toUriOrNull
+import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.kotlin.toSet
+import com.poterion.utils.kotlin.toUriOrNull
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
@@ -16,6 +16,7 @@ import com.poterion.monitor.sensors.alertmanager.AlertManagerModule
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerConfig
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerLabelConfig
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerResponse
+import com.poterion.utils.javafx.openInExternalApplication
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -36,7 +37,7 @@ import java.time.Instant
 import java.time.format.DateTimeParseException
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class AlertManagerService(override val controller: ControllerInterface, config: AlertManagerConfig) : Service<AlertManagerConfig>(config) {
 
@@ -97,7 +98,7 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 						.let { "/#/alerts?silenced=true&inhibited=true&active=true&filter=${it}" }
 						.let { path -> config.url.toUriOrNull()?.resolve(path) }
 						?.let { uri -> Button("", com.poterion.monitor.api.CommonIcon.LINK.toImageView()) to uri }
-						?.also { (btn, uri) -> btn.setOnAction { Desktop.getDesktop().browse(uri) } }
+						?.also { (btn, uri) -> btn.setOnAction { uri.openInExternalApplication() } }
 						?.first
 			})
 

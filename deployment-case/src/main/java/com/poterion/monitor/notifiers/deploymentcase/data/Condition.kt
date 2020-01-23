@@ -7,7 +7,7 @@ import com.poterion.monitor.notifiers.deploymentcase.getDisplayName
 import com.poterion.monitor.notifiers.deploymentcase.toVariable
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class Condition(var device: Int? = null,
 					 var value: String? = null) : StateMachineItem {

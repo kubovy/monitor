@@ -26,7 +26,7 @@ import retrofit2.Response
 import java.io.IOException
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class SonarService(override val controller: ControllerInterface, config: SonarConfig) : Service<SonarConfig>(config) {
 	companion object {

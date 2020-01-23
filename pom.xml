@@ -17,6 +17,8 @@
         <module>data</module>
         <module>ui</module>
         <!-- External -->
+        <module>javafx-utils</module>
+        <module>kotlin-utils</module>
         <module>serial-communication</module>
         <!-- Services -->
         <module>alert-manager</module>
@@ -125,6 +127,16 @@
                 <version>${project.version}</version>
             </dependency>
             <!-- Poterion -->
+            <dependency>
+                <groupId>com.poterion</groupId>
+                <artifactId>javafx-utils</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.poterion</groupId>
+                <artifactId>kotlin-utils</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.poterion</groupId>
                 <artifactId>serial-communication</artifactId>

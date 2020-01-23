@@ -1,6 +1,6 @@
 package com.poterion.monitor.notifiers.deploymentcase.api
 
-import com.poterion.monitor.api.utils.noop
+import com.poterion.utils.kotlin.noop
 import javafx.scene.input.KeyEvent
 
 interface ConfigurationWindowActionListener {

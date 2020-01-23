@@ -39,7 +39,7 @@ import kotlin.system.exitProcess
 /**
  * Application controller
  *
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class ApplicationController(override val stage: Stage, configFileName: String, vararg modules: Module<*, *>) : ControllerInterface {
 	companion object {

@@ -1,6 +1,6 @@
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.poterion.monitor.api.utils.autoFitTable
+import com.poterion.utils.javafx.autoFitTable
 import com.poterion.monitor.notifiers.deploymentcase.control.toData
 import com.poterion.monitor.notifiers.deploymentcase.data.Device
 import com.poterion.monitor.notifiers.deploymentcase.data.DeviceKind
@@ -15,7 +15,7 @@ import javafx.scene.control.TableView
 import javafx.scene.control.cell.PropertyValueFactory
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class ConfigWindowTabDevices {
 	companion object {

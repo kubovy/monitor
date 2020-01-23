@@ -8,12 +8,14 @@ import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.modules.ServiceModule
-import com.poterion.monitor.api.utils.*
+import com.poterion.monitor.api.utils.toIcon
 import com.poterion.monitor.data.*
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.monitor.data.auth.BasicAuthConfig
 import com.poterion.monitor.data.auth.TokenAuthConfig
+import com.poterion.utils.javafx.*
+import com.poterion.utils.kotlin.noop
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
@@ -35,7 +37,7 @@ import java.net.URI
 import java.util.concurrent.TimeUnit
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class ConfigurationController {
 
@@ -816,14 +818,15 @@ class ConfigurationController {
 					style = "-fx-text-fill: #009"
 					setOnMouseEntered { scene.cursor = Cursor.HAND; }
 					setOnMouseExited { scene.cursor = Cursor.DEFAULT; }
-					setOnMouseClicked { Desktop.getDesktop().browse(URI("https://icons8.com")) }
+					setOnMouseClicked { URI("https://icons8.com").openInExternalApplication() }
 				})
 
 		return row
 	}
 
 	private fun TreeItem<ModuleItem>.delete() {
-		confirm(title = "Delete confirmation",
+		confirmDialog(
+				title = "Delete confirmation",
 				content = "Do you really want to delete ${this.value.title.get()}?") {
 			this.value.module?.destroy()
 			this.remove()
@@ -832,7 +835,8 @@ class ConfigurationController {
 	}
 
 	private fun removeSilencedStatusItem(statusItem: StatusItem) {
-		confirm(title = "Unsilence confirmation",
+		confirmDialog(
+				title = "Unsilence confirmation",
 				content = "Do you really want to unsilence ${statusItem.title}?") {
 			tableSilencedStatusItems.items.remove(statusItem)
 			controller.applicationConfiguration.silenced.remove(statusItem.id)

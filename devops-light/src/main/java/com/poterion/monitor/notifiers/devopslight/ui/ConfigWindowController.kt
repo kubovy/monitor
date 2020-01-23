@@ -6,11 +6,18 @@ import com.poterion.communication.serial.CommunicatorListener
 import com.poterion.communication.serial.USBCommunicator
 import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.data.RGBColor
-import com.poterion.monitor.api.utils.*
+import com.poterion.monitor.api.utils.toColor
+import com.poterion.monitor.api.utils.toRGBColor
+import com.poterion.utils.javafx.*
 import com.poterion.monitor.notifiers.devopslight.DevOpsLightIcon
 import com.poterion.monitor.notifiers.devopslight.control.DevOpsLightNotifier
 import com.poterion.monitor.notifiers.devopslight.data.*
 import com.poterion.monitor.notifiers.devopslight.deepCopy
+import com.poterion.utils.javafx.cell
+import com.poterion.utils.javafx.factory
+import com.poterion.utils.javafx.toImage
+import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.kotlin.noop
 import javafx.collections.FXCollections
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
@@ -32,7 +39,7 @@ import kotlin.math.roundToInt
 
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class ConfigWindowController : CommunicatorListener {
 	companion object {

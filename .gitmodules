@@ -1,3 +1,9 @@
 [submodule "serial-communication"]
 	path = serial-communication
 	url = ssh://git@bitbucket.poterion.com:22999/poterion/serial-communication.git
+[submodule "kotlin-utils"]
+	path = kotlin-utils
+	url = ssh://git@bitbucket.poterion.com:22999/poterion/kotlin-utils.git
+[submodule "javafx-utils"]
+	path = javafx-utils
+	url = ssh://git@bitbucket.poterion.com:22999/poterion/javafx-utils.git

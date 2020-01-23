@@ -3,7 +3,7 @@ package com.poterion.monitor.notifiers.deploymentcase.data
 import com.fasterxml.jackson.annotation.JsonIgnore
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class Device(var name: String = "",
 				  var kind: DeviceKind = DeviceKind.MCP23017,

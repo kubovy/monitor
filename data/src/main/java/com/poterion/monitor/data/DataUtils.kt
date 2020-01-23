@@ -4,7 +4,7 @@ import com.poterion.monitor.data.services.ServiceConfig
 import java.util.*
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 
 fun StatusItem.service(services: Map<String, ServiceConfig>) = services[serviceId]

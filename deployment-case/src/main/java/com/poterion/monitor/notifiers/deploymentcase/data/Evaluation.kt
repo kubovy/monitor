@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class Evaluation(var conditions: List<Condition> = listOf(),
 					  var actions: List<Action> = listOf()) : StateMachineItem {

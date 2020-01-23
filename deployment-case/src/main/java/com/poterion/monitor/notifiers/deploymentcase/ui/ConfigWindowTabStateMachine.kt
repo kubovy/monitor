@@ -1,7 +1,7 @@
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.poterion.monitor.api.utils.noop
-import com.poterion.monitor.api.utils.toImageView
+import com.poterion.utils.kotlin.noop
+import com.poterion.utils.javafx.toImageView
 import com.poterion.monitor.notifiers.deploymentcase.*
 import com.poterion.monitor.notifiers.deploymentcase.control.*
 import com.poterion.monitor.notifiers.deploymentcase.data.*
@@ -20,7 +20,7 @@ import javafx.util.Callback
 import javafx.util.StringConverter
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class ConfigWindowTabStateMachine {
 	companion object {

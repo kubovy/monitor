@@ -1,7 +1,7 @@
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.poterion.monitor.api.utils.autoFitTable
-import com.poterion.monitor.api.utils.noop
+import com.poterion.utils.javafx.autoFitTable
+import com.poterion.utils.kotlin.noop
 import com.poterion.monitor.api.utils.toColor
 import com.poterion.monitor.api.utils.toHex
 import com.poterion.monitor.notifiers.deploymentcase.control.findInStateMachine
@@ -24,7 +24,7 @@ import javafx.util.StringConverter
 import kotlin.math.pow
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class ConfigWindowTabVariables {
 	companion object {

@@ -20,6 +20,14 @@
         <!-- External -->
         <dependency>
             <groupId>com.poterion</groupId>
+            <artifactId>javafx-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.poterion</groupId>
+            <artifactId>kotlin-utils</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.poterion</groupId>
             <artifactId>serial-communication</artifactId>
         </dependency>
         <!-- 3rd Parties -->

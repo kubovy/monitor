@@ -2,7 +2,7 @@ package com.poterion.monitor.notifiers.deploymentcase
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.NotifierModule
-import com.poterion.monitor.api.ui.Icon
+import com.poterion.utils.javafx.Icon
 import com.poterion.monitor.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.notifiers.deploymentcase.control.DeploymentCaseNotifier
@@ -10,7 +10,7 @@ import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
 import kotlin.reflect.KClass
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 object DeploymentCaseModule : NotifierModule<DeploymentCaseConfig, DeploymentCaseNotifier> {
 	override val configClass: KClass<out DeploymentCaseConfig> = DeploymentCaseConfig::class

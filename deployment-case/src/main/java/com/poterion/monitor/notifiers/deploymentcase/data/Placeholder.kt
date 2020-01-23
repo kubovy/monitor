@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class Placeholder(private val label: String = "",
 				  @JsonIgnore override val icon: DeploymentCaseIcon? = null) : StateMachineItem {

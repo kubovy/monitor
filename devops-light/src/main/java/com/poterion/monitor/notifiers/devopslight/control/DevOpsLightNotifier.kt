@@ -8,9 +8,9 @@ import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.data.RGBColor
 import com.poterion.monitor.api.modules.Module
-import com.poterion.monitor.api.ui.Icon
+import com.poterion.utils.javafx.Icon
 import com.poterion.monitor.api.ui.NavigationItem
-import com.poterion.monitor.api.utils.noop
+import com.poterion.utils.kotlin.noop
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.notifiers.NotifierAction
@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class DevOpsLightNotifier(override val controller: ControllerInterface, config: DevOpsLightConfig) :
 		Notifier<DevOpsLightConfig>(config), CommunicatorListener {

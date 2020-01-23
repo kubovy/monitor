@@ -6,7 +6,7 @@ import com.poterion.monitor.data.services.ServiceConfig
 import retrofit2.Retrofit
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 abstract class Service<out Config : ServiceConfig>(config: Config) : AbstractModule<Config>(config) {
 	override val navigationRoot: NavigationItem

@@ -4,7 +4,7 @@ import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class GerritCodeReviewQueryConfig(var name: String = "",
 									   var query: String = "",

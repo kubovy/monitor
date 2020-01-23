@@ -1,6 +1,6 @@
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.poterion.monitor.api.utils.toImageView
+import com.poterion.utils.javafx.toImageView
 import com.poterion.monitor.notifiers.deploymentcase.control.setStateMachine
 import com.poterion.monitor.notifiers.deploymentcase.data.*
 import javafx.fxml.FXML
@@ -15,7 +15,7 @@ import javafx.util.Callback
 import kotlin.math.max
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class StateCompareWindowController {
 	companion object {

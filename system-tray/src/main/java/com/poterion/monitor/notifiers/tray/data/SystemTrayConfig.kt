@@ -6,7 +6,7 @@ import com.poterion.monitor.data.notifiers.NotifierConfig
 import java.util.*
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class SystemTrayConfig(override var type: String = SystemTrayConfig::class.java.simpleName,
 							override val uuid: String = UUID.randomUUID().toString(),

@@ -7,7 +7,7 @@ import com.poterion.monitor.data.services.ServiceConfig
 import java.util.*
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 class StoryboardConfig(override var type: String = StoryboardConfig::class.java.simpleName,
 					   override val uuid: String = UUID.randomUUID().toString(),

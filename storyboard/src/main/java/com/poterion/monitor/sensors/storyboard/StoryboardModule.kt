@@ -2,7 +2,7 @@ package com.poterion.monitor.sensors.storyboard
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.ServiceModule
-import com.poterion.monitor.api.ui.Icon
+import com.poterion.utils.javafx.Icon
 import com.poterion.monitor.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.storyboard.control.StoryboardService
@@ -10,7 +10,7 @@ import com.poterion.monitor.sensors.storyboard.data.StoryboardConfig
 import kotlin.reflect.KClass
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 object StoryboardModule : ServiceModule<StoryboardConfig, StoryboardService> {
 	override val configClass: KClass<StoryboardConfig> = StoryboardConfig::class

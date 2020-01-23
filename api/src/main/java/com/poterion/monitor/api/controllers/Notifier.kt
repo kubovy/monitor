@@ -1,6 +1,6 @@
 package com.poterion.monitor.api.controllers
 
-import com.poterion.monitor.api.ui.Icon
+import com.poterion.utils.javafx.Icon
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.api.ui.TableSettingsPlugin
 import com.poterion.monitor.data.notifiers.NotifierAction
@@ -10,7 +10,7 @@ import javafx.scene.Node
 import javafx.scene.Parent
 
 /**
- * @author Jan Kubovy <jan@kubovy.eu>
+ * @author Jan Kubovy [jan@kubovy.eu]
  */
 abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractModule<Config>(config) {
 
