@@ -23,12 +23,15 @@ import javafx.geometry.HPos
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.geometry.VPos
+import javafx.scene.Cursor
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.scene.control.*
 import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.layout.*
+import java.awt.Desktop
+import java.net.URI
 import java.util.concurrent.TimeUnit
 
 /**
@@ -209,18 +212,13 @@ class ConfigurationController {
 					TreeItem(ModuleItem(SimpleStringProperty("Application"), CommonIcon.SETTINGS)),
 					TreeItem(ModuleItem(SimpleStringProperty("Services"), UiIcon.SERVICES)).apply {
 						controller.services.forEach { children.addItem(it) }
-						//?.sortedBy { it.config.name }
-						//?.map { TreeItem(ModuleItem(module = it)) }
-
-						//?.also { children.addAll(it) }
 						isExpanded = true
 					},
 					TreeItem(ModuleItem(SimpleStringProperty("Notifiers"), UiIcon.NOTIFIERS)).apply {
 						controller.notifiers.forEach { children.addItem(it) }
-						//?.sortedBy { it.config.name }?.map { TreeItem(ModuleItem(module = it)) }
-						//?.also { children.addAll(it) }
 						isExpanded = true
-					})
+					},
+					TreeItem(ModuleItem(SimpleStringProperty("About"), CommonIcon.APPLICATION)))
 		}
 
 		tableSilencedStatusItems.columns.addAll(tableColumnServiceName, tableColumnTitle, tableColumnAction)
@@ -370,6 +368,9 @@ class ConfigurationController {
 			}
 			"Notifiers" -> {
 				row = controller.applicationConfiguration.notifiers.values.initializeModuleReferences(row, "Notifiers:")
+			}
+			"About" -> {
+				row = initializeAbout(row)
 			}
 			else -> noop()
 		}
@@ -788,6 +789,34 @@ class ConfigurationController {
 						config.minStatus = value
 						controller.saveConfig()
 					}
+				})
+
+		return row
+	}
+
+	private fun initializeAbout(rowCount: Int): Int = gridPane.run {
+		var row = rowCount
+
+		addRow(row++,
+				Label("Author:").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
+				Label("Jan Kubovy (jan@kubovy.eu)").apply { maxHeight = Double.MAX_VALUE })
+
+		addRow(row++,
+				Label("Icons:").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
+				Label("Icons by Icon8 (https://icons8.com)").apply {
+					maxHeight = Double.MAX_VALUE
+					style = "-fx-text-fill: #009"
+					setOnMouseEntered { scene.cursor = Cursor.HAND; }
+					setOnMouseExited { scene.cursor = Cursor.DEFAULT; }
+					setOnMouseClicked { Desktop.getDesktop().browse(URI("https://icons8.com")) }
 				})
 
 		return row
