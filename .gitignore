@@ -1,6 +1,9 @@
 /.idea/
+.gradle/
 target/
 out/
+build/
+/gradle/wrapper/gradle-wrapper.jar
 *.bak
 *.iml
 *.log

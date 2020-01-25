@@ -32,7 +32,6 @@ import javafx.scene.control.*
 import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.layout.*
-import java.awt.Desktop
 import java.net.URI
 import java.util.concurrent.TimeUnit
 
@@ -149,7 +148,7 @@ class ConfigurationController {
 		tree.apply {
 			isShowRoot = false
 			selectionModel.selectionMode = SelectionMode.SINGLE
-			factory { item, empty ->
+			cell { _, item, empty ->
 				//text = item?.takeUnless { empty }?.title?.get()
 				graphic = item?.takeUnless { empty }?.let { it.icon ?: it.module?.definition?.icon }?.toImageView()
 

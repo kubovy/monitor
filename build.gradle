@@ -1,0 +1,55 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm' version '1.3.11'
+}
+group 'com.poterion.monitor'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    jcenter()
+    google()
+    maven {
+        url 'https://www.dcm4che.org/maven2/'
+    }
+}
+
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'Poterion Monitor',
+                   'Implementation-Version': archiveVersion,
+                   'Main-Class': 'com.poterion.monitor.Main'
+    }
+    archiveBaseName.set(project.name + '-all')
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
+dependencies {
+    // Common
+    api project (':api')
+    compile project (':control')
+    compile project (':ui')
+    // Services
+    compile project (':alert-manager')
+    compile project (':gerrit-code-review')
+    compile project (':jenkins')
+    compile project (':jira')
+    compile project (':sonar')
+    compile project (':storyboard')
+    // Notifiers
+    compile project (':deployment-case')
+    compile project (':devops-light')
+    compile project (':notification-tabs')
+    compile project (':notifications')
+    compile project (':system-tray')
+    // Kotlin
+    compile 'org.jetbrains.kotlin:kotlin-reflect:1.3.11'
+    compile "org.slf4j:slf4j-log4j12:1.7.21"
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}

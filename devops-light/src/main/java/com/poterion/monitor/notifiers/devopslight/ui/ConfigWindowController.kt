@@ -8,7 +8,6 @@ import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.data.RGBColor
 import com.poterion.monitor.api.utils.toColor
 import com.poterion.monitor.api.utils.toRGBColor
-import com.poterion.utils.javafx.*
 import com.poterion.monitor.notifiers.devopslight.DevOpsLightIcon
 import com.poterion.monitor.notifiers.devopslight.control.DevOpsLightNotifier
 import com.poterion.monitor.notifiers.devopslight.data.*
@@ -159,7 +158,7 @@ class ConfigWindowController : CommunicatorListener {
 		treeConfigs.apply {
 			isShowRoot = false
 			selectionModel.selectionMode = SelectionMode.SINGLE
-			factory { item, empty ->
+			cell { _, item, empty ->
 				text = item?.takeUnless { empty }?.title?.let { if (it.isEmpty()) "Default" else it }
 				graphic = item?.takeUnless { empty }?.icon?.toImageView()
 			}
