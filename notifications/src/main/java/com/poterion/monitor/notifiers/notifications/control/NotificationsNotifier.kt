@@ -7,7 +7,6 @@ import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.CollectionSettingsPlugin
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.utils.javafx.toImageView
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.notifiers.NotifierAction
@@ -16,6 +15,7 @@ import com.poterion.monitor.notifiers.notifications.NotificationsModule
 import com.poterion.monitor.notifiers.notifications.data.LastUpdatedConfig
 import com.poterion.monitor.notifiers.notifications.data.NotificationsConfig
 import com.poterion.utils.javafx.openInExternalApplication
+import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.cutLastWords
 import com.poterion.utils.kotlin.toUriOrNull
 import javafx.application.Platform
@@ -34,7 +34,6 @@ import javafx.util.Duration
 import org.controlsfx.control.Notifications
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.awt.Desktop
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset

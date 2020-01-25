@@ -1,0 +1,23 @@
+rootProject.name = 'monitor'
+// Libs
+include 'kotlin-utils'
+include 'javafx-utils'
+include 'serial-communication'
+// Common
+include 'data'
+include 'api'
+include 'control'
+include 'ui'
+// Services
+include 'alert-manager'
+include 'gerrit-code-review'
+include 'jira'
+include 'sonar'
+include 'storyboard'
+// Notifiers
+include 'deployment-case'
+include 'devops-light'
+include 'jenkins'
+include 'notification-tabs'
+include 'notifications'
+include 'system-tray'
