@@ -8,21 +8,20 @@ import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.CollectionSettingsPlugin
 import com.poterion.monitor.api.ui.TableSettingsPlugin
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.utils.javafx.toImageView
-import com.poterion.utils.kotlin.toUriOrNull
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.sensors.jira.JiraModule
 import com.poterion.monitor.sensors.jira.data.*
 import com.poterion.utils.javafx.openInExternalApplication
+import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.kotlin.toUriOrNull
 import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.Button
 import javafx.scene.layout.Region
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.awt.Desktop
 import java.io.IOException
 import java.net.URLEncoder
 import java.time.Instant
@@ -192,17 +191,17 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 	}
 
 	private val JiraIssue.priority: Priority
-		get() = fields?.issuetype?.name?.let { config.priorityMapping[it] }
-				?: fields?.priority?.name?.let { config.priorityMapping[it] }
+		get() = fields?.priority?.name?.let { config.priorityMapping[it] }
+				?: fields?.issuetype?.name?.let { config.priorityMapping[it] }
 				?: Priority.NONE
 
 	private val JiraIssue.status: Status
-		get() = fields?.issuetype?.name?.let { config.statusMapping[it] }
-				?: fields?.status
-						?.let { listOf(it.name) + it.statusCategory.let { c -> listOf(c?.key, c?.name, c?.colorName) } }
-						?.filterNotNull()
-						?.mapNotNull { config.statusMapping[it] }
-						?.maxBy { it.ordinal }
+		get() = fields?.status
+				?.let { listOf(it.name) + it.statusCategory.let { c -> listOf(c?.key, c?.name, c?.colorName) } }
+				?.filterNotNull()
+				?.mapNotNull { config.statusMapping[it] }
+				?.maxBy { it.ordinal }
+				?: fields?.issuetype?.name?.let { config.statusMapping[it] }
 				?: Status.UNKNOWN
 
 	private val JiraIssueFieldProgress.percent: Int?
