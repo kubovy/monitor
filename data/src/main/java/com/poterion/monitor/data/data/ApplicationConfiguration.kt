@@ -1,4 +1,4 @@
-package com.poterion.monitor.data
+package com.poterion.monitor.data.data
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.poterion.monitor.data.notifiers.NotifierConfig
@@ -19,4 +19,4 @@ data class ApplicationConfiguration(
 		var previousTab: String? = null,
 		val services: MutableMap<String, ServiceConfig> = mutableMapOf(),
 		val notifiers: MutableMap<String, NotifierConfig> = mutableMapOf(),
-		val silenced: MutableMap<String, StatusItem> = mutableMapOf())
+		val silenced: MutableMap<String, SilencedStatusItem> = mutableMapOf())

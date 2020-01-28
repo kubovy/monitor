@@ -2,11 +2,11 @@ package com.poterion.monitor.sensors.sonar
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.ServiceModule
-import com.poterion.utils.javafx.Icon
-import com.poterion.monitor.data.ApplicationConfiguration
+import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.sonar.control.SonarService
 import com.poterion.monitor.sensors.sonar.data.SonarConfig
+import com.poterion.utils.javafx.Icon
 import kotlin.reflect.KClass
 
 /**

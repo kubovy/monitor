@@ -4,17 +4,16 @@ import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.utils.javafx.*
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
+import com.poterion.monitor.data.data.SilencedStatusItem
 import com.poterion.monitor.data.serviceName
 import com.poterion.monitor.notifiers.tabs.NotificationTabsIcon
+import com.poterion.monitor.notifiers.tabs.control.NotificationTabsNotifier
 import com.poterion.monitor.notifiers.tabs.data.NotificationTabsConfig
-import com.poterion.utils.javafx.cell
-import com.poterion.utils.javafx.factory
-import com.poterion.utils.javafx.setOnItemClick
-import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.javafx.*
+import com.poterion.utils.kotlin.containsExactly
 import com.poterion.utils.kotlin.noop
 import com.poterion.utils.kotlin.toUriOrNull
 import javafx.fxml.FXML
@@ -24,7 +23,6 @@ import javafx.scene.control.*
 import javafx.scene.input.KeyCode
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Region
-import java.awt.Desktop
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -113,8 +111,9 @@ class TabController {
 		treeTableAlerts.setOnKeyPressed { event ->
 			if (event.isControlDown) when (event.code) {
 				KeyCode.S -> {
+					val untilChanged = !event.isAltDown
 					treeTableAlerts.selectionModel.selectedItems
-							.forEach { it.value?.toggleSilence(refresh = false, save = false) }
+							.forEach { it.value?.toggleSilence(untilChanged, refresh = false, save = false) }
 					refreshTable()
 					controller.saveConfig()
 				}
@@ -358,13 +357,16 @@ class TabController {
 		treeTableAlerts.selectionModel.select(selectedStatusItem)
 	}
 
-	private fun StatusItem.contextMenu() = ContextMenu(
+	private fun StatusItem.contextMenu() = ContextMenu(*listOfNotNull(
 			MenuItem(if (isWatched) "Unwatch [Ctrl+W]" else "Watch [Ctrl+W]",
 					(if (isWatched) NotificationTabsIcon.UNWATCH else NotificationTabsIcon.WATCH).toImageView())
 					.also { it.setOnAction { toggleWatch() } },
-			MenuItem(if (isSilenced) "Unsilence [Ctrl+S]" else "Silence [Ctrl+S]",
+			MenuItem(if (isSilenced) "Unsilence [Ctrl+S]" else "Silence [Ctrl+Alt+S]",
 					(if (isSilenced) NotificationTabsIcon.UNSILENCE else NotificationTabsIcon.SILENCE).toImageView())
-					.also { it.setOnAction { toggleSilence() } })
+					.also { it.setOnAction { toggleSilence(false) } },
+			MenuItem("Silence until changed [Ctrl+S]", NotificationTabsIcon.SILENCE.toImageView())
+					.takeIf { !isSilenced && startedAt != null }
+					?.also { it.setOnAction { toggleSilence(true) } }).toTypedArray())
 
 	private fun StatusItem.toggleWatch(refresh: Boolean = true, save: Boolean = true) {
 		config.watchedItems.also { if (isWatched) it.remove(id) else it.add(id) }
@@ -372,8 +374,11 @@ class TabController {
 		if (save) controller.saveConfig()
 	}
 
-	private fun StatusItem.toggleSilence(refresh: Boolean = true, save: Boolean = true) {
-		controller.applicationConfiguration.silenced.also { if (isSilenced) it.remove(id) else it[id] = this }
+	private fun StatusItem.toggleSilence(untilChanged: Boolean, refresh: Boolean = true, save: Boolean = true) {
+		controller.applicationConfiguration.silenced.also {
+			if (isSilenced) it.remove(id)
+			else it[id] = SilencedStatusItem(item = this, lastChange = startedAt, untilChanged = untilChanged)
+		}
 		if (refresh) refreshTable()
 		if (save) controller.saveConfig()
 	}
