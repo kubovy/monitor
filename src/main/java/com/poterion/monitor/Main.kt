@@ -16,6 +16,7 @@ import com.poterion.monitor.ui.ConfigurationController
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.stage.Stage
+import java.io.File
 
 /*
  * @startuml
@@ -58,10 +59,17 @@ import javafx.stage.Stage
  */
 class Main : Application() {
 	companion object {
-		private const val CONFIG_FILE: String = "config.yaml"
+		private lateinit var configFile: String
 
 		@JvmStatic
 		fun main(args: Array<String>) {
+			configFile = args.map { File(it) }.firstOrNull { it.exists() }?.absolutePath
+					?: File(System.getProperty("user.home"))
+							.resolve(".config")
+							.resolve("poterion-monitor")
+							.resolve("config.yaml")
+							.absolutePath
+
 			launch(Main::class.java, *args)
 		}
 	}
@@ -69,7 +77,7 @@ class Main : Application() {
 	override fun start(primaryStage: Stage) {
 		Platform.setImplicitExit(false)
 
-		val controller = ApplicationController(primaryStage, CONFIG_FILE,
+		val controller = ApplicationController(primaryStage, configFile,
 				AlertManagerModule,
 				GerritCodeReviewModule,
 				JenkinsModule,
