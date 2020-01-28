@@ -17,9 +17,9 @@ import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.modules.ServiceModule
-import com.poterion.monitor.data.ApplicationConfiguration
 import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.monitor.data.auth.AuthDeserializer
+import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.notifiers.NotifierDeserializer
@@ -131,8 +131,21 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 		stage.setOnCloseRequest { if (notifiers.map { it.exitRequest }.reduce { acc, b -> acc && b }) quit() }
 
 		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe { collector ->
-			val map = collector.items.map { it.id to it }.toMap()
-			applicationConfiguration.silenced.replaceAll { id, item -> map[id] ?: item }
+			val removes = collector.items
+					.mapNotNull { item -> applicationConfiguration.silenced[item.id]?.let { item to it } }
+					.filter { (item, silenced) -> silenced.untilChanged && item.startedAt != silenced.lastChange }
+					.map { (item, _) -> item.id }
+			val changes = collector.items
+					.filterNot { removes.contains(it.id) }
+					.mapNotNull { item -> applicationConfiguration.silenced[item.id]?.let { item to it } }
+					.filter { (item, silenced) -> item != silenced.item }
+					.map { (item, silenced) -> item.id to silenced.copy(item = item, lastChange = item.startedAt) }
+					.toMap()
+			if (changes.isNotEmpty() || removes.isNotEmpty()) {
+				applicationConfiguration.silenced.replaceAll { id, item -> changes[id] ?: item }
+				removes.forEach { applicationConfiguration.silenced.remove(it) }
+				saveConfig()
+			}
 		}
 
 		configuration.sample(1, TimeUnit.SECONDS).subscribe { configuration ->

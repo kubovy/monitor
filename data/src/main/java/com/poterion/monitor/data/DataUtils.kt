@@ -1,5 +1,6 @@
 package com.poterion.monitor.data
 
+import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.services.ServiceConfig
 import java.util.*
 

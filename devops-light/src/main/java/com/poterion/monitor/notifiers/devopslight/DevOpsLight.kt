@@ -2,11 +2,11 @@ package com.poterion.monitor.notifiers.devopslight
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.NotifierModule
-import com.poterion.utils.javafx.Icon
-import com.poterion.monitor.data.ApplicationConfiguration
+import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.notifiers.devopslight.control.DevOpsLightNotifier
 import com.poterion.monitor.notifiers.devopslight.data.DevOpsLightConfig
+import com.poterion.utils.javafx.Icon
 import kotlin.reflect.KClass
 
 object DevOpsLight : NotifierModule<DevOpsLightConfig, DevOpsLightNotifier> {

@@ -2,9 +2,9 @@ package com.poterion.monitor.api.modules
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
-import com.poterion.utils.javafx.Icon
-import com.poterion.monitor.data.ApplicationConfiguration
 import com.poterion.monitor.data.ModuleConfig
+import com.poterion.monitor.data.data.ApplicationConfiguration
+import com.poterion.utils.javafx.Icon
 import kotlin.reflect.KClass
 
 /**

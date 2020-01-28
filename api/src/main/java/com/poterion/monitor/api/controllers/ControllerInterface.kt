@@ -1,7 +1,7 @@
 package com.poterion.monitor.api.controllers
 
 import com.poterion.monitor.api.modules.Module
-import com.poterion.monitor.data.ApplicationConfiguration
+import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.services.ServiceConfig
 import javafx.collections.ObservableList

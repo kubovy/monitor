@@ -14,6 +14,7 @@ import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.monitor.data.auth.BasicAuthConfig
 import com.poterion.monitor.data.auth.TokenAuthConfig
+import com.poterion.monitor.data.data.SilencedStatusItem
 import com.poterion.utils.javafx.*
 import com.poterion.utils.kotlin.noop
 import javafx.beans.property.SimpleStringProperty
@@ -82,7 +83,7 @@ class ConfigurationController {
 
 	private lateinit var controller: ControllerInterface
 
-	private val tableSilencedStatusItems = TableView<StatusItem>().apply {
+	private val tableSilencedStatusItems = TableView<SilencedStatusItem>().apply {
 		minWidth = Region.USE_COMPUTED_SIZE
 		minHeight = Region.USE_COMPUTED_SIZE
 		prefWidth = Region.USE_COMPUTED_SIZE
@@ -100,33 +101,65 @@ class ConfigurationController {
 		}
 	}
 
-	private val tableColumnServiceName = TableColumn<StatusItem, String>("Service Name").apply {
+	private val tableColumnServiceName = TableColumn<SilencedStatusItem, StatusItem>("Service Name").apply {
 		isSortable = false
 		minWidth = 150.0
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Double.MAX_VALUE
 		cell("serviceId") { item, _, empty ->
-			val service = item?.takeUnless { empty }?.service(controller.applicationConfiguration)
+			val service = item?.takeUnless { empty }?.item?.service(controller.applicationConfiguration)
 			graphic = controller
 					.takeUnless { empty }
 					?.modules
 					?.find { module -> module.configClass == service?.let { it::class } }
 					?.icon
 					?.toImageView()
-			text = item?.takeUnless { empty }?.serviceName(controller.applicationConfiguration)
+			text = item?.takeUnless { empty }?.item?.serviceName(controller.applicationConfiguration)
 		}
 	}
 
-	private val tableColumnTitle = TableColumn<StatusItem, String>("Title").apply {
+	private val tableColumnTitle = TableColumn<SilencedStatusItem, StatusItem>("Title").apply {
 		isSortable = false
 		minWidth = 150.0
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Double.MAX_VALUE
-		cell("title")
+		cell("item") { _, value, empty ->
+			text = value?.takeUnless { empty }?.title
+		}
 	}
 
-	private val tableColumnAction = TableColumn<StatusItem, Status>("").apply {
+	private val tableColumnSilencedAt = TableColumn<SilencedStatusItem, String>("Silenced").apply {
 		isSortable = false
+		isResizable = false
+		minWidth = 190.0
+		prefWidth = 190.0
+		maxWidth = Region.USE_PREF_SIZE
+		cell("silencedAt")
+	}
+
+	private val tableColumnLastChange = TableColumn<SilencedStatusItem, String>("Last Change").apply {
+		isSortable = false
+		isResizable = false
+		minWidth = 190.0
+		prefWidth = 190.0
+		maxWidth = Region.USE_PREF_SIZE
+		cell("lastChange")
+	}
+
+	private val tableColumnUntil = TableColumn<SilencedStatusItem, Boolean>("Until").apply {
+		isSortable = false
+		isResizable = false
+		minWidth = 100.0
+		prefWidth = Region.USE_COMPUTED_SIZE
+		maxWidth = Region.USE_PREF_SIZE
+		cell("untilChanged") { _, value, empty ->
+			text = value.takeUnless { empty }?.let { if (it) "Until changed" else "Forever" }
+		}
+	}
+
+	private val tableColumnAction = TableColumn<SilencedStatusItem, Status>("").apply {
+		isSortable = false
+		isResizable = false
 		minWidth = 48.0
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Region.USE_PREF_SIZE
@@ -222,7 +255,8 @@ class ConfigurationController {
 					TreeItem(ModuleItem(SimpleStringProperty("About"), CommonIcon.APPLICATION)))
 		}
 
-		tableSilencedStatusItems.columns.addAll(tableColumnServiceName, tableColumnTitle, tableColumnAction)
+		tableSilencedStatusItems.columns.addAll(tableColumnServiceName, tableColumnTitle, tableColumnSilencedAt,
+				tableColumnLastChange, tableColumnUntil, tableColumnAction)
 		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe {
 			tableSilencedStatusItems.items.setAll(controller.applicationConfiguration.silenced.values)
 		}
@@ -833,12 +867,12 @@ class ConfigurationController {
 		}
 	}
 
-	private fun removeSilencedStatusItem(statusItem: StatusItem) {
+	private fun removeSilencedStatusItem(statusItem: SilencedStatusItem) {
 		confirmDialog(
 				title = "Unsilence confirmation",
-				content = "Do you really want to unsilence ${statusItem.title}?") {
+				content = "Do you really want to unsilence ${statusItem.item.title}?") {
 			tableSilencedStatusItems.items.remove(statusItem)
-			controller.applicationConfiguration.silenced.remove(statusItem.id)
+			controller.applicationConfiguration.silenced.remove(statusItem.item.id)
 			controller.saveConfig()
 		}
 	}
