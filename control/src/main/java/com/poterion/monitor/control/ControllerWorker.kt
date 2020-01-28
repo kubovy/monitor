@@ -39,7 +39,7 @@ class ControllerWorker private constructor(private val services: Collection<Serv
 		Thread.currentThread().name = "Controller Worker"
 		while (running) try {
 			val now = System.currentTimeMillis()
-			services.filter { it.refresh || (now - (serviceLastChecked[it.config.name] ?: 0L)) > it.config.checkInterval }
+			services.filter { it.shouldRun(now) }
 					.forEach { service ->
 						service.refresh = false
 						serviceLastChecked[service.config.name] = System.currentTimeMillis()
@@ -58,4 +58,10 @@ class ControllerWorker private constructor(private val services: Collection<Serv
 		}
 		return !running
 	}
+
+	private fun Service<ServiceConfig>.shouldRun(now: Long) = refresh || config
+			.let { config -> config.checkInterval?.let { config.name to it } }
+			?.let { (name, checkInterval) -> (serviceLastChecked[name] ?: 0L) to checkInterval }
+			?.let { (lastChecked, checkInterval) -> (now - lastChecked) > checkInterval }
+			?: false
 }

@@ -4,12 +4,12 @@ import com.fasterxml.jackson.core.JsonFactory
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import com.poterion.utils.kotlin.noop
 import com.poterion.monitor.data.HttpConfig
 import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.monitor.data.auth.BasicAuthConfig
 import com.poterion.monitor.data.auth.TokenAuthConfig
+import com.poterion.utils.kotlin.noop
 import okhttp3.Authenticator
 import okhttp3.ConnectionPool
 import okhttp3.Credentials
@@ -92,10 +92,15 @@ class HttpServiceModule(private val config: HttpConfig) {
 													.encodeToString("${auth.username}:${auth.password}".toByteArray())
 													.let { "Basic ${it}" })
 
-									val request = requestBuilder
-											.build()
-									LOGGER.debug("${request.method()} ${request.url()}...")
-									chain.proceed(request)
+									val request = requestBuilder.build()
+									try {
+										val response = chain.proceed(request)
+										LOGGER.debug("${request.method()} ${request.url()}...")
+										response
+									} catch (t: Throwable) {
+										LOGGER.error("${request.method()} ${request.url()}: ${t.message}", t)
+										null
+									}
 								}
 								.build())
 						.addConverterFactory(ScalarsConverterFactory.create())
