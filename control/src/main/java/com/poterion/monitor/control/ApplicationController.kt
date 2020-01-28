@@ -154,16 +154,17 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 				configListeners.forEach { it.invoke(configuration) }
 				val tempFile = File(configFile.absolutePath + ".tmp")
 				mapper.writeValue(tempFile, configuration)
-				var success = (!backupFile.exists() || backupFile.delete())
-				success = success && configFile.renameTo(backupFile)
-				success = success && tempFile.renameTo(configFile.absoluteFile)
+				val success = (!backupFile.exists() || backupFile.delete())
+						&& (configFile.parentFile.exists() || configFile.parentFile.mkdirs())
+						&& configFile.renameTo(backupFile)
+						&& tempFile.renameTo(configFile.absoluteFile)
 				if (success) backupFile.delete()
 				else LOGGER.error("Failed saving configuration to ${configFile.absolutePath} (backup ${backupFile})")
 			} catch (e: Exception) {
 				LOGGER.error(e.message, e)
 			} finally {
-				if (!configFile.exists() && backupFile.exists()) {
-					if (!backupFile.renameTo(configFile)) LOGGER.error("Restoring ${backupFile} failed!")
+				if (!configFile.exists() && backupFile.exists() && !backupFile.renameTo(configFile)) {
+					LOGGER.error("Restoring ${backupFile} failed!")
 				}
 			}
 		}
