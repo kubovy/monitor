@@ -15,7 +15,7 @@ interface ServiceConfig : ModuleConfig, HttpConfig {
 	var priority: Priority
 		@JsonInclude(value = JsonInclude.Include.ALWAYS)
 		get
-	var checkInterval: Long
+	var checkInterval: Long?
 		@JsonInclude(value = JsonInclude.Include.ALWAYS)
 		get
 }

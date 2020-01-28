@@ -2,12 +2,12 @@ package com.poterion.monitor.api.ui
 
 import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.controllers.ControllerInterface
-import com.poterion.utils.javafx.cell
-import com.poterion.utils.javafx.factory
-import com.poterion.utils.kotlin.noop
-import com.poterion.utils.javafx.toImageView
 import com.poterion.monitor.data.ModuleConfig
 import com.poterion.utils.javafx.Icon
+import com.poterion.utils.javafx.cell
+import com.poterion.utils.javafx.factory
+import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.kotlin.noop
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.control.*
@@ -27,7 +27,8 @@ class TableSettingsPlugin<S>(private val tableName: String,
 							 private val columnDefinitions: List<ColumnDefinition<S, *>>,
 							 private val comparator: Comparator<S>,
 							 buttonText: String = "Add",
-							 private val actions: List<(S) -> Button?> = emptyList()) {
+							 private val actions: List<(S) -> Button?> = emptyList(),
+							 private val onSave: () -> Unit = {}) {
 
 	data class ColumnDefinition<S, T>(val name: String,
 									  var getter: S.() -> T?,
@@ -229,6 +230,7 @@ class TableSettingsPlugin<S>(private val tableName: String,
 
 	private fun save() {
 		controller.saveConfig()
+		onSave()
 		table.items.sortWith(comparator)
 		table.refresh()
 		changeListener.forEach { it() }

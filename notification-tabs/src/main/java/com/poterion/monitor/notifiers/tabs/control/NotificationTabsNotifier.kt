@@ -6,11 +6,11 @@ import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.utils.javafx.toImageView
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.tabs.NotificationTabsModule
 import com.poterion.monitor.notifiers.tabs.data.NotificationTabsConfig
 import com.poterion.monitor.notifiers.tabs.ui.TabController
+import com.poterion.utils.javafx.toImageView
 import javafx.application.Platform
 import javafx.scene.Parent
 import org.slf4j.Logger
@@ -32,7 +32,7 @@ class NotificationTabsNotifier(override val controller: ControllerInterface, con
 	override var configurationTab: Parent? = null
 		get() {
 			if (field == null || tabController == null) {
-				val (parent, ctrl) = TabController.getRoot(controller, config)
+				val (parent, ctrl) = TabController.getRoot(this)
 				field = parent
 				tabController = ctrl
 			}
@@ -49,6 +49,14 @@ class NotificationTabsNotifier(override val controller: ControllerInterface, con
 				tabController?.update(it.filter(emptyList(), config.minPriority,
 						config.minStatus, config.services, includingChildren = true))
 			}
+		}
+	}
+
+	override fun onServicesChanged() {
+		super.onServicesChanged()
+		if (!config.services.contains(config.selectedServiceId)) {
+			config.selectedServiceId = null
+			selectedServices.forEach { it.refresh = true }
 		}
 	}
 

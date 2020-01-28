@@ -394,11 +394,7 @@ class ConfigurationController {
 							}
 							GridPane.setHalignment(this, HPos.RIGHT)
 						},
-						Label("Bluetooth discovery").apply {
-							maxWidth = Double.MAX_VALUE
-							maxHeight = Double.MAX_VALUE
-							padding = Insets(5.0)
-						})
+						Label("Bluetooth discovery").apply { maxWidth = Double.MAX_VALUE })
 				row = controller.applicationConfiguration.services.values.initializeModuleReferences(row, "Services:")
 			}
 			"Notifiers" -> {
@@ -440,8 +436,6 @@ class ConfigurationController {
 									.apply { maxHeight = Double.MAX_VALUE },
 							Label(module.name).apply {
 								maxWidth = Double.MAX_VALUE
-								maxHeight = Double.MAX_VALUE
-								padding = Insets(5.0)
 							}).apply {
 						spacing = 5.0
 						maxWidth = Double.MAX_VALUE
@@ -477,6 +471,7 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				TextField(treeItem?.value?.module?.config?.name ?: "").apply {
+					promptText = "No name"
 					textProperty().addListener { _, _, value ->
 						treeItem?.value?.title?.set(value)
 						FXCollections.sort<TreeItem<ModuleItem>>(treeItem?.parent?.children,
@@ -500,12 +495,7 @@ class ConfigurationController {
 						val module = treeItem?.value?.module
 						if (value) when (module) {
 							is Service<*> -> module.refresh = true
-							is Notifier<*> -> module.config.services.also { services ->
-								controller.services
-										.map { it.config.uuid to it }
-										.filter { (uuid, _) -> services.let { it.isEmpty() || it.contains(uuid) } }
-										.forEach { (_, service) -> service.refresh = true }
-							}
+							is Notifier<*> -> module.selectedServices.forEach { it.refresh = true }
 						}
 						controller.saveConfig()
 					}
@@ -558,9 +548,10 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				HBox(
-						TextField(config.checkInterval.toString()).apply {
+						TextField(config.checkInterval?.toString() ?: "").apply {
+							promptText = "Manual update only fi left empty"
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							textProperty().addListener { _, _, value -> value.toLongOrNull()?.also { config.checkInterval = it } }
+							textProperty().addListener { _, _, value -> config.checkInterval = value.toLongOrNull() }
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						},
 						Label("ms").apply {
@@ -583,6 +574,7 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				TextField(config.url).apply {
+					promptText = "https://..."
 					textProperty().addListener { _, _, value -> config.url = value }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				})
@@ -605,7 +597,9 @@ class ConfigurationController {
 				})
 
 		val textFieldProxyAddress = TextField(config.proxy?.address ?: "")
+				.apply { promptText = "Proxy URL or IP address" }
 		val textFieldProxyPort = TextField(config.proxy?.port?.toString() ?: "")
+				.apply { promptText = "80" }
 
 		addRow(row++,
 				Label("Proxy").apply {
@@ -626,7 +620,6 @@ class ConfigurationController {
 						},
 						textFieldProxyPort.apply {
 							minWidth = 75.0
-							promptText = "80"
 							HBox.setHgrow(this, javafx.scene.layout.Priority.NEVER)
 							textProperty().addListener { _, _, value ->
 								val address = textFieldProxyAddress.text.takeIf { it.isNotEmpty() }
@@ -647,6 +640,7 @@ class ConfigurationController {
 				},
 				HBox(
 						TextField(config.connectTimeout?.toString() ?: "").apply {
+							promptText = "10000"
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.connectTimeout = it } }
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
@@ -665,6 +659,7 @@ class ConfigurationController {
 				},
 				HBox(
 						TextField(config.readTimeout?.toString() ?: "").apply {
+							promptText = "10000"
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.readTimeout = it } }
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
@@ -683,6 +678,7 @@ class ConfigurationController {
 				},
 				HBox(
 						TextField(config.writeTimeout?.toString() ?: "").apply {
+							promptText = "10000"
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.writeTimeout = it } }
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
@@ -704,9 +700,12 @@ class ConfigurationController {
 		val toggleGroupAuth = ToggleGroup()
 		val radioBasicAuth = RadioButton().apply { toggleGroup = toggleGroupAuth }
 		val textFieldUsername = TextField(getter()?.let { it as? BasicAuthConfig }?.username ?: "")
+				.apply { promptText = "No username" }
 		val textFieldPassword = PasswordField()
+				.apply { promptText = "No password" }
 		val radioTokenAuth = RadioButton().apply { toggleGroup = toggleGroupAuth }
 		val textFieldToken = TextField(getter()?.let { it as? TokenAuthConfig }?.token ?: "")
+				.apply { promptText = "No token" }
 
 		addRow(row++,
 				Label("Basic Auth").apply {

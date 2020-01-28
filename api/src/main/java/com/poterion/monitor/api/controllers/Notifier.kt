@@ -1,11 +1,12 @@
 package com.poterion.monitor.api.controllers
 
-import com.poterion.utils.javafx.Icon
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.api.ui.TableSettingsPlugin
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.services.ServiceConfig
+import com.poterion.utils.javafx.Icon
+import com.poterion.utils.kotlin.noop
 import javafx.scene.Node
 import javafx.scene.Parent
 
@@ -36,6 +37,9 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 				.let { conf -> controller.modules.find { module -> module.configClass == conf?.let { it::class } } }
 				?.icon
 
+	val selectedServices: Collection<Service<ServiceConfig>>
+		get() = controller.services.filter { config.services.isEmpty() || config.services.contains(it.config.uuid) }
+
 	private var serviceTableSettingsPlugin: TableSettingsPlugin<String>? = null
 		get() {
 			if (field == null) field = TableSettingsPlugin(
@@ -63,7 +67,8 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 												.sortedBy { it.name }
 												.map { it.uuid }
 									})),
-					comparator = compareBy { it.getService?.name })
+					comparator = compareBy { it.getService?.name },
+					onSave = this::onServicesChanged)
 			return field
 		}
 
@@ -72,6 +77,9 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOfNotNull(serviceTableSettingsPlugin?.vbox)
+
+
+	open fun onServicesChanged() = noop()
 
 	/**
 	 * Action execution.
