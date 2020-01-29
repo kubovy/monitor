@@ -2,6 +2,7 @@ package com.poterion.monitor.sensors.sonar
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.ServiceModule
+import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.sonar.control.SonarService
@@ -21,14 +22,9 @@ object SonarModule : ServiceModule<SonarConfig, SonarService> {
 	override val icon: Icon = SonarIcon.SONAR
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
-			SonarService = SonarConfig(uuid = applicationConfiguration.services.nextUUID(), name = title)
-			.also { applicationConfiguration.services[it.uuid] = it }
-			.let { SonarService(controller, it) }
+			SonarService = SonarService(controller,
+			SonarConfig(uuid = applicationConfiguration.services.nextUUID(), name = title))
 
-	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
-			Collection<SonarService> = applicationConfiguration
-			.services
-			.values
-			.filterIsInstance<SonarConfig>()
-			.map { SonarService(controller, it) }
+	override fun loadController(controller: ControllerInterface, config: ModuleConfig): SonarService =
+			SonarService(controller, config as SonarConfig)
 }

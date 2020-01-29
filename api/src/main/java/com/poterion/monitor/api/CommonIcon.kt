@@ -10,6 +10,7 @@ enum class CommonIcon : Icon {
 	DEVICE,
 	LINK,
 	REFRESH,
+	DUPLICATE,
 	TRASH,
 	SETTINGS,
 	UNDER_CONSTRUCTION,

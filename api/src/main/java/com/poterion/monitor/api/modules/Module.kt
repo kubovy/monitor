@@ -30,7 +30,9 @@ interface Module<out Configuration : ModuleConfig, out Controller : ModuleInstan
 	 * @param controller Controller
 	 * @param applicationConfiguration Configuration
 	 */
-	fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration): Controller? = null
+	fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration): Controller?
+
+	fun loadController(controller: ControllerInterface, config: ModuleConfig): Controller
 
 	/**
 	 * Load all UI controllers from configuration.

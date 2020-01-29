@@ -10,7 +10,7 @@ interface ModuleConfig {
 	var type: String
 		@JsonInclude(value = JsonInclude.Include.ALWAYS)
 		get
-	val uuid: String
+	var uuid: String
 		@JsonInclude(value = JsonInclude.Include.ALWAYS)
 		get
 	var name: String

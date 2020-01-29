@@ -11,7 +11,7 @@ import java.util.*
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 class JiraConfig(override var type: String = JiraConfig::class.java.simpleName,
-				 override val uuid: String = UUID.randomUUID().toString(),
+				 override var uuid: String = UUID.randomUUID().toString(),
 				 override var name: String = "",
 				 override var enabled: Boolean = true,
 				 override var url: String = "",

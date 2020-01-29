@@ -34,7 +34,9 @@ import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.layout.*
 import java.net.URI
+import java.util.*
 import java.util.concurrent.TimeUnit
+import kotlin.Comparator
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
@@ -82,6 +84,17 @@ class ConfigurationController {
 	@FXML private lateinit var gridPane: GridPane
 
 	private lateinit var controller: ControllerInterface
+
+	private val tabPaneMainComparator = Comparator.comparing<Tab, String> {
+		when (it) {
+			tabCommon -> " 0"
+			else -> it.text ?: " Z"
+		}
+	}
+
+	private val treeComparator = Comparator.comparing<TreeItem<ModuleItem>, String> {
+		it.value.title.value ?: it.value.module?.config?.name ?: ""
+	}
 
 	private val tableSilencedStatusItems = TableView<SilencedStatusItem>().apply {
 		minWidth = Region.USE_COMPUTED_SIZE
@@ -174,6 +187,7 @@ class ConfigurationController {
 	fun initialize() {
 		tree.setOnKeyPressed { event ->
 			when (event.code) {
+				KeyCode.D -> if (event.isControlDown) tree.selectionModel.selectedItem?.duplicate() else noop()
 				KeyCode.DELETE -> tree.selectionModel.selectedItem?.delete()
 				else -> noop()
 			}
@@ -218,9 +232,13 @@ class ConfigurationController {
 								}
 							}
 							.let { ContextMenu(*it.toTypedArray()) }
-					is String -> ContextMenu(MenuItem("Delete [Delete]", CommonIcon.TRASH.toImageView()).apply {
-						setOnAction { treeItem?.delete() }
-					})
+					is String -> ContextMenu(
+							MenuItem("Duplicade [Ctrl+D]", CommonIcon.DUPLICATE.toImageView()).apply {
+								setOnAction { treeItem?.duplicate() }
+							},
+							MenuItem("Delete [Delete]", CommonIcon.TRASH.toImageView()).apply {
+								setOnAction { treeItem?.delete() }
+							})
 					else -> null
 				}
 			}
@@ -260,28 +278,12 @@ class ConfigurationController {
 		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe {
 			tableSilencedStatusItems.items.setAll(controller.applicationConfiguration.silenced.values)
 		}
-
-		//tabPaneMain.tabs
-		//		.find { it.text == controller.applicationConfiguration.selectedTab }
-		//		?.also { tabPaneMain.selectionModel.select(it) }
-		//
-		//tabPaneMain.selectionModel.selectedItemProperty().addListener { _, previous, current ->
-		//	controller.applicationConfiguration.previousTab = previous?.text
-		//	controller.applicationConfiguration.selectedTab = current?.text
-		//}
-		//
-		//tabPaneMain.setOnKeyPressed { event ->
-		//	if (event.isControlDown && event.code == KeyCode.TAB) tabPaneMain.tabs
-		//			.find { it.text == controller.applicationConfiguration.selectedTab }
-		//			?.also { tabPaneMain.selectionModel.select(it) }
-		//}
 	}
 
 	private fun ObservableList<TreeItem<ModuleItem>>.addItem(module: ModuleInstanceInterface<*>) {
 		val item = TreeItem(ModuleItem(module = module))
 		add(item)
-		FXCollections.sort<TreeItem<ModuleItem>>(this,
-				Comparator.comparing<TreeItem<ModuleItem>, String> { it.value.module?.config?.name ?: "" })
+		FXCollections.sort<TreeItem<ModuleItem>>(this, treeComparator)
 
 		module.configurationTab
 				?.let { Tab(module.config.name, it) }
@@ -291,15 +293,8 @@ class ConfigurationController {
 					tab.textProperty().bind(item.value.title)
 					tabPaneMain.tabs.add(tab)
 				}
-
-		FXCollections.sort<Tab>(tabPaneMain.tabs, Comparator.comparing<Tab, String> {
-			when (it) {
-				tabCommon -> " 0"
-				else -> it.text ?: " Z"
-			}
-		})
-
 		controller.saveConfig()
+		FXCollections.sort<Tab>(tabPaneMain.tabs, tabPaneMainComparator)
 	}
 
 	private fun TreeItem<ModuleItem>.remove() {
@@ -448,22 +443,6 @@ class ConfigurationController {
 	private fun initializeModule(treeItem: TreeItem<ModuleItem>?): Int = gridPane.run {
 		imageViewLogo.image = treeItem?.value?.let { it.icon ?: it.module?.definition?.icon }?.toImage(64, 64)
 		var row = 0
-		//addRow(row++,
-		//		Label("Type").apply {
-		//			maxWidth = Double.MAX_VALUE
-		//			maxHeight = Double.MAX_VALUE
-		//			alignment = Pos.CENTER_RIGHT
-		//		},
-		//		ComboBox<String>().apply {
-		//			GridPane.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-		//			val loader = ServiceLoader.load(ModuleConfig::class.java)
-		//			items.add(null)
-		//			items.addAll(loader.map { it::class.simpleName })
-		//			isDisable = true
-		//			selectionModel.apply {
-		//				treeItem?.value?.module?.config?.type?.also(::select)
-		//			}
-		//		})
 		addRow(row++,
 				Label("Name").apply {
 					maxWidth = Double.MAX_VALUE
@@ -474,12 +453,16 @@ class ConfigurationController {
 					promptText = "No name"
 					textProperty().addListener { _, _, value ->
 						treeItem?.value?.title?.set(value)
-						FXCollections.sort<TreeItem<ModuleItem>>(treeItem?.parent?.children,
-								Comparator.comparing<TreeItem<ModuleItem>, String> { it.value.title.value ?: "" })
-						tree.refresh()
 						treeItem?.value?.module?.config?.name = value
 					}
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+					focusedProperty().addListener { _, _, hasFocus ->
+						if (!hasFocus) {
+							controller.saveConfig()
+							FXCollections.sort<TreeItem<ModuleItem>>(treeItem?.parent?.children, treeComparator)
+							FXCollections.sort<Tab>(tabPaneMain.tabs, tabPaneMainComparator)
+							//tree.refresh()
+						}
+					}
 				})
 		addRow(row++,
 				Label("Enabled").apply {
@@ -854,6 +837,22 @@ class ConfigurationController {
 				})
 
 		return row
+	}
+
+	private fun TreeItem<ModuleItem>.duplicate() {
+		val module = value?.module?.definition
+		if (module != null) {
+			val config = controller.mapper
+					.let { it.readValue(it.writeValueAsString(value.module?.config), ModuleConfig::class.java) }
+					.apply {
+						uuid = UUID.randomUUID().toString()
+						name = "${name} (Copy)"
+						enabled = false
+					}
+			val ctrl = module.loadController(controller, config)
+			controller.add(ctrl)?.also { parent.children.addItem(it) }
+			tree.refresh()
+		}
 	}
 
 	private fun TreeItem<ModuleItem>.delete() {

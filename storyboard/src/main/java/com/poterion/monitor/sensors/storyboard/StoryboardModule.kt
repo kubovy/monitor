@@ -2,6 +2,7 @@ package com.poterion.monitor.sensors.storyboard
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.ServiceModule
+import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.storyboard.control.StoryboardService
@@ -21,14 +22,9 @@ object StoryboardModule : ServiceModule<StoryboardConfig, StoryboardService> {
 	override val icon: Icon = StoryboardIcon.STORYBOARD
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
-			StoryboardService = StoryboardConfig(uuid = applicationConfiguration.services.nextUUID(), name = title)
-			.also { applicationConfiguration.services[it.uuid] = it }
-			.let { StoryboardService(controller, it) }
+			StoryboardService = StoryboardService(controller,
+			StoryboardConfig(uuid = applicationConfiguration.services.nextUUID(), name = title))
 
-	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
-			Collection<StoryboardService> = applicationConfiguration
-			.services
-			.values
-			.filterIsInstance<StoryboardConfig>()
-			.map { StoryboardService(controller, it) }
+	override fun loadController(controller: ControllerInterface, config: ModuleConfig): StoryboardService =
+			StoryboardService(controller, config as StoryboardConfig)
 }
