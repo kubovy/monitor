@@ -2,6 +2,7 @@ package com.poterion.monitor.notifiers.notifications
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.NotifierModule
+import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.notifiers.notifications.control.NotificationsNotifier
@@ -21,14 +22,9 @@ object NotificationsModule : NotifierModule<NotificationsConfig, NotificationsNo
 	override val icon: Icon = NotificationsIcon.NOTIFICATIONS
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
-			NotificationsNotifier = NotificationsConfig(uuid = applicationConfiguration.notifiers.nextUUID(), name = title)
-			.also { applicationConfiguration.notifiers[it.uuid] = it }
-			.let { NotificationsNotifier(controller, it) }
+			NotificationsNotifier = NotificationsNotifier(controller,
+			NotificationsConfig(uuid = applicationConfiguration.notifiers.nextUUID(), name = title))
 
-	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
-			Collection<NotificationsNotifier> = applicationConfiguration
-			.notifiers
-			.values
-			.filterIsInstance<NotificationsConfig>()
-			.map { NotificationsNotifier(controller, it) }
+	override fun loadController(controller: ControllerInterface, config: ModuleConfig): NotificationsNotifier =
+			NotificationsNotifier(controller, config as NotificationsConfig)
 }

@@ -2,6 +2,7 @@ package com.poterion.monitor.sensors.jenkins
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.ServiceModule
+import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.jenkins.control.JenkinsService
@@ -18,14 +19,9 @@ object JenkinsModule : ServiceModule<JenkinsConfig, JenkinsService> {
 	override val icon: Icon = JenkinsIcon.JENKINS
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
-			JenkinsService = JenkinsConfig(uuid = applicationConfiguration.services.nextUUID(), name = title)
-			.also { applicationConfiguration.services[it.uuid] = it }
-			.let { JenkinsService(controller, it) }
+			JenkinsService = JenkinsService(controller,
+			JenkinsConfig(uuid = applicationConfiguration.services.nextUUID(), name = title))
 
-	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
-			Collection<JenkinsService> = applicationConfiguration
-			.services
-			.values
-			.filterIsInstance<JenkinsConfig>()
-			.map { JenkinsService(controller, it) }
+	override fun loadController(controller: ControllerInterface, config: ModuleConfig): JenkinsService =
+			JenkinsService(controller, config as JenkinsConfig)
 }

@@ -9,7 +9,7 @@ import java.util.*
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 data class NotificationTabsConfig(override var type: String = NotificationTabsConfig::class.java.simpleName,
-								  override val uuid: String = UUID.randomUUID().toString(),
+								  override var uuid: String = UUID.randomUUID().toString(),
 								  override var name: String = "Notification Tabs",
 								  override var enabled: Boolean = true,
 								  override var minPriority: Priority = Priority.LOW,

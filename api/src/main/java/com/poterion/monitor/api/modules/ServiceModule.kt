@@ -1,6 +1,8 @@
 package com.poterion.monitor.api.modules
 
+import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.Service
+import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.services.ServiceConfig
 
 /**
@@ -15,4 +17,11 @@ interface ServiceModule<out Conf : ServiceConfig, out Ctrl : Service<Conf>> : Mo
 	 */
 	val staticNotificationSet: Boolean
 		get() = true
+
+	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
+			Collection<Ctrl> = applicationConfiguration
+			.services
+			.values
+			.filterIsInstance(configClass.java)
+			.map { loadController(controller, it) }
 }

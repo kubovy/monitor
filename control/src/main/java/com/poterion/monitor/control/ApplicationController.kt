@@ -17,6 +17,8 @@ import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.modules.ServiceModule
+import com.poterion.monitor.data.ModuleConfig
+import com.poterion.monitor.data.ModuleDeserializer
 import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.monitor.data.auth.AuthDeserializer
 import com.poterion.monitor.data.data.ApplicationConfiguration
@@ -47,7 +49,7 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 	}
 
 	private val configFile = File(configFileName)
-	private val mapper
+	override val mapper: ObjectMapper
 		get() = ObjectMapper(YAMLFactory()).apply {
 			registerModule(ParameterNamesModule())
 			registerModule(Jdk8Module())
@@ -61,11 +63,13 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 			registerModule(SimpleModule("PolymorphicNotifierDeserializerModule", Version.unknownVersion()).apply {
 				addDeserializer(NotifierConfig::class.java, NotifierDeserializer)
 			})
+			registerModule(SimpleModule("PolymorphicNotifierDeserializerModule", Version.unknownVersion()).apply {
+				addDeserializer(ModuleConfig::class.java, ModuleDeserializer)
+			})
 			configure(SerializationFeature.CLOSE_CLOSEABLE, true)
 			configure(SerializationFeature.FLUSH_AFTER_WRITE_VALUE, true)
 			configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, true)
 			configure(SerializationFeature.WRITE_DATE_KEYS_AS_TIMESTAMPS, true)
-			//configure(SerializationFeature.WRITE_ENUMS_USING_TO_STRING, true)
 			configure(DeserializationFeature.WRAP_EXCEPTIONS, true)
 			configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true)
 			configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false)
@@ -105,6 +109,7 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 	private fun registerModule(module: Module<*, *>) {
 		LOGGER.info("Registring ${module::class.java.name} module")
 		modules.add(module)
+		ModuleDeserializer.register(module.configClass)
 		when (module) {
 			is ServiceModule<*, *> -> ServiceDeserializer.register(module.configClass)
 			is NotifierModule<*, *> -> NotifierDeserializer.register(module.configClass)
@@ -116,9 +121,11 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 
 		for (module in modules) {
 			LOGGER.info("Loading ${module.title} module...")
-			when (module) {
-				is ServiceModule<*, *> -> services.addAll(module.loadControllers(this, applicationConfiguration))
-				is NotifierModule<*, *> -> notifiers.addAll(module.loadControllers(this, applicationConfiguration))
+			module.loadControllers(this, applicationConfiguration).forEach { ctrl ->
+				when (ctrl) {
+					is Service<*> -> services.add(ctrl as Service<ServiceConfig>)
+					is Notifier<*> -> notifiers.add(ctrl as Notifier<NotifierConfig>)
+				}
 			}
 		}
 		services.sortBy { it.config.priority }
@@ -171,17 +178,24 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 	}
 
 	override fun add(module: Module<*, *>): ModuleInstanceInterface<*>? {
-		return when (module) {
-			is ServiceModule<*, *> -> module.createController(this, applicationConfiguration)?.also { controller ->
-				services.add(controller)
-				services.sortBy { controller.config.priority }
+		return module.createController(this, applicationConfiguration)?.let { add(it) }
+	}
+
+	override fun add(controller: ModuleInstanceInterface<*>): ModuleInstanceInterface<*>? {
+		when (controller) {
+			is Service<*> -> {
+				applicationConfiguration.services[controller.config.uuid] = controller.config
+				services.add(controller as Service<ServiceConfig>)
 			}
-			is NotifierModule<*, *> -> module.createController(this, applicationConfiguration)?.also { controller ->
-				notifiers.add(controller)
-				notifiers.sortBy { controller.config.name }
+			is Notifier<*> -> {
+				applicationConfiguration.notifiers[controller.config.uuid] = controller.config
+				notifiers.add(controller as Notifier<NotifierConfig>)
 			}
-			else -> null
-		}?.also { (it as? ModuleInstanceInterface<*>)?.initialize() }
+			else -> return null
+		}
+
+		controller.initialize()
+		return controller
 	}
 
 	override fun quit() {

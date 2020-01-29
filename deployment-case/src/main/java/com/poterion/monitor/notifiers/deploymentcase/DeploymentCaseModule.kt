@@ -2,6 +2,7 @@ package com.poterion.monitor.notifiers.deploymentcase
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.NotifierModule
+import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.notifiers.deploymentcase.control.DeploymentCaseNotifier
@@ -21,14 +22,9 @@ object DeploymentCaseModule : NotifierModule<DeploymentCaseConfig, DeploymentCas
 	override val icon: Icon = DeploymentCaseIcon.NUCLEAR_FOOTBALL
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
-			DeploymentCaseNotifier = DeploymentCaseConfig(uuid = applicationConfiguration.notifiers.nextUUID(), name = title)
-			.also { applicationConfiguration.notifiers[it.uuid] = it }
-			.let { DeploymentCaseNotifier(controller, it) }
+			DeploymentCaseNotifier = DeploymentCaseNotifier(controller,
+			DeploymentCaseConfig(uuid = applicationConfiguration.notifiers.nextUUID(), name = title))
 
-	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
-			Collection<DeploymentCaseNotifier> = applicationConfiguration
-			.notifiers
-			.values
-			.filterIsInstance<DeploymentCaseConfig>()
-			.map { DeploymentCaseNotifier(controller, it) }
+	override fun loadController(controller: ControllerInterface, config: ModuleConfig): DeploymentCaseNotifier =
+			DeploymentCaseNotifier(controller, config as DeploymentCaseConfig)
 }

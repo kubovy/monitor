@@ -2,6 +2,7 @@ package com.poterion.monitor.sensors.jira
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.ServiceModule
+import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.jira.control.JiraService
@@ -21,14 +22,9 @@ object JiraModule : ServiceModule<JiraConfig, JiraService> {
 	override val icon: Icon = JiraIcon.JIRA
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
-			JiraService = JiraConfig(uuid = applicationConfiguration.services.nextUUID(), name = title)
-			.also { applicationConfiguration.services[it.uuid] = it }
-			.let { JiraService(controller, it) }
+			JiraService = JiraService(controller,
+			JiraConfig(uuid = applicationConfiguration.services.nextUUID(), name = title))
 
-	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
-			Collection<JiraService> = applicationConfiguration
-			.services
-			.values
-			.filterIsInstance<JiraConfig>()
-			.map { JiraService(controller, it) }
+	override fun loadController(controller: ControllerInterface, config: ModuleConfig): JiraService =
+			JiraService(controller, config as JiraConfig)
 }

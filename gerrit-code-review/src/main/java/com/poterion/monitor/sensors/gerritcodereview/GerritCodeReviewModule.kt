@@ -2,6 +2,7 @@ package com.poterion.monitor.sensors.gerritcodereview
 
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.modules.ServiceModule
+import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.gerritcodereview.control.GerritCodeReviewService
@@ -18,14 +19,9 @@ object GerritCodeReviewModule : ServiceModule<GerritCodeReviewConfig, GerritCode
 	override val icon: Icon = GerritCodeReviewIcon.GERRIT
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
-			GerritCodeReviewService = GerritCodeReviewConfig(uuid = applicationConfiguration.services.nextUUID(), name = title)
-			.also { applicationConfiguration.services[it.uuid] = it }
-			.let { GerritCodeReviewService(controller, it) }
+			GerritCodeReviewService = GerritCodeReviewService(controller,
+			GerritCodeReviewConfig(uuid = applicationConfiguration.services.nextUUID(), name = title))
 
-	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
-			Collection<GerritCodeReviewService> = applicationConfiguration
-			.services
-			.values
-			.filterIsInstance<GerritCodeReviewConfig>()
-			.map { GerritCodeReviewService(controller, it) }
+	override fun loadController(controller: ControllerInterface, config: ModuleConfig): GerritCodeReviewService =
+			GerritCodeReviewService(controller, config as GerritCodeReviewConfig)
 }
