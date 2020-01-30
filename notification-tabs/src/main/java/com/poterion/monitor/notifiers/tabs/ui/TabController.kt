@@ -75,10 +75,13 @@ class TabController {
 				.getOrDefault(null, mutableListOf())
 				.asSequence()
 				.filter { item -> notifier.selectedServices.map { it.config.uuid }.contains(item.serviceId) }
-				.filter { item -> config.showSilenced || !item.isSilenced }
-				.filter { item -> config.showWatched && item.isWatched || config.selectedStatus?.ordinal?.let { it <= item.status.ordinal } ?: true }
-				.filter { item -> config.showWatched && item.isWatched || config.selectedPriority?.ordinal?.let { it <= item.priority.ordinal } ?: true }
-				.filter { item -> config.showWatched && item.isWatched || config.selectedServiceId?.let { it == item.serviceId } ?: true }
+				.filter { item ->
+					config.showWatched && item.isWatched
+							|| (config.showSilenced || !item.isSilenced)
+							&& config.selectedStatus?.ordinal?.let { it <= item.status.ordinal } != false
+							&& config.selectedPriority?.ordinal?.let { it <= item.priority.ordinal } != false
+							&& config.selectedServiceId?.let { it == item.serviceId } != false
+				}
 				.map { if (it.isSilenced) it.copy(priority = Priority.NONE) else it }
 				.toList()
 
