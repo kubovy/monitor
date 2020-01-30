@@ -22,7 +22,7 @@
  */
 
 def setup() {
-    if (env.TEST_PORT) {
+    if (env.VERSION) {
         echo "Setup already done."
     } else {
         def major = sh(returnStdout: true, script: 'date +%Y').replaceAll(/\s/, "")
@@ -47,6 +47,8 @@ def setup() {
 node {
     //agent any
     env.JAVA_HOME = "${tool name: 'JDK_8'}"
+    env.GRADLE = "${tool 'Gradle 5.2.1'}"
+    env.PATH = "${env.GRADLE}/bin:${env.PATH}"
 
     properties([
             //timeout(time: 1, unit: 'HOURS'),
@@ -72,6 +74,14 @@ node {
                                         reference   : '',
                                         shallow     : true
                                 ],
+                                [
+                                        $class: 'SubmoduleOption',
+                                        disableSubmodules: false,
+                                        parentCredentials: true,
+                                        recursiveSubmodules: true,
+                                        reference: '',
+                                        trackingSubmodules: false
+                                ],
                                 [$class: 'WipeWorkspace']//,
                                 //[$class: 'CleanBeforeCheckout']//,
                                 //[$class: 'CleanCheckout']
@@ -90,16 +100,20 @@ node {
 
             stage('Build') {
                 setup()
-                lock(resource: 'sailexpert-build-backend', inversePrecedence: true) {
-                    script {
-                        withMaven(maven: 'Maven_3') {
-                            sh "mvn versions:set -DnewVersion=${VERSION}"
-                            sh "mvn clean install"
-                        }
-                    }
-                    milestone(20)
+                sh "gradle -Pversion=${VERSION} fatJar"
+                milestone(20)
+                archiveArtifacts artifacts: "build/libs/monitor-all-${VERSION}.jar"
+            }
+
+            if (BRANCH_NAME == 'master') stage('Release') {
+                setup()
+                sh("git config user.name 'Jenkins'")
+                sh("git config user.email 'jenkins@poterion.com'")
+                sh "git tag v${VERSION} || (git tag -d v${VERSION} && git tag v${VERSION})"
+                sshagent(credentials: ['poterion-git']) {
+                    //sh("git tag -a v${VERSION} -m 'Release ${VERSION}'")
+                    sh('git push origin --tags')
                 }
-                archiveArtifacts artifacts: "assembly/target/monitor-${VERSION}.jar"
             }
         }
     }
