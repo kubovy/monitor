@@ -52,8 +52,12 @@ object StatusCollector {
 
 	@Synchronized
 	fun update(statusItems: Collection<StatusItem>, update: Boolean) {
-		if (!update) statusItems.forEach { itemMap.remove(it.serviceId) }
-		itemMap.putAll(statusItems.groupBy { it.serviceId })
+		if (!update) statusItems.map { it.serviceId }.distinct().forEach { itemMap.remove(it) }
+		val deduplicated = statusItems
+				.groupBy { it.id }
+				.mapNotNull { (_, duplicates) -> duplicates.maxBy { it.status.ordinal * 100 + it.priority.ordinal } }
+				.groupBy { it.serviceId }
+		itemMap.putAll(deduplicated)
 
 		items = itemMap.values.flatten()
 		status.onNext(this)

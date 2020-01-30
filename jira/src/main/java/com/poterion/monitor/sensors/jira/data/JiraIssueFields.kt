@@ -11,7 +11,7 @@ data class JiraIssueFields(var project: JiraIssueFieldProject? = null,
 						   var components: Collection<JiraIssueFieldTypeComponent> = emptyList(),
 						   var issuelinks: Collection<JiraIssueFieldIssueLink> = emptyList(),
 
-						   var workratio: Int? = null,
+						   var workratio: Long? = null,
 						   var progress: JiraIssueFieldProgress? = null,
 						   var aggregateprogress: JiraIssueFieldProgress? = null,
 						   var resolution: JiraIssueFieldResolution? = null,
