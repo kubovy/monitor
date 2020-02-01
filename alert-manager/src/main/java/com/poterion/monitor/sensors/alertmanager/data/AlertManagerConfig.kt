@@ -12,7 +12,7 @@ import java.util.*
 class AlertManagerConfig(override var type: String = AlertManagerConfig::class.java.simpleName,
 						 override var uuid: String = UUID.randomUUID().toString(),
 						 override var name: String = "",
-						 override var enabled: Boolean = true,
+						 override var enabled: Boolean = false,
 						 override var url: String = "",
 						 override var proxy: HttpProxy? = null,
 						 override var trustCertificate: Boolean = false,

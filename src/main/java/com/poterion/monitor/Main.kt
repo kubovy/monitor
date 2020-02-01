@@ -27,30 +27,19 @@ import java.io.File
  *   class Control
  * }
  *
- * class Jenkins <<Service>>
- * class Sonar <<Service>>
+ * class "Service X" as ServiceX <<Service>>
  *
- * class "Dev/Ops Light" as DevOpsLight <<Notifier>>
- * class "Raspi W2812" as RaspiW2812 <<Notifier>>
+ * class "Notifier Y" as NotifierY <<Notifier>>
  * class "System Tray" as SystemTray <<Notifier>>
  *
  * Data <|-- API
  * API <|-left- Control
  * API <|-right- UI
- * API <|-- DevOpsLight
- * API <|-- RaspiW2812
+ * API <|-- NotifierY
  * API <|-- SystemTray
- * API <|-- Jenkins
- * API <|-- Sonar
+ * API <|-- ServiceX
  *
  * UI <|-- SystemTray
- *
- * Control <|-- Assembly
- * DevOpsLight <|-- Assembly
- * Jenkins <|-- Assembly
- * RaspiW2812 <|-- Assembly
- * Sonar <|-- Assembly
- * SystemTray <|-- Assembly
  *
  * @enduml
  */

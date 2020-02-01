@@ -5,12 +5,18 @@ import java.time.Instant
 /*
  * @startuml
  * class StatusItem {
- *   serviceName: String
+ *   id: String
+ *   parentId: String?
+ *   parentRequired: Boolean
+ *   serviceId: String
  *   priority: Priority
  *   status: Status
- *   label: String
- *   detail: String?
- *   link: URI?
+ *   title: String
+ *   detail: String
+ *   labels: Map<String, String>
+ *   link: String?
+ *   children: Collection<String>
+ *   startedAt: Instant
  * }
  *
  * enum Priority {
