@@ -11,7 +11,7 @@ import java.util.*
 data class NotificationsConfig(override var type: String = NotificationsConfig::class.java.simpleName,
 							   override var uuid: String = UUID.randomUUID().toString(),
 							   override var name: String = "Notifications",
-							   override var enabled: Boolean = true,
+							   override var enabled: Boolean = false,
 							   override var minPriority: Priority = Priority.LOW,
 							   override var minStatus: Status = Status.NONE,
 							   override val services: MutableSet<String> = mutableSetOf(),

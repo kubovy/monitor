@@ -13,7 +13,7 @@ import java.util.*
 class JiraConfig(override var type: String = JiraConfig::class.java.simpleName,
 				 override var uuid: String = UUID.randomUUID().toString(),
 				 override var name: String = "",
-				 override var enabled: Boolean = true,
+				 override var enabled: Boolean = false,
 				 override var url: String = "",
 				 override var proxy: HttpProxy? = null,
 				 override var trustCertificate: Boolean = false,
