@@ -40,8 +40,6 @@ be the [DevOps Light](https://blog.kubovy.eu/2018/02/11/status-light-with-raspbe
 module which can display a collection of [``StatusItems``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt).
 Then it presents the corresponding  light patterns and colors.
 
-[![DevOps Light Example](src/img/devops-light-youtube.png)](https://youtu.be/3I_7YExmYb4)
-
 ## Priority and Status
 
 Every status item has a [``Status``](data/src/main/java/com/poterion/monitor/data/Status.kt) and
@@ -176,6 +174,8 @@ Additionally to the [common configuration](#services) the alert manager service 
 
 ### Deployment Case Notifier
 
+[![Deployment Case Example](src/img/deployment-case-youtube.png)](https://youtu.be/T21VFKd3f7o)
+
 The [Deployment Case](deployment-case) is a HW suitcase with programmable buttons, RGB LEDs and LCD display with an USB
 and Bluetooth interface. It is implemented as a
 [``Notifier`` module](api/src/main/java/com/poterion/monitor/api/modules/NotifierModule.kt) although it also serves as
@@ -195,6 +195,8 @@ outside the monitor application.
 
 
 ### DevOps Light Notifier
+
+[![DevOps Light Example](src/img/devops-light-youtube.png)](https://youtu.be/3I_7YExmYb4)
 
 The [DevOps Light](devops-light) is a RGB LED notification light based on WS281x protocol (other possible but not
 produced). It communicates using USB or Bluetooth interface and can be configured to display different patterns based
