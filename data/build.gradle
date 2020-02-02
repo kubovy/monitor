@@ -17,11 +17,11 @@ repositories {
 
 dependencies {
     // Kotlin
-    implementation 'org.jetbrains.kotlin:kotlin-reflect:1.3.11'
+    implementation 'org.jetbrains.kotlin:kotlin-reflect:1.3.61'
     // Jackson
-    compile 'com.fasterxml.jackson.core:jackson-annotations:2.9.7'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.9.7'
-    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.7'
+    compile 'com.fasterxml.jackson.core:jackson-annotations:2.10.1'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.10.1'
+    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.10.1'
 }
 
 compileKotlin {
