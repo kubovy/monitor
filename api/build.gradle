@@ -21,16 +21,16 @@ dependencies {
     compile project(':kotlin-utils')
     api project(':serial-communication')
     // Jackson
-    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.9.7'
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.10.1'
     // ReactiveX
-    compile 'io.reactivex.rxjava2:rxjava:2.1.6'
-    compile 'io.reactivex.rxjava2:rxkotlin:2.3.0'
+    compile 'io.reactivex.rxjava2:rxjava:2.2.17'
+    compile 'io.reactivex.rxjava2:rxkotlin:2.4.0'
     // Retrofit
-    compile 'com.squareup.retrofit2:retrofit:2.3.0'
-    compile 'com.squareup.retrofit2:converter-jackson:2.3.0'
-    compile 'com.squareup.retrofit2:converter-scalars:2.3.0'
+    compile 'com.squareup.retrofit2:retrofit:2.7.0'
+    compile 'com.squareup.retrofit2:converter-jackson:2.7.0'
+    compile 'com.squareup.retrofit2:converter-scalars:2.7.0'
     // Logging
-    compile "org.slf4j:slf4j-api:1.7.21"
+    compile "org.slf4j:slf4j-api:1.7.30"
 }
 
 compileKotlin {
