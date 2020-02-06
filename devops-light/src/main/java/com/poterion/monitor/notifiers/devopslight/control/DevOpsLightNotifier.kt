@@ -1,6 +1,11 @@
 package com.poterion.monitor.notifiers.devopslight.control
 
 import com.poterion.communication.serial.*
+import com.poterion.communication.serial.communicator.BluetoothCommunicator
+import com.poterion.communication.serial.communicator.Channel
+import com.poterion.communication.serial.communicator.USBCommunicator
+import com.poterion.communication.serial.listeners.CommunicatorListener
+import com.poterion.communication.serial.payload.DeviceCapabilities
 import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
@@ -37,15 +42,18 @@ import java.util.concurrent.TimeUnit
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 class DevOpsLightNotifier(override val controller: ControllerInterface, config: DevOpsLightConfig) :
-		Notifier<DevOpsLightConfig>(config), CommunicatorListener {
+		Notifier<DevOpsLightConfig>(config),
+	CommunicatorListener {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(DevOpsLightNotifier::class.java)
 	}
 
 	override val definition: Module<DevOpsLightConfig, ModuleInstanceInterface<DevOpsLightConfig>> = DevOpsLight
-	val bluetoothCommunicator: BluetoothCommunicator = BluetoothCommunicator()
-	val usbCommunicator: USBCommunicator = USBCommunicator()
+	val bluetoothCommunicator: BluetoothCommunicator =
+		BluetoothCommunicator()
+	val usbCommunicator: USBCommunicator =
+		USBCommunicator()
 	private var lastState = emptyList<LightConfig>()
 	private val connectedIcon: Icon
 		get() = if (bluetoothCommunicator.isConnected || usbCommunicator.isConnected) DevOpsLightIcon.CONNECTED
@@ -172,12 +180,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 	}
 
 	/**
-	 * |===================================================================|
-	 * | (C) Configuration for concrete strip NUM                          |
-	 * |-------------------------------------------------------------------|
-	 * | 0 |  1 | 2 |   3   | 4  ... 24 |25 26|  27 |  28  | 29| 30|   31  |
-	 * |CRC|KIND|NUM|PATTERN|RGB0...RGB6|DELAY|WIDTH|FADING|MIN|MAX|TIMEOUT|
-	 * |===================================================================|
+	 * @see MessageKind.LIGHT
 	 */
 	internal fun changeLights(lightConfiguration: List<LightConfig>?) {
 		if (lightConfiguration != null) {
@@ -200,8 +203,8 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 								lightConfig.timeout).map(Int::toByte).toByteArray()
 					}
 					?.forEach {
-						if (usbCommunicator.isConnected) usbCommunicator.send(MessageKind.WS281xLIGHT, it)
-						else bluetoothCommunicator.send(MessageKind.WS281xLIGHT, it)
+						if (usbCommunicator.isConnected) usbCommunicator.send(MessageKind.LIGHT, it)
+						else bluetoothCommunicator.send(MessageKind.LIGHT, it)
 					}
 			configurationTabController?.changeLights(lightConfiguration)
 		}
@@ -232,11 +235,17 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 
 	override fun onConnect(channel: Channel) = noop()
 
+	override fun onConnectionReady(channel: Channel) = noop()
+
 	override fun onDisconnect(channel: Channel) = noop()
 
 	override fun onMessageReceived(channel: Channel, message: IntArray) = noop()
 
 	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) = noop()
+
+	override fun onDeviceCapabilitiesChanged(channel: Channel, capabilities: DeviceCapabilities) = noop()
+
+	override fun onDeviceNameChanged(channel: Channel, name: String) = noop()
 
 	private fun StatusItem?.toLightConfig(): List<LightConfig>? {
 		val lightConfig = config.items

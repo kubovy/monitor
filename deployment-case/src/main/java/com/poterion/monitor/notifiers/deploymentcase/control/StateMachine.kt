@@ -224,10 +224,10 @@ fun List<Int>.toAction(start: Int = 0, states: List<State>, devices: List<Device
 
 fun List<Int>.toActions(states: List<State>, devices: List<Device>, variables: List<Variable>): List<Action> {
 	var position = 0
-	val size = this[position++]
+	val count = this[position++]
 	val actions = mutableListOf<Action>()
 
-	(0 until size).forEach { _ ->
+	(0 until count).forEach { _ ->
 		val device = this[position++].toDevice(devices)
 		val length = this[position] // Length will be also part of the data
 		val data = this.subList(position, position + length + 1) // Length is part of the data
@@ -313,50 +313,56 @@ fun Variable.toData(states: List<State>): List<Int> = listOf(when (type) { // Va
 			.toTypedArray()
 })
 
-fun List<Int>.toVariable(states: List<State>, device: Device, variables: List<Variable>) = toVariable(states, device.kind, device.key, variables)
+fun List<Int>.toVariable(states: List<State>, device: Device, variables: List<Variable>) =
+	toVariable(states, device.kind, device.key, variables)
 
-fun List<Int>.toVariable(states: List<State>, deviceKind: DeviceKind, deviceKey: String, variables: List<Variable>) = getOrNull(0)
-		?.let { len -> (1..len).map { this[it] } }
-		?.let { data ->
-			when (deviceKind) {
-				DeviceKind.MCP23017 -> Variable(
-						type = VariableType.BOOLEAN,
-						value = if ((data.getOrNull(0) ?: 0) > 0) "true" else "false")
-				DeviceKind.WS281x -> Variable(
-						type = VariableType.COLOR_PATTERN,
-						value = data.takeIf { it.size >= 8 }
-								?.let { "%d,#%02X%02X%02X,%d,0x%02X,0x%02X".format(it[0], it[1], it[2], it[3], it[4] * 256 + it[5], it[6], it[7]) }
-								?: "0,#000000,10,0x00,0x20")
-				DeviceKind.LCD -> when (LcdKey.get(deviceKey.toInt())) {
-					LcdKey.MESSAGE -> Variable(
-							type = VariableType.STRING,
-							value = data
-									.map { it.toChar() }
-									.toCharArray()
-									.let { String(it) }
-									.replace("\n", "\\n"))
-					else -> Variable(
-							type = VariableType.BOOLEAN,
-							value = if ((data.getOrNull(0) ?: 0) > 0) "true" else "false")
-				}
-				DeviceKind.BLUETOOTH -> Variable(
-						type = VariableType.BOOLEAN,
-						value = if ((data.getOrNull(0) ?: 0) > 0) "true" else "false")
-				DeviceKind.VIRTUAL -> when (VirtualKey.get(deviceKey)) {
-					VirtualKey.GOTO -> Variable(
-							type = VariableType.STATE,
-							value = data.getOrNull(0)?.let { states.getOrNull(it)?.name ?: "${it}" } ?: "0")
-					VirtualKey.ENTER -> Variable(
-							type = VariableType.ENTER,
-							value = data.toEnterString()
-					)
-					else -> Variable(
-							type = VariableType.BOOLEAN,
-							value = if ((data.getOrNull(0) ?: 0) > 0) "true" else "false")
-				}
+fun List<Int>.toVariableWhole(states: List<State>, device: Device, variables: List<Variable>) =
+	toVariableWhole(states, device.kind, device.key, variables)
+
+fun List<Int>.toVariable(states: List<State>, deviceKind: DeviceKind, deviceKey: String, variables: List<Variable>) =
+	getOrNull(0)?.let { len -> (1..len).map { this[it] } }?.toVariableWhole(states, deviceKind, deviceKey, variables)
+
+fun List<Int>.toVariableWhole(states: List<State>, deviceKind: DeviceKind, deviceKey: String, variables: List<Variable>) =
+	let { data ->
+		when (deviceKind) {
+			DeviceKind.MCP23017 -> Variable(
+				type = VariableType.BOOLEAN,
+				value = if ((data.getOrNull(0) ?: 0) > 0) "true" else "false")
+			DeviceKind.WS281x -> Variable(
+				type = VariableType.COLOR_PATTERN,
+				value = data.takeIf { it.size >= 8 }
+					?.let { "%d,#%02X%02X%02X,%d,0x%02X,0x%02X".format(it[0], it[1], it[2], it[3], it[4] * 256 + it[5], it[6], it[7]) }
+					?: "0,#000000,10,0x00,0x20")
+			DeviceKind.LCD -> when (LcdKey.get(deviceKey.toInt())) {
+				LcdKey.MESSAGE -> Variable(
+					type = VariableType.STRING,
+					value = data
+						.map { it.toChar() }
+						.toCharArray()
+						.let { String(it) }
+						.replace("\n", "\\n"))
+				else -> Variable(
+					type = VariableType.BOOLEAN,
+					value = if ((data.getOrNull(0) ?: 0) > 0) "true" else "false")
+			}
+			DeviceKind.BLUETOOTH -> Variable(
+				type = VariableType.BOOLEAN,
+				value = if ((data.getOrNull(0) ?: 0) > 0) "true" else "false")
+			DeviceKind.VIRTUAL -> when (VirtualKey.get(deviceKey)) {
+				VirtualKey.GOTO -> Variable(
+					type = VariableType.STATE,
+					value = data.getOrNull(0)?.let { states.getOrNull(it)?.name ?: "${it}" } ?: "0")
+				VirtualKey.ENTER -> Variable(
+					type = VariableType.ENTER,
+					value = data.toEnterString()
+				)
+				else -> Variable(
+					type = VariableType.BOOLEAN,
+					value = if ((data.getOrNull(0) ?: 0) > 0) "true" else "false")
 			}
 		}
-		?.findName(variables)
+	}
+	.findName(variables)
 
 private fun List<Int>.toEnterString(): String {
 	var title = ""

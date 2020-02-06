@@ -17,8 +17,13 @@
         <param name="maxFileSize" value="50MB"/>
     </appender>
 
-    <root>
+    <logger name="com.poterion">
         <level value="DEBUG"/>
+        <appender-ref ref="console"/>
+        <appender-ref ref="file"/>
+    </logger>
+    <root>
+        <level value="INFO"/>
         <appender-ref ref="console"/>
         <appender-ref ref="file"/>
     </root>
