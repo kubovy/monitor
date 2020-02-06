@@ -1,9 +1,10 @@
 package com.poterion.monitor.notifiers.devopslight.ui
 
-import com.poterion.communication.serial.BluetoothCommunicator
-import com.poterion.communication.serial.Channel
-import com.poterion.communication.serial.CommunicatorListener
-import com.poterion.communication.serial.USBCommunicator
+import com.poterion.communication.serial.communicator.BluetoothCommunicator
+import com.poterion.communication.serial.communicator.Channel
+import com.poterion.communication.serial.listeners.CommunicatorListener
+import com.poterion.communication.serial.communicator.USBCommunicator
+import com.poterion.communication.serial.payload.DeviceCapabilities
 import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.data.RGBColor
 import com.poterion.monitor.api.utils.toColor
@@ -15,6 +16,7 @@ import com.poterion.monitor.notifiers.devopslight.data.*
 import com.poterion.monitor.notifiers.devopslight.deepCopy
 import com.poterion.utils.javafx.*
 import com.poterion.utils.kotlin.noop
+import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
@@ -461,11 +463,11 @@ class ConfigWindowController : CommunicatorListener {
 		else -> null
 	}
 
-	override fun onConnecting(channel: Channel) {
+	override fun onConnecting(channel: Channel) = Platform.runLater {
 		btnConnect.text = "Cancel [F5]"
 	}
 
-	override fun onConnect(channel: Channel) {
+	override fun onConnect(channel: Channel) = Platform.runLater {
 		btnConnect.text = "Disconnect [F5]"
 		when (channel) {
 			Channel.BLUETOOTH -> iconBluetooth.image = DevOpsLightIcon.BLUETOOTH_CONNECTED.toImage()
@@ -473,7 +475,9 @@ class ConfigWindowController : CommunicatorListener {
 		}
 	}
 
-	override fun onDisconnect(channel: Channel) {
+	override fun onConnectionReady(channel: Channel) = noop()
+
+	override fun onDisconnect(channel: Channel) = Platform.runLater {
 		btnConnect.text = "Connect [F5]"
 		when (channel) {
 			Channel.BLUETOOTH -> iconBluetooth.image = DevOpsLightIcon.BLUETOOTH_DISCONNECTED.toImage()
@@ -484,6 +488,10 @@ class ConfigWindowController : CommunicatorListener {
 	override fun onMessageReceived(channel: Channel, message: IntArray) = noop()
 
 	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) = noop()
+
+	override fun onDeviceCapabilitiesChanged(channel: Channel, capabilities: DeviceCapabilities) = noop()
+
+	override fun onDeviceNameChanged(channel: Channel, name: String) = noop()
 
 	internal fun changeLights(lightConfiguration: List<LightConfig>?) {
 		currentLightConfiguration = lightConfiguration ?: emptyList()

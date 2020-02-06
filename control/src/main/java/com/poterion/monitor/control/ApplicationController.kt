@@ -82,7 +82,7 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 	override val services: ObservableList<Service<ServiceConfig>> = FXCollections.observableArrayList()
 	override val notifiers: ObservableList<Notifier<NotifierConfig>> = FXCollections.observableArrayList()
 
-	override lateinit var applicationConfiguration: ApplicationConfiguration
+	override var applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration()
 	private val configuration: PublishSubject<ApplicationConfiguration> = PublishSubject.create<ApplicationConfiguration>()
 	private val configListeners = mutableListOf<(ApplicationConfiguration) -> Unit>()
 

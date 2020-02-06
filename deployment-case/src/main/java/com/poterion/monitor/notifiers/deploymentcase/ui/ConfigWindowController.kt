@@ -1,9 +1,11 @@
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.poterion.communication.serial.BluetoothCommunicator
-import com.poterion.communication.serial.Channel
-import com.poterion.communication.serial.Communicator
-import com.poterion.communication.serial.CommunicatorListener
+import com.poterion.communication.serial.communicator.BluetoothCommunicator
+import com.poterion.communication.serial.communicator.Channel
+import com.poterion.communication.serial.communicator.State
+import com.poterion.communication.serial.listeners.CommunicatorListener
+import com.poterion.communication.serial.payload.DeviceCapabilities
+import com.poterion.communication.serial.payload.LcdCommand
 import com.poterion.utils.kotlin.noop
 import com.poterion.utils.javafx.toImage
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
@@ -14,6 +16,7 @@ import com.poterion.monitor.notifiers.deploymentcase.data.Configuration
 import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
 import com.poterion.monitor.notifiers.deploymentcase.data.Device
 import com.poterion.monitor.notifiers.deploymentcase.data.SharedUiData
+import javafx.application.Platform
 import javafx.beans.Observable
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
@@ -29,7 +32,8 @@ import javafx.scene.layout.HBox
  *
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListener {
+class ConfigWindowController : DeploymentCaseMessageListener,
+	CommunicatorListener {
 
 	companion object {
 		private const val NEW_NAME = "New configuration"
@@ -213,6 +217,7 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 
 	@FXML
 	fun onResetLCD() {
+		notifier.lcdCommunicator.sendLcdCommand(0, LcdCommand.RESET)
 		// TODO notifier.bluetoothCommunicator.send(MessageKind.SM_SET_STATE,
 		//		Action(device = Device(kind = DeviceKind.LCD, key = "${LcdKey.RESET.key}").toData(),
 		//				value = Variable(type = VariableType.BOOLEAN, value = true.toString()).name) // FIXME will not woe
@@ -239,18 +244,24 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 		else -> tabControllers.mapNotNull { it as? ConfigurationWindowActionListener }.forEach { it.onKeyPressed(keyEvent) }
 	}
 
-	override fun onConnecting(channel: Channel) = updateConnected()
+	override fun onConnecting(channel: Channel) = Platform.runLater { updateConnected() }
 
-	override fun onConnect(channel: Channel) = updateConnected()
+	override fun onConnect(channel: Channel) = Platform.runLater { updateConnected() }
 
-	override fun onDisconnect(channel: Channel) = updateConnected()
+	override fun onConnectionReady(channel: Channel) = noop()
 
-	override fun onMessageReceived(channel: Channel, message: IntArray) {
+	override fun onDisconnect(channel: Channel) = Platform.runLater { updateConnected() }
+
+	override fun onMessageReceived(channel: Channel, message: IntArray) = Platform.runLater {
 		textLog.appendText("[${channel.name}] ${message.joinToString(" ") { "0x%02X ".format(it) }}\n")
 		textLog.scrollTop = Double.MAX_VALUE
 	}
 
 	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) = noop()
+
+	override fun onDeviceCapabilitiesChanged(channel: Channel, capabilities: DeviceCapabilities) = noop()
+
+	override fun onDeviceNameChanged(channel: Channel, name: String) = noop()
 
 	override fun onProgress(progress: Int, count: Int, disable: Boolean) {
 		super.onProgress(progress, count, disable)
@@ -259,10 +270,10 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 				this.progress.progress = 0.0
 				if (listConfigurations.selectionModel.selectedIndex != -1) tabsEnabled = true
 				controlsEnabled = when (notifier.bluetoothCommunicator.state) {
-					Communicator.State.CONNECTING,
-					Communicator.State.DISCONNECTING,
-					Communicator.State.DISCONNECTED -> false
-					Communicator.State.CONNECTED -> true
+					State.CONNECTING,
+					State.DISCONNECTING,
+					State.DISCONNECTED -> false
+					State.CONNECTED -> true
 				}
 			}
 			progress < 0 -> { // Started indeterminate
@@ -297,20 +308,20 @@ class ConfigWindowController : DeploymentCaseMessageListener, CommunicatorListen
 	private fun updateConnected() {
 		val icon: DeploymentCaseIcon
 		when (notifier.bluetoothCommunicator.state) {
-			Communicator.State.CONNECTING,
-			Communicator.State.DISCONNECTING -> {
+			State.CONNECTING,
+			State.DISCONNECTING -> {
 				onProgress(-1, 1, false)
 				controlsEnabled = false
 				//if (tabPane.selectionModel.selectedIndex == 0) tabPane.selectionModel.select(1)
 				icon = DeploymentCaseIcon.DISCONNECTED
 				btnReconnect.text = "Cancel [F5]"
 			}
-			Communicator.State.CONNECTED -> {
+			State.CONNECTED -> {
 				onProgress(0, 0, false)
 				icon = DeploymentCaseIcon.CONNECTED
 				btnReconnect.text = "Disconnect [F5]"
 			}
-			Communicator.State.DISCONNECTED -> {
+			State.DISCONNECTED -> {
 				onProgress(0, 0, false)
 				controlsEnabled = false
 				//if (tabPane.selectionModel.selectedIndex == 0) tabPane.selectionModel.select(1)

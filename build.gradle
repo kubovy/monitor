@@ -13,7 +13,7 @@ repositories {
     }
 }
 
-task fatJar(type: Jar) {
+task assembleFatJar(type: Jar, group: 'build') {
     manifest {
         attributes 'Implementation-Title': 'Poterion Monitor',
                    'Implementation-Version': archiveVersion,

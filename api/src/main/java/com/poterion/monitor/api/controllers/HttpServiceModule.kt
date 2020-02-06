@@ -138,7 +138,7 @@ class HttpServiceModule(private val config: HttpConfig) {
 				?: Authenticator.NONE
 		is TokenAuthConfig -> this
 				.let { auth -> auth.token.takeIf { it.isNotBlank() } }
-				?.toByteArray(Charset.forName("ISO-8859-1"))
+				?.toByteArray(Charsets.ISO_8859_1)
 				?.let { ByteString.of(*it).base64() }
 				?.let { "Bearer ${it}" }
 				?.let { Authenticator { _, response -> response.request().newBuilder().header(headerName, it).build() } }
