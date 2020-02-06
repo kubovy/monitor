@@ -8,14 +8,12 @@ import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.data.RGBColor
 import com.poterion.monitor.api.utils.toColor
 import com.poterion.monitor.api.utils.toRGBColor
+import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.notifiers.devopslight.DevOpsLightIcon
 import com.poterion.monitor.notifiers.devopslight.control.DevOpsLightNotifier
 import com.poterion.monitor.notifiers.devopslight.data.*
 import com.poterion.monitor.notifiers.devopslight.deepCopy
-import com.poterion.utils.javafx.cell
-import com.poterion.utils.javafx.factory
-import com.poterion.utils.javafx.toImage
-import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.javafx.*
 import com.poterion.utils.kotlin.noop
 import javafx.collections.FXCollections
 import javafx.fxml.FXML
@@ -42,20 +40,20 @@ import kotlin.math.roundToInt
  */
 class ConfigWindowController : CommunicatorListener {
 	companion object {
-		internal fun getRoot(config: DevOpsLightConfig, controller: DevOpsLightNotifier): Parent =
+		internal fun getRoot(config: DevOpsLightConfig, controller: DevOpsLightNotifier): Pair<Parent, ConfigWindowController> =
 				FXMLLoader(ConfigWindowController::class.java.getResource("config-window.fxml"))
 						.let { it.load<Parent>() to it.getController<ConfigWindowController>() }
 						.let { (root, ctrl) ->
 							ctrl.config = config
 							ctrl.notifier = controller
 							ctrl.load()
-							root
+							root to ctrl
 						}
 	}
 
 	@FXML private lateinit var splitPane: SplitPane
 	@FXML private lateinit var treeConfigs: TreeView<StateConfig>
-	@FXML private lateinit var comboConfigName: ComboBox<String>
+	@FXML private lateinit var comboConfigName: ComboBox<ServiceConfig>
 	@FXML private lateinit var buttonAddConfig: Button
 	@FXML private lateinit var buttonDeleteConfig: Button
 
@@ -107,6 +105,7 @@ class ConfigWindowController : CommunicatorListener {
 
 	private lateinit var config: DevOpsLightConfig
 	private lateinit var notifier: DevOpsLightNotifier
+	private var currentLightConfiguration: List<LightConfig> = emptyList()
 	private val clipboard = mutableListOf<LightConfig>()
 
 	private val patterns = FXCollections.observableArrayList(*LightPattern.values())
@@ -165,8 +164,8 @@ class ConfigWindowController : CommunicatorListener {
 			selectionModel.selectedItemProperty().addListener { _, _, item ->
 				selectStateConfig(item)
 				val nothingOrDefaultSelected = item == null
-						|| item.value.title.isEmpty()
-						|| item.parent.value.title.isEmpty()
+						|| item.value.serviceId.isEmpty()
+						|| item.parent.value.serviceId.isEmpty()
 
 				textServiceName.text = (item.value.takeIf { it.lightConfigs == null } ?: item.parent.value).title
 				textServiceName.isDisable = nothingOrDefaultSelected
@@ -199,6 +198,29 @@ class ConfigWindowController : CommunicatorListener {
 		selectLightConfig(null)
 	}
 
+	private val ServiceConfig.icon: Icon?
+		get() = notifier.controller.modules.find { it.configClass == this::class }?.icon
+
+	private val serviceMapping: Map<String, ServiceConfig>
+		get() = notifier
+				.controller
+				.applicationConfiguration
+				.services
+				.values
+				.map { it.uuid to it }
+				.toMap()
+
+	private val configComparator: Comparator<DevOpsLightItemConfig> = Comparator { c1, c2 ->
+		val n1 = serviceMapping[c1.id]?.name ?: "Default"
+		val n2 = serviceMapping[c2.id]?.name ?: "Default"
+
+		when {
+			n1 == "Default" && n2 != "Default" -> 1
+			n1 != "Default" && n2 == "Default" -> -1
+			else -> compareValues(n1, n2)
+		}
+	}
+
 	private fun load() {
 		splitPane.setDividerPosition(0, config.split)
 		splitPane.dividers.first().positionProperty().addListener { _, _, value ->
@@ -206,11 +228,25 @@ class ConfigWindowController : CommunicatorListener {
 			notifier.controller.saveConfig()
 		}
 
+		if (config.items.none { it.id.isBlank() }) config.items.add(DevOpsLightItemConfig(
+				id = "",
+				statusNone = emptyList(),
+				statusUnknown = emptyList(),
+				statusOk = emptyList(),
+				statusInfo = emptyList(),
+				statusNotification = emptyList(),
+				statusConnectionError = emptyList(),
+				statusServiceError = emptyList(),
+				statusWarning = emptyList(),
+				statusError = emptyList(),
+				statusFatal = emptyList()))
+
 		treeConfigs.root = TreeItem(StateConfig("Configurations")).apply {
 			config.items
-					.sortedBy { it.id }
-					.map { item ->
-						TreeItem(StateConfig(item.id)).apply {
+					.sortedWith(configComparator)
+					.map { it to serviceMapping[it.id] }
+					.map { (item, service) ->
+						TreeItem(StateConfig(service?.name ?: "Default", serviceId = item.id)).apply {
 							children.addAll(
 									TreeItem(StateConfig("None", CommonIcon.STATUS_UNKNOWN, item.statusNone)),
 									TreeItem(StateConfig("Unknown", CommonIcon.STATUS_UNKNOWN, item.statusUnknown)),
@@ -228,18 +264,21 @@ class ConfigWindowController : CommunicatorListener {
 					.also { children.addAll(it) }
 		}
 		comboConfigName.apply {
+			factory { item, empty ->
+				text = item?.takeUnless { empty }?.name
+				graphic = item?.takeUnless { empty }?.icon?.toImageView()
+			}
 			notifier.controller
 					.applicationConfiguration
 					.services
 					.values
-					.map { it.name }
-					.filter { !config.items.map { i -> i.id }.contains(it) }
-					.distinct()
-					.sorted()
+					.filter { !config.items.map { i -> i.id }.contains(it.uuid) }
+					.distinctBy { it.uuid }
+					.sortedBy { it.name }
 					.takeIf { it.isNotEmpty() }
 					?.also { items?.addAll(it) }
 			selectionModel.clearSelection()
-			this.value = ""
+			value = null
 		}
 
 		// Status
@@ -266,9 +305,9 @@ class ConfigWindowController : CommunicatorListener {
 	}
 
 	@FXML
-	fun onAddConfig() = comboConfigName.value?.trim()
-			?.takeIf { it.isNotEmpty() }?.also { serviceName ->
-				treeConfigs.root.children.add(TreeItem(StateConfig(serviceName)).apply {
+	fun onAddConfig() = comboConfigName.value
+			.also { service ->
+				treeConfigs.root.children.add(TreeItem(StateConfig(service?.name ?: "Default", service.icon)).apply {
 					children.addAll(
 							TreeItem(StateConfig("None", CommonIcon.PRIORITY_NONE, emptyList())),
 							TreeItem(StateConfig("Unknown", CommonIcon.STATUS_UNKNOWN, emptyList())),
@@ -282,43 +321,44 @@ class ConfigWindowController : CommunicatorListener {
 							TreeItem(StateConfig("Fatal", CommonIcon.STATUS_FATAL, emptyList())))
 				})
 				comboConfigName.apply {
-					items.remove(serviceName)
+					items.remove(service)
 					selectionModel.clearSelection()
-					value = ""
+					value = null
 				}
 				saveConfig()
 			}
 
 	@FXML
 	fun onDeleteSelectedConfig() {
-		Alert(AlertType.CONFIRMATION).apply {
+		var selected = treeConfigs.selectionModel.selectedItem
+		while (selected != null && selected.value.lightConfigs != null) selected = selected.parent
+
+		if (selected != null && selected.value.serviceId.isNotEmpty()) Alert(AlertType.CONFIRMATION).apply {
 			title = "Delete confirmation"
 			headerText = "Delete confirmation"
 			contentText = "Do you really want to delete this whole configuration?"
 			buttonTypes.setAll(ButtonType.YES, ButtonType.NO)
 		}.showAndWait().ifPresent { btnType ->
 			btnType.takeIf { it == ButtonType.YES }?.also {
-				var selected = treeConfigs.selectionModel.selectedItem
-				while (selected != null && selected.value.lightConfigs != null) selected = selected.parent
-				if (selected != null && selected.value.title.isNotEmpty()) selected.parent?.children?.remove(selected)
+				if (selected.value.title.isNotEmpty()) selected.parent?.children?.remove(selected)
 				saveConfig()
 			}
 		}
 	}
 
 	@FXML
-	fun onKeyPressedInTree(keyEvent: KeyEvent) = when (keyEvent.code) {
-		KeyCode.DELETE -> onDeleteSelectedConfig()
-		KeyCode.C -> if (keyEvent.isControlDown) {
-			clipboard.clear()
-			clipboard.addAll(tableLightConfigs.items.deepCopy())
-			null
-		} else null
-		KeyCode.V -> if (keyEvent.isControlDown) {
-			tableLightConfigs.items.addAll(clipboard.deepCopy())
-			null
-		} else null
-		else -> null
+	fun onKeyPressedInTree(keyEvent: KeyEvent) {
+		if (treeConfigs.selectionModel.selectedItem != null) when (keyEvent.code) {
+			KeyCode.DELETE -> onDeleteSelectedConfig()
+			KeyCode.C -> if (keyEvent.isControlDown) {
+				clipboard.clear()
+				clipboard.addAll(tableLightConfigs.items.deepCopy())
+			}
+			KeyCode.V -> if (keyEvent.isControlDown) {
+				tableLightConfigs.items.addAll(clipboard.deepCopy())
+			}
+			else -> noop()
+		}
 	}
 
 	@FXML
@@ -445,11 +485,31 @@ class ConfigWindowController : CommunicatorListener {
 
 	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) = noop()
 
+	internal fun changeLights(lightConfiguration: List<LightConfig>?) {
+		currentLightConfiguration = lightConfiguration ?: emptyList()
+	}
+
 	private fun selectStateConfig(treeItem: TreeItem<StateConfig>?) {
 		val lightConfigs = treeItem?.value?.lightConfigs?.deepCopy()
+
+		textServiceName.isDisable = treeItem?.value?.lightConfigs == null
+		comboBoxPattern.isDisable = treeItem?.value?.lightConfigs == null
+		comboBoxColor1.isDisable = treeItem?.value?.lightConfigs == null
+		comboBoxColor2.isDisable = treeItem?.value?.lightConfigs == null
+		comboBoxColor3.isDisable = treeItem?.value?.lightConfigs == null
+		comboBoxColor4.isDisable = treeItem?.value?.lightConfigs == null
+		comboBoxColor5.isDisable = treeItem?.value?.lightConfigs == null
+		comboBoxColor6.isDisable = treeItem?.value?.lightConfigs == null
+		textDelay.isDisable = treeItem?.value?.lightConfigs == null
+		textWidth.isDisable = treeItem?.value?.lightConfigs == null
+		textFade.isDisable = treeItem?.value?.lightConfigs == null
+		sliderMin.isDisable = treeItem?.value?.lightConfigs == null
+		sliderMax.isDisable = treeItem?.value?.lightConfigs == null
+		textTimeout.isDisable = treeItem?.value?.lightConfigs == null
+
 		buttonTestLightSequence.isDisable = treeItem?.value?.lightConfigs == null
 		tableLightConfigs.items.clear()
-		lightConfigs?.also { tableLightConfigs.items.addAll(it) }
+		tableLightConfigs.items.addAll(lightConfigs ?: currentLightConfiguration)
 		if (tableLightConfigs.items.size > 0) tableLightConfigs.selectionModel.select(0)
 	}
 
@@ -529,7 +589,7 @@ class ConfigWindowController : CommunicatorListener {
 				.filter { (_, children) -> children.size == 10 }
 				.filter { (_, children) -> children.all { it.lightConfigs != null } }
 				.map { (node, children) ->
-					DevOpsLightItemConfig(node.title,
+					DevOpsLightItemConfig(node.serviceId,
 							statusNone = children[0].lightConfigs ?: emptyList(),
 							statusUnknown = children[1].lightConfigs ?: emptyList(),
 							statusOk = children[2].lightConfigs ?: emptyList(),

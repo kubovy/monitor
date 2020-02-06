@@ -11,8 +11,7 @@
                 <TreeView fx:id="treeConfigs" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" onKeyPressed="#onKeyPressedInTree" VBox.vgrow="ALWAYS" />
                 <HBox alignment="CENTER_RIGHT" VBox.vgrow="NEVER">
                     <children>
-                        <ComboBox fx:id="comboConfigName" editable="true" maxWidth="1.7976931348623157E308"
-                                  HBox.hgrow="ALWAYS"/>
+                        <ComboBox fx:id="comboConfigName" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS"/>
                         <Button fx:id="buttonAddConfig" minWidth="50.0" mnemonicParsing="false" onAction="#onAddConfig"
                                 text="Add"/>
                         <Button fx:id="buttonDeleteConfig" accessibleHelp="DEL" disable="true" minWidth="60.0"

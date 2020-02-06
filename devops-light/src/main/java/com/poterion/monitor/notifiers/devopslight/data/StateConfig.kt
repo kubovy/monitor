@@ -7,4 +7,5 @@ import com.poterion.utils.javafx.Icon
  */
 data class StateConfig(var title: String,
 					   val icon: Icon? = null,
-					   var lightConfigs: List<LightConfig>? = null)
+					   var lightConfigs: List<LightConfig>? = null,
+					   var serviceId: String = "")

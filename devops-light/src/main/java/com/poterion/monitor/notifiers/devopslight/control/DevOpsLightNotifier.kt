@@ -8,9 +8,7 @@ import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.data.RGBColor
 import com.poterion.monitor.api.modules.Module
-import com.poterion.utils.javafx.Icon
 import com.poterion.monitor.api.ui.NavigationItem
-import com.poterion.utils.kotlin.noop
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.notifiers.NotifierAction
@@ -20,6 +18,8 @@ import com.poterion.monitor.notifiers.devopslight.data.DevOpsLightConfig
 import com.poterion.monitor.notifiers.devopslight.data.DevOpsLightItemConfig
 import com.poterion.monitor.notifiers.devopslight.data.LightConfig
 import com.poterion.monitor.notifiers.devopslight.ui.ConfigWindowController
+import com.poterion.utils.javafx.Icon
+import com.poterion.utils.kotlin.noop
 import javafx.application.Platform
 import javafx.geometry.Pos
 import javafx.scene.Node
@@ -127,8 +127,17 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 						}.toTypedArray()
 				))
 
+	private var _configurationTab: Pair<Parent, ConfigWindowController>? = null
+		get() {
+			if (field == null) field = ConfigWindowController.getRoot(config, this)
+			return field
+		}
+
+	private val configurationTabController: ConfigWindowController?
+		get() = _configurationTab?.second
+
 	override val configurationTab: Parent?
-		get() = ConfigWindowController.getRoot(config, this)
+		get() = _configurationTab?.first
 
 	override fun initialize() {
 		super.initialize()
@@ -194,6 +203,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 						if (usbCommunicator.isConnected) usbCommunicator.send(MessageKind.WS281xLIGHT, it)
 						else bluetoothCommunicator.send(MessageKind.WS281xLIGHT, it)
 					}
+			configurationTabController?.changeLights(lightConfiguration)
 		}
 	}
 
@@ -232,7 +242,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 		val lightConfig = config.items
 				.map { it.id to it }
 				.toMap()
-				.let { it[this?.id ?: ""] ?: it[""] }
+				.let { it[this?.serviceId ?: ""] ?: it[""] }
 
 		return when (this?.status) {
 			Status.NONE, Status.OFF -> lightConfig?.statusNone
