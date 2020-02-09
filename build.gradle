@@ -36,6 +36,7 @@ dependencies {
     compile project (':jira')
     compile project (':sonar')
     compile project (':storyboard')
+    compile project (':syndication-feed')
     // Notifiers
     compile project (':deployment-case')
     compile project (':devops-light')

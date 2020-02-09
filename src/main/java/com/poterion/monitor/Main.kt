@@ -7,6 +7,7 @@ import com.poterion.monitor.notifiers.notifications.NotificationsModule
 import com.poterion.monitor.notifiers.tabs.NotificationTabsModule
 import com.poterion.monitor.notifiers.tray.SystemTrayModule
 import com.poterion.monitor.sensors.alertmanager.AlertManagerModule
+import com.poterion.monitor.sensors.feed.SyndicationFeedModule
 import com.poterion.monitor.sensors.gerritcodereview.GerritCodeReviewModule
 import com.poterion.monitor.sensors.jenkins.JenkinsModule
 import com.poterion.monitor.sensors.jira.JiraModule
@@ -67,17 +68,18 @@ class Main : Application() {
 		Platform.setImplicitExit(false)
 
 		val controller = ApplicationController(primaryStage, configFile,
-				AlertManagerModule,
-				GerritCodeReviewModule,
-				JenkinsModule,
-				JiraModule,
-				SonarModule,
-				StoryboardModule,
-				DeploymentCaseModule,
-				DevOpsLight,
-				NotificationsModule,
-				NotificationTabsModule,
-				SystemTrayModule)
+			AlertManagerModule,
+			GerritCodeReviewModule,
+			JenkinsModule,
+			JiraModule,
+			SonarModule,
+			StoryboardModule,
+			SyndicationFeedModule,
+			DeploymentCaseModule,
+			DevOpsLight,
+			NotificationsModule,
+			NotificationTabsModule,
+			SystemTrayModule)
 		controller.start()
 		if (controller.applicationConfiguration.showOnStartup) {
 			ConfigurationController.create(controller)
