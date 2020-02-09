@@ -1,5 +1,7 @@
 # Monitor Application
 
+Latest version can be downloaded [here](https://github.com/kubovy/monitor/tree/latest/dist).
+
 1. [ Basic Concepts ](#basic-concepts)
 2. [ Priority and Status ](#priority-and-status)
 3. [ Services ](#services)
@@ -16,7 +18,9 @@
      9. [ Notifications Notifier ](#notifications-notifier)
     10. [ Sonar Service ](#sonar-service)
     11. [ Storyboard Service ](#storyboard-service)
-    12. [ System Tray Notifier ](#system-tray-notifier)
+    12. [ Syndication Feed Service ](#syndication-feed-service)
+    13. [ System Tray Notifier ](#system-tray-notifier)
+
 
 
 ## Basic Concepts
@@ -69,24 +73,24 @@ Currently only REST service are implemented.
 
 Each such service can configure the following:
 
-  - *Name*: A name to easily identify the defined service in the UI.
-  - *Enabled*: If enable, the service makes actual REST calls based on their configuration.
-  - *Default priority*: In case an unknown/not configured item is found, where the
+  - **Name**: A name to easily identify the defined service in the UI.
+  - **Enabled**: If enable, the service makes actual REST calls based on their configuration.
+  - **Default priority**: In case an unknown/not configured item is found, where the
     [``Priority``](data/src/main/java/com/poterion/monitor/data/Priority.kt) cannot be determined, the
     [``Priority``](data/src/main/java/com/poterion/monitor/data/Priority.kt) defined here will be used. 
-  - *Check interval*: A interval in milliseconds in which the REST calls will be made to check for new
+  - **Check interval**: A interval in milliseconds in which the REST calls will be made to check for new
     [``StatusItems``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt). If left empty no calls will be made
     automatically, but can still be made manually, e.g., by pressing the "refresh" button.
-  - *URL*: The URL of the concrete service.
+  - **URL**: The URL of the concrete service.
     - Optionally, one of "[HTTP Basic Auth](https://tools.ietf.org/html/rfc7235)" or
       "[Bearer Token](https://tools.ietf.org/html/rfc6750)" can be used for service authorization.
-  - *Proxy*: Proxy address and port.
+  - **Proxy**: Proxy address and port.
     - Optionally, one of "[HTTP Basic Auth](https://tools.ietf.org/html/rfc7235)" or
       "[Bearer Token](https://tools.ietf.org/html/rfc6750)" can be used for proxy authorization.
-  - *Connection timeout*: Optionally a non-default connection timeout in milliseconds can be specified. The default is
+  - **Connection timeout**: Optionally a non-default connection timeout in milliseconds can be specified. The default is
     10 seconds.
-  - *Read timeout*: Optionally a non-default read timeout in milliseconds can be specified. The default is 10 seconds.
-  - *Write timeout*: Optionally a non-default write timeout in milliseconds can be specified. The default is 10 seconds.
+  - **Read timeout**: Optionally a non-default read timeout in milliseconds can be specified. The default is 10 seconds.
+  - **Write timeout**: Optionally a non-default write timeout in milliseconds can be specified. The default is 10 seconds.
 
 
 ## Notifiers
@@ -96,18 +100,18 @@ Each such service can configure the following:
 Common settings for all [``Notifiers``](api/src/main/java/com/poterion/monitor/api/modules/NotifierModule.kt) are the
 following:
 
-  - *Name*: A name to easily identify the defined notifier in the UI.
-  - *Enabled*: If enable, the notifier listens to
+  - **Name**: A name to easily identify the defined notifier in the UI.
+  - **Enabled**: If enable, the notifier listens to
     [``StatusItem``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt) updates.
-  - *Minimum priority*: Priority filter. All [``StatusItems``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt)
+  - **Minimum priority**: Priority filter. All [``StatusItems``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt)
     with priority below than defined here will be ignored.
-  - *Minumum status*: Status filter. All [``StatusItems``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt)
+  - **Minumum status**: Status filter. All [``StatusItems``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt)
     with status below than defined here will be ignored. This may result into an empty
     [``StatusItem``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt) collection. In default case this means
     no negative [``StatusItems``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt) have occured. E.g., the
     [Alert Manager](alert-manager) explicitly pushes an "OK"
     [``StatusItem``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt) 
-  - *Services*: By default any [``Notifier``](api/src/main/java/com/poterion/monitor/api/modules/NotifierModule.kt)
+  - **Services**: By default any [``Notifier``](api/src/main/java/com/poterion/monitor/api/modules/NotifierModule.kt)
     listens to all [``Services``](api/src/main/java/com/poterion/monitor/api/modules/ServiceModule.kt). This can be
     changed by selecting one or more [``Service``](api/src/main/java/com/poterion/monitor/api/modules/ServiceModule.kt).
 
@@ -164,10 +168,10 @@ Additionally to the [common configuration](#services) the alert manager service 
 
   - *Name annotation/label*: An annotation or label which should be used for the
     [``StatusItem``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt)'s name.
-  - *Description*: An annotation or label which should be used for the ``StatusITem``'s description.
-  - *Labels*: Comma separated list of labels which should be considered or filtered out in
+  - **Description**: An annotation or label which should be used for the ``StatusITem``'s description.
+  - **Labels**: Comma separated list of labels which should be considered or filtered out in
     [``StatusItem``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt)'s label collection.
-  - *Label mapping*: A mapping between label/annotation, its value and
+  - **Label mapping**: A mapping between label/annotation, its value and
     [``Priority``](data/src/main/java/com/poterion/monitor/data/Priority.kt) and
     [``Status``](data/src/main/java/com/poterion/monitor/data/Status.kt). 
 
@@ -210,10 +214,10 @@ See https://blog.kubovy.eu/2018/02/11/status-light-with-raspberry-pi-zero-and-w2
 
 Additionally to the [common configuration](#notifiers) the [DevOps Light notifier](devops-light) defines the following:
 
-  - *Bluetooth Address*: If specified, used to communicate with the DevOps Light over bluetooth. Security properties,
+  - **Bluetooth Address**: If specified, used to communicate with the DevOps Light over bluetooth. Security properties,
                          i.e., pairing has to happen on he OS level outside the monitor application.
-  - *USB Port*: If specified, used to communicate with the DevOps Light over USB.
-  - *Color Ordering*: Defines one of, RGB or GRB, color ordering in the WS281x protocol. This depends on the HW
+  - **USB Port**: If specified, used to communicate with the DevOps Light over USB.
+  - **Color Ordering**: Defines one of, RGB or GRB, color ordering in the WS281x protocol. This depends on the HW
                       specification of used LED strip build in the light.
 
 
@@ -239,8 +243,8 @@ current/last status to a [``StatusItems``](data/src/main/java/com/poterion/monit
 
 Additionally to the [common configuration](#services) the [Jenkins service](jenkins) defines the following:
 
-  - *Filter*: A job filter.
-  - *Job mapping*:  Defines a mapping between a jenkins job and
+  - **Filter**: A job filter.
+  - **Job mapping**:  Defines a mapping between a jenkins job and
     [``Priority``](data/src/main/java/com/poterion/monitor/data/Priority.kt).
 
 
@@ -253,11 +257,11 @@ transforms issues to [``StatusItems``](data/src/main/java/com/poterion/monitor/d
 
 Additionally to the [common configuration](#services) the [JIRA service](jira) defines the following:
 
-  - *Status mapping*: Mapping between status, status category (key, name, color), issue type and 
+  - **Status mapping**: Mapping between status, status category (key, name, color), issue type and 
     [``Status``](data/src/main/java/com/poterion/monitor/data/Status.kt).
-  - *Priority mapping*: Mapping betwen priority, issue type and
+  - **Priority mapping**: Mapping betwen priority, issue type and
     [``Priority``](data/src/main/java/com/poterion/monitor/data/Priority.kt).
-  - *List of queries*: List of queries to be used for issue gathering.
+  - **List of queries**: List of queries to be used for issue gathering.
 
 
 ### Notification Tabs Notifier
@@ -281,9 +285,9 @@ The [Notifications notifier](notifications) displays new or updated
 Additionally to the [common configuration](#notifiers) the [Notifications notifier](notifications) defines the
 following:
 
-  - *Repeat after*: Minimal time in seconds to pass between the same
+  - **Repeat after**: Minimal time in seconds to pass between the same
     [``StatusItem``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt) to be notified.
-  - *Duration - [``Status``](data/src/main/java/com/poterion/monitor/data/Status.kt) mapping*: Time in seconds a
+  - **Duration** - [``Status``](data/src/main/java/com/poterion/monitor/data/Status.kt) mapping*: Time in seconds a
     notification with a specific [``Status``](data/src/main/java/com/poterion/monitor/data/Status.kt) should be shown
     before disappearing.
 
@@ -297,8 +301,8 @@ of a project analysis to [``StatusItems``](data/src/main/java/com/poterion/monit
 
 Additionally to the [common configuration](#notifiers) the [Sonar service](sonar) defines the following:
 
-  - *Filter*:  Project filter
-  - *Project mapping*: Mapping between project ID, project name and
+  - **Filter**:  Project filter
+  - **Project mapping**: Mapping between project ID, project name and
     [``Priority``](data/src/main/java/com/poterion/monitor/data/Priority.kt). Only projects defined in this mapping
     will be considered, others will be ignored.
 
@@ -313,9 +317,23 @@ The [Storyboard service](storyboard) implements a scraper of
 
 Additionally to the [common configuration](#notifiers) the Storyboard service defines the following:
 
-  - *Project - [``Priority``](data/src/main/java/com/poterion/monitor/data/Priority.kt) mapping*: Mapping between
+  - **Project** - [``Priority``](data/src/main/java/com/poterion/monitor/data/Priority.kt) mapping*: Mapping between
     storyboard's projects and [``Priority``](data/src/main/java/com/poterion/monitor/data/Priority.kt). Only projects
     defined in this mapping will be considered, others will be ignored. 
+
+
+### Syndication Feed Service
+
+The [Syndication Feed service](syndication-feed) implements a scraper of RSS and Atom feeds. 
+
+Additionally to the [common configuration](#services) the [Syndication Feed service](syndication-feed) defines the
+following:
+
+  - **List of filters**: List of title and summary filters with mapping to particular
+    [``Priority``](data/src/main/java/com/poterion/monitor/data/Priority.kt) and
+    [``Status``](data/src/main/java/com/poterion/monitor/data/Status.kt)
+
+![System Tray Configuration](src/img/syndication-feed.png)
 
 
 ### System Tray Notifier
@@ -328,6 +346,6 @@ and display [``StatusItems``](data/src/main/java/com/poterion/monitor/data/Statu
 
 Additionally to the [common configuration](#notifiers) the System Tray service defines the following:
 
-  - *Refresh*: Whether the [``StatusItems``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt) of services
+  - **Refresh**: Whether the [``StatusItems``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt) of services
     should be displayed and refreshed. Due to compatibility issue with MacOS, where this feature must be turned off. 
 
