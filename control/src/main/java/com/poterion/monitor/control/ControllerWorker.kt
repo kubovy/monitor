@@ -4,6 +4,7 @@ import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.data.services.ServiceConfig
+import com.poterion.utils.kotlin.parallelStreamIntermediate
 import org.slf4j.LoggerFactory
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
@@ -40,17 +41,17 @@ class ControllerWorker private constructor(private val services: Collection<Serv
 		while (running) try {
 			val now = System.currentTimeMillis()
 			services.filter { it.shouldRun(now) }
-					.forEach { service ->
-						service.refresh = false
-						serviceLastChecked[service.config.name] = System.currentTimeMillis()
-						try {
-							service.check {
-								StatusCollector.update(it,
-										(service.definition as? ServiceModule)?.staticNotificationSet != false)
-							}
-						} catch (t: Throwable) {
-							LOGGER.error(t.message, t)
+				.parallelStreamIntermediate(Runtime.getRuntime().availableProcessors()) { service ->
+					service.refresh = false
+					serviceLastChecked[service.config.name] = System.currentTimeMillis()
+					try {
+						service.check {
+							StatusCollector.update(it,
+								(service.definition as? ServiceModule)?.staticNotificationSet != false)
 						}
+					} catch (t: Throwable) {
+						LOGGER.error(t.message, t)
+					}
 					}
 			Thread.sleep(1_000L)
 		} catch (e: InterruptedException) {

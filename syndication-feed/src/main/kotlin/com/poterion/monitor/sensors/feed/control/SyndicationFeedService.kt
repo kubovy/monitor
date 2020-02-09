@@ -28,7 +28,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.net.InetSocketAddress
 import java.net.Proxy
-import java.util.concurrent.Executors
 
 
 /**
@@ -44,7 +43,6 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 	override val definition: Module<SyndicationFeedConfig, ModuleInstanceInterface<SyndicationFeedConfig>> =
 		SyndicationFeedModule
 	private val lastFound = mutableListOf<StatusItem>()
-	private val executor = Executors.newSingleThreadExecutor()
 
 	private val queryTableSettingsPlugin = TableSettingsPlugin(
 		tableName = "filterTable",
@@ -115,7 +113,7 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 		get() = super.configurationAddition + listOf(queryTableSettingsPlugin.vbox)
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
-		if (config.enabled && config.url.isNotEmpty()) executor.submit {
+		if (config.enabled && config.url.isNotEmpty()) {
 			var errorStatus: StatusItem? = null
 			val proxy = config.proxy
 				?.let { it.address?.let { address -> address to (it.port ?: 80) } }
@@ -135,10 +133,14 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 				}
 				?.also { connection ->
 					try {
+						config.auth?.toHeaderString()?.also { connection.setRequestProperty("Authorization", it) }
+
 						if (proxy != null) connection.setRequestProperty("Proxy-Connection", "Keep-Alive")
 						config.proxy?.auth?.toHeaderString()
 							?.also { connection.setRequestProperty("Proxy-Authorization", it) }
-						config.auth?.toHeaderString()?.also { connection.setRequestProperty("Authorization", it) }
+
+						config.connectTimeout?.toInt()?.also { connection.connectTimeout = it }
+						config.readTimeout?.toInt()?.also { connection.readTimeout = it }
 					} catch (e: Exception) {
 						LOGGER.error(e.message, e)
 						errorStatus = getErrorStatus(Status.CONNECTION_ERROR, e.message ?: "Header error")
@@ -146,6 +148,7 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 				}
 				?.let {
 					try {
+						LOGGER.info("GET ${it.url} ...")
 						SyndFeedInput().build(XmlReader(it))
 					} catch (e: Exception) {
 						LOGGER.error(e.message, e)

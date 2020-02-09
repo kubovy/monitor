@@ -13,7 +13,6 @@ import com.poterion.monitor.sensors.jenkins.JenkinsModule
 import com.poterion.monitor.sensors.jenkins.data.JenkinsConfig
 import com.poterion.monitor.sensors.jenkins.data.JenkinsJobConfig
 import com.poterion.monitor.sensors.jenkins.data.JenkinsJobResponse
-import com.poterion.monitor.sensors.jenkins.data.JenkinsResponse
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -21,9 +20,6 @@ import javafx.scene.control.Label
 import javafx.scene.control.TextField
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import java.io.IOException
 
 
@@ -90,64 +86,62 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		try {
-			service?.check()?.enqueue(object : Callback<JenkinsResponse> {
-				override fun onResponse(call: Call<JenkinsResponse>?, response: Response<JenkinsResponse>?) {
-					LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}: ${response?.code()} ${response?.message()}")
+			val call = service?.check()
+			try {
+				val response = call?.execute()
+				LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+						" ${response?.code()} ${response?.message()}")
+				if (response?.isSuccessful == true) {
+					val foundJobs = response.body()
+						?.jobs
+						?.filter { job -> config.filter?.let { job.name.matches(it.toRegex()) } ?: true }
 
-					if (response?.isSuccessful == true) {
-						val foundJobs = response.body()
-								?.jobs
-								?.filter { job -> config.filter?.let { job.name.matches(it.toRegex()) } ?: true }
+					lastFoundJobNames = foundJobs?.map { it.name } ?: jobs.keys
 
-						lastFoundJobNames = foundJobs?.map { it.name } ?: jobs.keys
-
-						foundJobs
-								?.map {
-									StatusItem(
-											id = "${config.uuid}-${it.name}",
-											serviceId = config.uuid,
-											priority = it.priority,
-											status = it.severity,
-											title = it.name,
-											link = it.url,
-											isRepeatable = false)
-								}
-								?.also(updater)
-					} else {
-						lastFoundJobNames
-								.mapNotNull { jobs[it] }
-								.map {
-									StatusItem(
-											id = "${config.uuid}-${it.name}",
-											serviceId = config.uuid,
-											priority = it.priority,
-											status = Status.SERVICE_ERROR,
-											title = it.name,
-											link = config.url,
-											isRepeatable = false)
-								}
-								.also(updater)
-					}
-				}
-
-				override fun onFailure(call: Call<JenkinsResponse>?, response: Throwable?) {
-					call?.request()?.also { LOGGER.warn("${it.method()} ${it.url()}: ${response?.message}", response) }
-							?: LOGGER.warn(response?.message, response)
+					foundJobs
+						?.map {
+							StatusItem(
+								id = "${config.uuid}-${it.name}",
+								serviceId = config.uuid,
+								priority = it.priority,
+								status = it.severity,
+								title = it.name,
+								link = it.url,
+								isRepeatable = false)
+						}
+						?.also(updater)
+				} else {
 					lastFoundJobNames
-							.mapNotNull { jobs[it] }
-							.map {
-								StatusItem(
-										id = "${config.uuid}-${it.name}",
-										serviceId = config.uuid,
-										priority = it.priority,
-										status = Status.CONNECTION_ERROR,
-										title = it.name,
-										link = config.url,
-										isRepeatable = false)
-							}
-							.also(updater)
+						.mapNotNull { jobs[it] }
+						.map {
+							StatusItem(
+								id = "${config.uuid}-${it.name}",
+								serviceId = config.uuid,
+								priority = it.priority,
+								status = Status.SERVICE_ERROR,
+								title = it.name,
+								link = config.url,
+								isRepeatable = false)
+						}
+						.also(updater)
 				}
-			})
+			} catch (e: Exception) {
+				call?.request()?.also { LOGGER.warn("${it.method()} ${it.url()}: ${e.message}", e) }
+					?: LOGGER.warn(e.message, e)
+				lastFoundJobNames
+					.mapNotNull { jobs[it] }
+					.map {
+						StatusItem(
+							id = "${config.uuid}-${it.name}",
+							serviceId = config.uuid,
+							priority = it.priority,
+							status = Status.CONNECTION_ERROR,
+							title = it.name,
+							link = config.url,
+							isRepeatable = false)
+					}
+					.also(updater)
+			}
 		} catch (e: IOException) {
 			LOGGER.error(e.message, e)
 			lastFoundJobNames

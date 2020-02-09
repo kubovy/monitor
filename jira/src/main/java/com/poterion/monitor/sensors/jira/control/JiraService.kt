@@ -27,7 +27,6 @@ import java.net.URLEncoder
 import java.time.Instant
 import java.time.format.DateTimeFormatterBuilder
 import java.time.format.DateTimeParseException
-import java.util.concurrent.Executors
 import kotlin.math.ceil
 import kotlin.math.min
 import kotlin.math.round
@@ -44,7 +43,6 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 	override val definition: Module<JiraConfig, ModuleInstanceInterface<JiraConfig>> = JiraModule
 	private val service
 		get() = retrofit?.create(JiraRestService::class.java)
-	private val executor = Executors.newSingleThreadExecutor()
 	private var lastUpdate: Long? = null
 	private var cache: MutableMap<String, JiraIssue> = mutableMapOf()
 
@@ -129,7 +127,7 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
-		if (config.enabled && config.url.isNotEmpty()) executor.submit {
+		if (config.enabled && config.url.isNotEmpty()) {
 			val alerts = cache.map { (k, v) -> k to v.toStatusItem() }.toMap().toMutableMap()
 			for (query in config.queries) {
 				var count = 0
@@ -140,15 +138,17 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 				while (count < min(1000, total) && error == null && config.enabled) try {
 
 					val jql = lastUpdate
-							?.let { Instant.now().toEpochMilli() - it }
-							?.let { ceil(it.toDouble() / 1000.0 / 60.0).toInt() }
-							?.let { "${query.jql} AND updated >= '-${it}m' ORDER BY updated DESC" }
-							?: "${query.jql} ORDER BY updated DESC"
+						?.let { Instant.now().toEpochMilli() - it }
+						?.let { ceil(it.toDouble() / 1000.0 / 60.0).toInt() }
+						?.let { "${query.jql} AND updated >= '-${it}m' ORDER BY updated DESC" }
+						?: "${query.jql} ORDER BY updated DESC"
 					val call = service?.search(JiraSearchRequestBody(jql = jql, startAt = offset, maxResults = limit))
-					val queryResponse = call?.execute()
+					val response = call?.execute()
+					LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+							" ${response?.code()} ${response?.message()}")
 
-					if (queryResponse?.isSuccessful == true) {
-						val body = queryResponse.body()
+					if (response?.isSuccessful == true) {
+						val body = response.body()
 						total = body?.total ?: 0
 						offset += limit
 
@@ -158,7 +158,7 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 						count += issues.size
 					} else try {
 						error = http.objectMapper
-								.readValue(queryResponse?.errorBody()?.string(), JiraErrorResponse::class.java)
+							.readValue(response?.errorBody()?.string(), JiraErrorResponse::class.java)
 								.errorMessages
 								.firstOrNull()
 								?.let { "[${query.name}] ${it}" }

@@ -7,7 +7,6 @@ import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.TableSettingsPlugin
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.utils.javafx.toImageView
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
@@ -17,19 +16,18 @@ import com.poterion.monitor.sensors.storyboard.data.StoryboardConfig
 import com.poterion.monitor.sensors.storyboard.data.StoryboardProjectConfig
 import com.poterion.monitor.sensors.storyboard.data.Task
 import com.poterion.utils.javafx.openInExternalApplication
+import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.toUriOrNull
 import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.Button
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.awt.Desktop
 import java.io.IOException
 import java.net.URLEncoder
 import java.time.Instant
 import java.time.format.DateTimeFormatterBuilder
 import java.time.format.DateTimeParseException
-import java.util.concurrent.Executors
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
@@ -44,7 +42,6 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 	private val service
 		get() = retrofit?.create(StoryboardRestService::class.java)
 	private var lastFound: MutableMap<String, MutableCollection<StatusItem>> = mutableMapOf()
-	private val executor = Executors.newSingleThreadExecutor()
 
 	private val projectTableSettingsPlugin = TableSettingsPlugin(
 			tableName = "projectTable",
@@ -88,18 +85,19 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		lastFound.keys
-				.filterNot { key -> config.projects.map { it.name }.contains(key) }
-				.forEach { lastFound.remove(it) }
-		if (config.enabled && config.url.isNotEmpty()) executor.submit {
+			.filterNot { key -> config.projects.map { it.name }.contains(key) }
+			.forEach { lastFound.remove(it) }
+		if (config.enabled && config.url.isNotEmpty()) {
 			for (project in config.projects) try {
 				val alerts = mutableListOf<StatusItem>()
-				val projectResponse = service
-						?.projects(project.name)
-						?.execute()
+				val call = service?.projects(project.name)
+				val response = call?.execute()
+				LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+						" ${response?.code()} ${response?.message()}")
 
 				var error: String? = null
-				if (projectResponse?.isSuccessful == true) {
-					val projectId = projectResponse.body()?.find { it.name == project.name }?.id
+				if (response?.isSuccessful == true) {
+					val projectId = response.body()?.find { it.name == project.name }?.id
 					if (projectId != null) {
 						val storiesResponse = service?.stories(projectId)?.execute()
 						if (storiesResponse?.isSuccessful == true) {
@@ -107,9 +105,9 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 							for (story in stories) if (story.id != null) {
 								alerts.add(story.toStatusItem(project))
 								val taskAlerts = service
-										?.tasks(story.id!!)
-										?.execute()
-										?.takeIf { it.isSuccessful }
+									?.tasks(story.id!!)
+									?.execute()
+									?.takeIf { it.isSuccessful }
 										?.body()
 										?.map { task -> task.toStatusItem(project, story) }
 										?: emptyList()

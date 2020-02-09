@@ -7,8 +7,6 @@ import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.TableSettingsPlugin
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.utils.javafx.toImageView
-import com.poterion.utils.kotlin.toUriOrNull
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
@@ -17,19 +15,19 @@ import com.poterion.monitor.sensors.gerritcodereview.data.GerritCodeReviewConfig
 import com.poterion.monitor.sensors.gerritcodereview.data.GerritCodeReviewQueryConfig
 import com.poterion.monitor.sensors.gerritcodereview.data.GerritCodeReviewQueryResponse
 import com.poterion.utils.javafx.openInExternalApplication
+import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.kotlin.toUriOrNull
 import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.Button
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.awt.Desktop
 import java.io.IOException
 import java.net.URLEncoder
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatterBuilder
 import java.time.format.DateTimeParseException
-import java.util.concurrent.Executors
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
@@ -45,7 +43,6 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 		get() = retrofit?.create(GerritCodeReviewRestService::class.java)
 	private val responseType = http.objectMapper.typeFactory.constructCollectionType(MutableList::class.java, GerritCodeReviewQueryResponse::class.java)
 	private var lastFound: MutableMap<String, MutableCollection<StatusItem>> = mutableMapOf()
-	private val executor = Executors.newSingleThreadExecutor()
 
 	private val queryTableSettingsPlugin = TableSettingsPlugin(
 			tableName = "queryTable",
@@ -103,20 +100,22 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		lastFound.keys
-				.filterNot { key -> config.queries.map { it.name }.contains(key) }
-				.forEach { lastFound.remove(it) }
-		if (config.enabled && config.url.isNotEmpty()) executor.submit {
+			.filterNot { key -> config.queries.map { it.name }.contains(key) }
+			.forEach { lastFound.remove(it) }
+		if (config.enabled && config.url.isNotEmpty()) {
 			val queries = config.queries.mapNotNull { q -> service?.check(q.query)?.let { q to it } }
 			for ((query, call) in queries) try {
 				val response = call.execute()
-				if (response?.isSuccessful == true) {
+				LOGGER.info("${call.request().method()} ${call.request().url()}:" +
+						" ${response.code()} ${response.message()}")
+				if (response.isSuccessful) {
 					val body = response.body() ?: ""
 					val startIndex = body.indexOf('[')
 					if (startIndex >= 0) {
 						val queryAlerts = http.objectMapper.readValue<List<GerritCodeReviewQueryResponse>>(
-								body.substring(startIndex), responseType)
-								.map { item -> item.toStatusItem(query) }
-								.takeIf { it.isNotEmpty() }
+							body.substring(startIndex), responseType)
+							.map { item -> item.toStatusItem(query) }
+							.takeIf { it.isNotEmpty() }
 						if (queryAlerts == null) lastFound.remove(query.name)
 						else lastFound[query.name] = queryAlerts.toMutableList()
 					}

@@ -20,9 +20,6 @@ import javafx.scene.control.Label
 import javafx.scene.control.TextField
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import java.io.IOException
 
 /**
@@ -96,63 +93,61 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		try {
-			service?.check()?.enqueue(object : Callback<Collection<SonarProjectResponse>> {
-				override fun onResponse(call: Call<Collection<SonarProjectResponse>>?, response: Response<Collection<SonarProjectResponse>>?) {
-					LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}: ${response?.code()} ${response?.message()}")
+			val call = service?.check()
+			try {
+				val response = call?.execute()
+				LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+						" ${response?.code()} ${response?.message()}")
+				if (response?.isSuccessful == true) {
+					val foundProjects = response.body()
+						?.filter { job -> config.filter?.let { job.name.matches(it.toRegex()) } ?: true }
 
-					if (response?.isSuccessful == true) {
-						val foundProjects = response.body()
-								?.filter { job -> config.filter?.let { job.name.matches(it.toRegex()) } ?: true }
+					lastFoundProjectNames = foundProjects?.map { it.name } ?: projects.keys
 
-						lastFoundProjectNames = foundProjects?.map { it.name } ?: projects.keys
-
-						foundProjects
-								?.map {
-									StatusItem(
-											id = "${config.uuid}-${it.id}",
-											serviceId = config.uuid,
-											priority = it.priority,
-											status = it.severity,
-											title = it.name,
-											link = "${config.url}dashboard/index/${it.id}",
-											isRepeatable = false)
-								}
-								?.also(updater)
-					} else {
-						lastFoundProjectNames
-								.mapNotNull { projects[it] }
-								.map {
-									StatusItem(
-											id = "${config.uuid}-${it.id}",
-											serviceId = config.uuid,
-											priority = it.priority,
-											status = Status.SERVICE_ERROR,
-											title = it.name,
-											link = config.url,
-											isRepeatable = false)
-								}
-								.also(updater)
-					}
-				}
-
-				override fun onFailure(call: Call<Collection<SonarProjectResponse>>?, response: Throwable?) {
-					call?.request()?.also { LOGGER.warn("${it.method()} ${it.url()}: ${response?.message}", response) }
-							?: LOGGER.warn(response?.message, response)
+					foundProjects
+						?.map {
+							StatusItem(
+								id = "${config.uuid}-${it.id}",
+								serviceId = config.uuid,
+								priority = it.priority,
+								status = it.severity,
+								title = it.name,
+								link = "${config.url}dashboard/index/${it.id}",
+								isRepeatable = false)
+						}
+						?.also(updater)
+				} else {
 					lastFoundProjectNames
-							.mapNotNull { projects[it] }
-							.map {
-								StatusItem(
-										id = "${config.uuid}-${it.id}",
-										serviceId = config.uuid,
-										priority = it.priority,
-										status = Status.CONNECTION_ERROR,
-										title = it.name,
-										link = config.url,
-										isRepeatable = false)
-							}
-							.also(updater)
+						.mapNotNull { projects[it] }
+						.map {
+							StatusItem(
+								id = "${config.uuid}-${it.id}",
+								serviceId = config.uuid,
+								priority = it.priority,
+								status = Status.SERVICE_ERROR,
+								title = it.name,
+								link = config.url,
+								isRepeatable = false)
+						}
+						.also(updater)
 				}
-			})
+			} catch (e: IOException) {
+				call?.request()?.also { LOGGER.warn("${it.method()} ${it.url()}: ${e.message}", e) }
+					?: LOGGER.warn(e.message, e)
+				lastFoundProjectNames
+					.mapNotNull { projects[it] }
+					.map {
+						StatusItem(
+							id = "${config.uuid}-${it.id}",
+							serviceId = config.uuid,
+							priority = it.priority,
+							status = Status.CONNECTION_ERROR,
+							title = it.name,
+							link = config.url,
+							isRepeatable = false)
+					}
+					.also(updater)
+			}
 		} catch (e: IOException) {
 			LOGGER.error(e.message, e)
 			lastFoundProjectNames

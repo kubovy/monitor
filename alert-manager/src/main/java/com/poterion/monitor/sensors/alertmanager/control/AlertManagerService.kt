@@ -6,9 +6,6 @@ import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.TableSettingsPlugin
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.utils.javafx.toImageView
-import com.poterion.utils.kotlin.toSet
-import com.poterion.utils.kotlin.toUriOrNull
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
@@ -17,6 +14,9 @@ import com.poterion.monitor.sensors.alertmanager.data.AlertManagerConfig
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerLabelConfig
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerResponse
 import com.poterion.utils.javafx.openInExternalApplication
+import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.kotlin.toSet
+import com.poterion.utils.kotlin.toUriOrNull
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -27,10 +27,6 @@ import javafx.scene.control.TextField
 import javafx.scene.layout.Pane
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import java.awt.Desktop
 import java.io.IOException
 import java.net.URLEncoder
 import java.time.Instant
@@ -152,49 +148,51 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		if (config.enabled && config.url.isNotEmpty()) try {
-			service?.check()?.enqueue(object : Callback<List<AlertManagerResponse>> {
-				override fun onResponse(call: Call<List<AlertManagerResponse>>?, response: Response<List<AlertManagerResponse>>?) {
-					//LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}: ${response?.code()} ${response?.message()}")
-
-					if (response?.isSuccessful == true) {
-						val configPairs = config.labels.map { "${it.name}:${it.value}" to it }.toMap()
-						val alerts = response.body()
-								?.filter { it.status?.silencedBy?.isEmpty() != false }
-								?.filter { it.status?.inhibitedBy?.isEmpty() != false }
-								?.filter { a -> config.receivers.isEmpty() || a.receivers.map { it.name }.any { config.receivers.contains(it) } }
-								?.flatMap { item -> item.labels.map { "${it.key}:${it.value}" to item } }
-								?.filter { (pair, _) -> configPairs[pair] != null }
-								?.map { (pair, item) -> configPairs.getValue(pair) to item }
-								?.sortedWith(compareBy({ (c, _) -> c.status.ordinal }, { (p, _) -> p.priority.ordinal }))
-								?.associateBy { (_, i) ->
-									config.nameRefs.mapNotNull {
-										i.annotations[it] ?: i.labels[it]
-									}.firstOrNull() ?: ""
-								}
-								?.map { (name, p) -> Triple(name, p.first, p.second) }
-								?.also { lastFound = it }
-								?.map { (n, c, i) -> createStatusItem(n, c, i) }
-								?.takeIf { it.isNotEmpty() }
-								?: listOf(StatusItem(
-										id = "${config.uuid}-no-alerts",
-										serviceId = config.uuid,
-										priority = config.priority,
-										status = Status.OK,
-										title = "No alerts",
-										isRepeatable = false))
-						updater(alerts)
-					} else {
-						updater(getStatusItems("Service error", Status.SERVICE_ERROR))
-					}
+			val call = service?.check()
+			try {
+				val response = call?.execute()
+				LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+						" ${response?.code()} ${response?.message()}")
+				if (response?.isSuccessful == true) {
+					val configPairs = config.labels.map { "${it.name}:${it.value}" to it }.toMap()
+					val alerts = response.body()
+						?.filter { it.status?.silencedBy?.isEmpty() != false }
+						?.filter { it.status?.inhibitedBy?.isEmpty() != false }
+						?.filter { a ->
+							config.receivers.isEmpty() || a.receivers.map { it.name }.any {
+								config.receivers.contains(it)
+							}
+						}
+						?.flatMap { item -> item.labels.map { "${it.key}:${it.value}" to item } }
+						?.filter { (pair, _) -> configPairs[pair] != null }
+						?.map { (pair, item) -> configPairs.getValue(pair) to item }
+						?.sortedWith(compareBy({ (c, _) -> c.status.ordinal }, { (p, _) -> p.priority.ordinal }))
+						?.associateBy { (_, i) ->
+							config.nameRefs.mapNotNull {
+								i.annotations[it] ?: i.labels[it]
+							}.firstOrNull() ?: ""
+						}
+						?.map { (name, p) -> Triple(name, p.first, p.second) }
+						?.also { lastFound = it }
+						?.map { (n, c, i) -> createStatusItem(n, c, i) }
+						?.takeIf { it.isNotEmpty() }
+						?: listOf(StatusItem(
+							id = "${config.uuid}-no-alerts",
+							serviceId = config.uuid,
+							priority = config.priority,
+							status = Status.OK,
+							title = "No alerts",
+							isRepeatable = false))
+					updater(alerts)
+				} else {
+					updater(getStatusItems("Service error", Status.SERVICE_ERROR))
 				}
-
-				override fun onFailure(call: Call<List<AlertManagerResponse>>?, response: Throwable?) {
-					call?.request()
-							?.also { LOGGER.warn("${it.method()} ${it.url()}: ${response?.message}", response) }
-							?: LOGGER.warn(response?.message)
-					updater(getStatusItems("Connection error", Status.CONNECTION_ERROR))
-				}
-			})
+			} catch (e: Exception) {
+				call?.request()
+					?.also { LOGGER.warn("${it.method()} ${it.url()}: ${e.message}", e) }
+					?: LOGGER.warn(e.message)
+				updater(getStatusItems("Connection error", Status.CONNECTION_ERROR))
+			}
 		} catch (e: IOException) {
 			LOGGER.error(e.message, e)
 			updater(getStatusItems("Connection error", Status.CONNECTION_ERROR))
