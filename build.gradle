@@ -19,7 +19,7 @@ task assembleFatJar(type: Jar, group: 'build') {
                    'Implementation-Version': archiveVersion,
                    'Main-Class': 'com.poterion.monitor.Main'
     }
-    archiveBaseName.set(project.name + '-all')
+    archiveBaseName.set(project.name + '-' + (project.hasProperty('flavor') ? project.flavor : 'all'))
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }

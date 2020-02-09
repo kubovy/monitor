@@ -403,7 +403,6 @@ class TabController {
 		}
 	}
 
-
 	private fun StatusItem.contextMenu() = ContextMenu(*listOfNotNull(
 			MenuItem(if (isWatched) "Unwatch [Ctrl+W]" else "Watch [Ctrl+W]",
 					(if (isWatched) NotificationTabsIcon.UNWATCH else NotificationTabsIcon.WATCH).toImageView())
