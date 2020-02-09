@@ -1,5 +1,8 @@
 package com.poterion.monitor.data
 
+import com.poterion.monitor.data.auth.AuthConfig
+import com.poterion.monitor.data.auth.BasicAuthConfig
+import com.poterion.monitor.data.auth.TokenAuthConfig
 import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.services.ServiceConfig
 import java.util.*
@@ -25,4 +28,10 @@ fun Map<String, ModuleConfig>.nextUUID(): String {
 		uuid = UUID.randomUUID().toString()
 	} while (keys.contains(uuid))
 	return uuid
+}
+
+fun AuthConfig.toHeaderString() = when (this) {
+	is BasicAuthConfig -> "Basic " + Base64.getEncoder().encodeToString("${username}:${password}".toByteArray())
+	is TokenAuthConfig -> "Bearer ${token}"
+	else -> null
 }

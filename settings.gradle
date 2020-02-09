@@ -14,6 +14,7 @@ include 'gerrit-code-review'
 include 'jira'
 include 'sonar'
 include 'storyboard'
+include 'syndication-feed'
 // Notifiers
 include 'deployment-case'
 include 'devops-light'
@@ -21,3 +22,4 @@ include 'jenkins'
 include 'notification-tabs'
 include 'notifications'
 include 'system-tray'
+
