@@ -3,6 +3,8 @@
 target/
 out/
 build/
+/bundles/
+/jdk/
 /gradle/wrapper/gradle-wrapper.jar
 *.bak
 *.iml
@@ -12,5 +14,8 @@ build/
 /*.yaml-*
 /*.bin
 /*.txt
+/*.html
+/*.jnlp
 /deployment-case/*.bin
 .DS_Store
+/.gitconfig
