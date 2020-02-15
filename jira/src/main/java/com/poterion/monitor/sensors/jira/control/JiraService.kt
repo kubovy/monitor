@@ -1,3 +1,19 @@
+/******************************************************************************
+ * Copyright (C) 2020 Jan Kubovy (jan@kubovy.eu)                              *
+ *                                                                            *
+ * This program is free software: you can redistribute it and/or modify       *
+ * it under the terms of the GNU General Public License as published by       *
+ * the Free Software Foundation, either version 3 of the License, or          *
+ * (at your option) any later version.                                        *
+ *                                                                            *
+ * This program is distributed in the hope that it will be useful,            *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of             *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              *
+ * GNU General Public License for more details.                               *
+ *                                                                            *
+ * You should have received a copy of the GNU General Public License          *
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.      *
+ ******************************************************************************/
 package com.poterion.monitor.sensors.jira.control
 
 import com.poterion.monitor.api.CommonIcon
@@ -34,7 +50,7 @@ import kotlin.math.round
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class JiraService(override val controller: ControllerInterface, config: JiraConfig) : Service<JiraConfig>(config) {
+class JiraService(override val controller: ControllerInterface, config: JiraConfig): Service<JiraConfig>(config) {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(JiraService::class.java)
@@ -76,7 +92,8 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 						?.let { uri -> Button("", CommonIcon.LINK.toImageView()) to uri }
 						?.also { (btn, uri) -> btn.setOnAction { uri.openInExternalApplication() } }
 						?.first
-			})
+			},
+			fieldSizes = arrayOf(150.0))
 
 	override val configurationRows: List<Pair<Node, Node>>
 		get() = super.configurationRows +
@@ -138,10 +155,10 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 				while (count < min(1000, total) && error == null && config.enabled) try {
 
 					val jql = lastUpdate
-						?.let { Instant.now().toEpochMilli() - it }
-						?.let { ceil(it.toDouble() / 1000.0 / 60.0).toInt() }
-						?.let { "${query.jql} AND updated >= '-${it}m' ORDER BY updated DESC" }
-						?: "${query.jql} ORDER BY updated DESC"
+							?.let { Instant.now().toEpochMilli() - it }
+							?.let { ceil(it.toDouble() / 1000.0 / 60.0).toInt() }
+							?.let { "${query.jql} AND updated >= '-${it}m' ORDER BY updated DESC" }
+							?: "${query.jql} ORDER BY updated DESC"
 					val call = service?.search(JiraSearchRequestBody(jql = jql, startAt = offset, maxResults = limit))
 					val response = call?.execute()
 					LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
@@ -157,10 +174,11 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 						alerts.putAll(issues.mapNotNull { it.key?.let { key -> key to it.toStatusItem() } }.toMap())
 						count += issues.size
 					} else try {
-						error = http.objectMapper
-							.readValue(response?.errorBody()?.string(), JiraErrorResponse::class.java)
-								.errorMessages
-								.firstOrNull()
+						error = http
+								?.objectMapper
+								?.readValue(response?.errorBody()?.string(), JiraErrorResponse::class.java)
+								?.errorMessages
+								?.firstOrNull()
 								?.let { "[${query.name}] ${it}" }
 								?: "Failed retrieving ${query.name} query"
 					} catch (e: Throwable) {

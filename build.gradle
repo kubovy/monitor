@@ -1,8 +1,182 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+import java.time.LocalDate
+
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.3.11'
+    id 'de.undercouch.download' version '4.0.0'
+    id 'idea'
 }
+
 group 'com.poterion.monitor'
-version project.hasProperty('version') ? project.version : '1.0-SNAPSHOT'
+version project.hasProperty('version') && project.version != "unspecified" ? project.version : '1.0-SNAPSHOT'
+
+ext {
+    APP_NAME = "Poterion Monitor"
+    VENDOR = "Poterion"
+    EMAIL = "apps@poterion.com"
+    if (Os.isFamily(Os.FAMILY_MAC)) {
+        IMAGE_NAME = "${APP_NAME}"
+        ARCHIVE = 'tar.gz'
+        JDK = 'zulu8.42.0.23-ca-fx-jdk8.0.232-macosx_x64'
+        JRE_SUFFIX = ""
+        CONTAINERS = ['image', 'dmg', 'pkg']
+    } else if (Os.isFamily(Os.FAMILY_UNIX)) {
+        IMAGE_NAME = "poterion-monitor"
+        ARCHIVE = 'tar.gz'
+        JDK = 'zulu8.42.0.23-ca-fx-jdk8.0.232-linux_x64'
+        JRE_SUFFIX = "/jre"
+        CONTAINERS = ['image', 'deb', 'rpm']
+    } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        IMAGE_NAME = "${APP_NAME}"
+        ARCHIVE = 'zip'
+        JDK =  'zulu8.42.0.23-ca-fx-jdk8.0.232-win_x64'
+        JRE_SUFFIX = ""
+        CONTAINERS = ['image', 'exe', 'msi']
+    } else throw new GradleException("Must run on Linux, MacOS or Windows")
+    JDKS_ROOT = project.hasProperty('jdks')
+            ? project.jdks
+            : "${rootDir}/jdk"
+    JAVA_HOME = project.hasProperty('javahome')
+            ? project.javahome
+            : new File("${JDKS_ROOT}/${JDK}").absolutePath
+    JRE_HOME = "${JAVA_HOME}${JRE_SUFFIX}"
+    JPACKAGER = project.hasProperty('javapackager')
+            ? project.javapackager
+            : file("${JAVA_HOME}/bin/javapackager").absolutePath
+    println "JAVA_HOME=${JAVA_HOME}"
+    println "JPACKAGER=${JPACKAGER}"
+}
+
+task cleanOpenJDK(type: Delete, group: 'jdk') {
+    delete "${JDKS_ROOT}"
+}
+
+task downloadOpenJDK(type: Download, group: 'jdk') {
+    src "https://cdn.azul.com/zulu/bin/${JDK}.${ARCHIVE}"
+    dest file("${JDKS_ROOT}/${JDK}.${ARCHIVE}")
+    onlyIfNewer true
+    //overwrite false
+}
+
+task extractOpenJDK(type: Copy, group: 'jdk', dependsOn: downloadOpenJDK) {
+    if (!file(downloadOpenJDK.dest).exists())  {
+        if (ARCHIVE == 'zip') {
+            from zipTree(downloadOpenJDK.dest)
+        } else {
+            from tarTree(downloadOpenJDK.dest)
+        }
+    }
+    into "${JDKS_ROOT}"
+}
+
+allprojects {
+    compileJava {
+        options.fork = true
+        options.forkOptions.executable = "${JAVA_HOME}/bin/javac"
+        options.forkOptions.javaHome = file("${JAVA_HOME}")
+    }
+}
+
+tasks.assemble.dependsOn(extractOpenJDK)
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+task assembleFatJar(type: Jar, group: 'build', dependsOn: [assemble, extractOpenJDK]) {
+    manifest {
+        attributes 'Implementation-Title': 'Poterion Monitor',
+                'Implementation-Version': archiveVersion,
+                'Main-Class': 'com.poterion.monitor.Main'
+    }
+    archiveBaseName.set(project.name + '-' + (project.hasProperty('flavor') ? project.flavor : 'all'))
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
+task assembleSelfContained(group: 'build', dependsOn: assembleFatJar) {
+    doLast {
+        if (Os.isFamily(Os.FAMILY_MAC) // Fix Mac required directory structure
+                && !project.hasProperty('javahome')
+                && !file("${JAVA_HOME}/Contents/Home/jre").exists()) {
+            file("${JAVA_HOME}/Contents/Home").mkdirs()
+            exec {
+                commandLine "ln", "-s", "${JAVA_HOME}/jre", "${JAVA_HOME}/Contents/Home/jre"
+            }
+        }
+        logger.info("Building self contained images: ${CONTAINERS}")
+        logger.info("JAVA_HOME=${JAVA_HOME}")
+        logger.info("JPACKAGER=${JPACKAGER}")
+        logger.info("SRC=${file("${buildDir}/libs/monitor-all-${version}.jar").path}")
+        CONTAINERS.forEach { type ->
+            try {
+                logger.info("Packaging ${type} of ${APP_NAME} ${version.replace("-SNAPSHOT", "")}")
+                exec {
+                    commandLine("${JPACKAGER}",
+                            "-deploy",
+                            "-Bruntime=${JRE_HOME}",
+                            "-BappVersion=${version.replace("-SNAPSHOT", "")}",
+                            "-Bicon=api/src/main/resources/com/poterion/monitor/api/icons/application.icns",
+                            "-Bcategory=Utility",
+                            "-BlicenseFile=COPYING",
+                            "-Bcopyright=2018-${LocalDate.now().year} ${VENDOR}",
+                            "-Bemail=${EMAIL}",
+                            //"-Barguments=--config-dir=.", // Store config inside the app directory
+                            "-Bmac.category=Utility",
+                            "-Bmac.CFBundleIdentifier=com.poterion.monitor",
+                            "-Bmac.CFBundleName=${APP_NAME}",
+                            "-Bmac.CFBundleVersion=${version.replace("-SNAPSHOT", "")}",
+                            "-native", type,
+                            "-srcdir", ".",
+                            "-srcfiles", "build/libs/monitor-all-${version}.jar",
+                            "-srcfiles", "COPYING",
+                            "-outdir", ".",
+                            "-outfile", IMAGE_NAME,
+                            "-appclass", "com.poterion.monitor.Main",
+                            "-name", IMAGE_NAME,
+                            "-title", APP_NAME,
+                            "-vendor", VENDOR,
+                            "-nosign",
+                            "-v")
+                    standardOutput = new ByteArrayOutputStream()
+                    ext.output = {
+                        return standardOutput.toString()
+                    }
+                }
+                println ext.output()
+            } catch (e) {
+                logger.error("${type}: ${e.message}\n\n ${ext.output()}", e)
+            }
+        }
+    }
+}
+
+task archiveSelfContainedLinuxImage(type: Tar, group: 'build') {
+    archiveBaseName = "poterion-${project.name}"
+    archiveVersion = "${project.version.replace("-SNAPSHOT", "")}"
+    archiveExtension = 'tar.gz'
+    into ("/${IMAGE_NAME}/"){
+        from "${rootDir}/bundles/${IMAGE_NAME.replace(' ', '')}"
+    }
+    destinationDir  file("${rootDir}/bundles")
+    compression = Compression.GZIP
+}
+
+if (Os.isFamily(Os.FAMILY_UNIX) && !Os.isFamily(Os.FAMILY_MAC)) {
+    assembleSelfContained.finalizedBy archiveSelfContainedLinuxImage
+}
+
+clean {
+    delete 'bundles'
+}
 
 repositories {
     mavenCentral()
@@ -13,44 +187,29 @@ repositories {
     }
 }
 
-task assembleFatJar(type: Jar, group: 'build') {
-    manifest {
-        attributes 'Implementation-Title': 'Poterion Monitor',
-                   'Implementation-Version': archiveVersion,
-                   'Main-Class': 'com.poterion.monitor.Main'
-    }
-    archiveBaseName.set(project.name + '-' + (project.hasProperty('flavor') ? project.flavor : 'all'))
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    with jar
-}
-
 dependencies {
     // Common
-    api project (':api')
-    compile project (':control')
-    compile project (':ui')
+    api project(':api')
+    compile project(':control')
+    compile project(':ui')
     // Services
-    compile project (':alert-manager')
-    compile project (':gerrit-code-review')
-    compile project (':jenkins')
-    compile project (':jira')
-    compile project (':sonar')
-    compile project (':storyboard')
-    compile project (':syndication-feed')
+    compile project(':alert-manager')
+    compile project(':gerrit-code-review')
+    compile project(':jenkins')
+    compile project(':jira')
+    compile project(':sonar')
+    compile project(':storyboard')
+    compile project(':syndication-feed')
     // Notifiers
-    compile project (':deployment-case')
-    compile project (':devops-light')
-    compile project (':notification-tabs')
-    compile project (':notifications')
-    compile project (':system-tray')
+    compile project(':deployment-case')
+    compile project(':devops-light')
+    compile project(':notification-tabs')
+    compile project(':notifications')
+    compile project(':system-tray')
     // Kotlin
-    compile 'org.jetbrains.kotlin:kotlin-reflect:1.3.61'
-    compile "org.slf4j:slf4j-log4j12:1.7.30"
-}
-
-compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
-}
-compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+    implementation 'org.jetbrains.kotlin:kotlin-reflect:1.3.61'
+    // Commons
+    implementation 'commons-cli:commons-cli:1.4'
+    // Logging
+    implementation "org.slf4j:slf4j-log4j12:1.7.30"
 }

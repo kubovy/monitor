@@ -1,3 +1,19 @@
+/******************************************************************************
+ * Copyright (C) 2020 Jan Kubovy (jan@kubovy.eu)                              *
+ *                                                                            *
+ * This program is free software: you can redistribute it and/or modify       *
+ * it under the terms of the GNU General Public License as published by       *
+ * the Free Software Foundation, either version 3 of the License, or          *
+ * (at your option) any later version.                                        *
+ *                                                                            *
+ * This program is distributed in the hope that it will be useful,            *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of             *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              *
+ * GNU General Public License for more details.                               *
+ *                                                                            *
+ * You should have received a copy of the GNU General Public License          *
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.      *
+ ******************************************************************************/
 package com.poterion.monitor.sensors.storyboard.control
 
 import com.poterion.monitor.api.CommonIcon
@@ -32,7 +48,8 @@ import java.time.format.DateTimeParseException
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class StoryboardService(override val controller: ControllerInterface, config: StoryboardConfig) : Service<StoryboardConfig>(config) {
+class StoryboardService(override val controller: ControllerInterface, config: StoryboardConfig):
+		Service<StoryboardConfig>(config) {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(StoryboardService::class.java)
@@ -75,7 +92,8 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 						?.let { uri -> Button("", CommonIcon.LINK.toImageView()) to uri }
 						?.also { (btn, uri) -> btn.setOnAction { uri.openInExternalApplication() } }
 						?.first
-			})
+			},
+			fieldSizes = arrayOf(200.0))
 
 	override val configurationRows: List<Pair<Node, Node>>
 		get() = super.configurationRows + listOf(projectTableSettingsPlugin.rowNewItem)
@@ -85,8 +103,8 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		lastFound.keys
-			.filterNot { key -> config.projects.map { it.name }.contains(key) }
-			.forEach { lastFound.remove(it) }
+				.filterNot { key -> config.projects.map { it.name }.contains(key) }
+				.forEach { lastFound.remove(it) }
 		if (config.enabled && config.url.isNotEmpty()) {
 			for (project in config.projects) try {
 				val alerts = mutableListOf<StatusItem>()
@@ -105,9 +123,9 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 							for (story in stories) if (story.id != null) {
 								alerts.add(story.toStatusItem(project))
 								val taskAlerts = service
-									?.tasks(story.id!!)
-									?.execute()
-									?.takeIf { it.isSuccessful }
+										?.tasks(story.id!!)
+										?.execute()
+										?.takeIf { it.isSuccessful }
 										?.body()
 										?.map { task -> task.toStatusItem(project, story) }
 										?: emptyList()

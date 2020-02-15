@@ -1,3 +1,19 @@
+/******************************************************************************
+ * Copyright (C) 2020 Jan Kubovy (jan@kubovy.eu)                              *
+ *                                                                            *
+ * This program is free software: you can redistribute it and/or modify       *
+ * it under the terms of the GNU General Public License as published by       *
+ * the Free Software Foundation, either version 3 of the License, or          *
+ * (at your option) any later version.                                        *
+ *                                                                            *
+ * This program is distributed in the hope that it will be useful,            *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of             *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              *
+ * GNU General Public License for more details.                               *
+ *                                                                            *
+ * You should have received a copy of the GNU General Public License          *
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.      *
+ ******************************************************************************/
 package com.poterion.monitor.sensors.alertmanager.control
 
 import com.poterion.monitor.api.controllers.ControllerInterface
@@ -35,13 +51,15 @@ import java.time.format.DateTimeParseException
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class AlertManagerService(override val controller: ControllerInterface, config: AlertManagerConfig) : Service<AlertManagerConfig>(config) {
+class AlertManagerService(override val controller: ControllerInterface, config: AlertManagerConfig):
+		Service<AlertManagerConfig>(config) {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(AlertManagerService::class.java)
 	}
 
-	override val definition: Module<AlertManagerConfig, ModuleInstanceInterface<AlertManagerConfig>> = AlertManagerModule
+	override val definition: Module<AlertManagerConfig, ModuleInstanceInterface<AlertManagerConfig>> =
+		AlertManagerModule
 	private val service
 		get() = retrofit?.create(AlertManagerRestService::class.java)
 
@@ -96,7 +114,8 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 						?.let { uri -> Button("", com.poterion.monitor.api.CommonIcon.LINK.toImageView()) to uri }
 						?.also { (btn, uri) -> btn.setOnAction { uri.openInExternalApplication() } }
 						?.first
-			})
+			},
+			fieldSizes = arrayOf(150.0))
 
 	override val configurationRows: List<Pair<Node, Node>>
 		get() = super.configurationRows + listOf(
@@ -156,41 +175,41 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 				if (response?.isSuccessful == true) {
 					val configPairs = config.labels.map { "${it.name}:${it.value}" to it }.toMap()
 					val alerts = response.body()
-						?.filter { it.status?.silencedBy?.isEmpty() != false }
-						?.filter { it.status?.inhibitedBy?.isEmpty() != false }
-						?.filter { a ->
-							config.receivers.isEmpty() || a.receivers.map { it.name }.any {
-								config.receivers.contains(it)
+							?.filter { it.status?.silencedBy?.isEmpty() != false }
+							?.filter { it.status?.inhibitedBy?.isEmpty() != false }
+							?.filter { a ->
+								config.receivers.isEmpty() || a.receivers.map { it.name }.any {
+									config.receivers.contains(it)
+								}
 							}
-						}
-						?.flatMap { item -> item.labels.map { "${it.key}:${it.value}" to item } }
-						?.filter { (pair, _) -> configPairs[pair] != null }
-						?.map { (pair, item) -> configPairs.getValue(pair) to item }
-						?.sortedWith(compareBy({ (c, _) -> c.status.ordinal }, { (p, _) -> p.priority.ordinal }))
-						?.associateBy { (_, i) ->
-							config.nameRefs.mapNotNull {
-								i.annotations[it] ?: i.labels[it]
-							}.firstOrNull() ?: ""
-						}
-						?.map { (name, p) -> Triple(name, p.first, p.second) }
-						?.also { lastFound = it }
-						?.map { (n, c, i) -> createStatusItem(n, c, i) }
-						?.takeIf { it.isNotEmpty() }
-						?: listOf(StatusItem(
-							id = "${config.uuid}-no-alerts",
-							serviceId = config.uuid,
-							priority = config.priority,
-							status = Status.OK,
-							title = "No alerts",
-							isRepeatable = false))
+							?.flatMap { item -> item.labels.map { "${it.key}:${it.value}" to item } }
+							?.filter { (pair, _) -> configPairs[pair] != null }
+							?.map { (pair, item) -> configPairs.getValue(pair) to item }
+							?.sortedWith(compareBy({ (c, _) -> c.status.ordinal }, { (p, _) -> p.priority.ordinal }))
+							?.associateBy { (_, i) ->
+								config.nameRefs.mapNotNull {
+									i.annotations[it] ?: i.labels[it]
+								}.firstOrNull() ?: ""
+							}
+							?.map { (name, p) -> Triple(name, p.first, p.second) }
+							?.also { lastFound = it }
+							?.map { (n, c, i) -> createStatusItem(n, c, i) }
+							?.takeIf { it.isNotEmpty() }
+							?: listOf(StatusItem(
+									id = "${config.uuid}-no-alerts",
+									serviceId = config.uuid,
+									priority = config.priority,
+									status = Status.OK,
+									title = "No alerts",
+									isRepeatable = false))
 					updater(alerts)
 				} else {
 					updater(getStatusItems("Service error", Status.SERVICE_ERROR))
 				}
 			} catch (e: Exception) {
 				call?.request()
-					?.also { LOGGER.warn("${it.method()} ${it.url()}: ${e.message}", e) }
-					?: LOGGER.warn(e.message)
+						?.also { LOGGER.warn("${it.method()} ${it.url()}: ${e.message}", e) }
+						?: LOGGER.warn(e.message)
 				updater(getStatusItems("Connection error", Status.CONNECTION_ERROR))
 			}
 		} catch (e: IOException) {

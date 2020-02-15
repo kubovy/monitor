@@ -1,3 +1,19 @@
+/******************************************************************************
+ * Copyright (C) 2020 Jan Kubovy (jan@kubovy.eu)                              *
+ *                                                                            *
+ * This program is free software: you can redistribute it and/or modify       *
+ * it under the terms of the GNU General Public License as published by       *
+ * the Free Software Foundation, either version 3 of the License, or          *
+ * (at your option) any later version.                                        *
+ *                                                                            *
+ * This program is distributed in the hope that it will be useful,            *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of             *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              *
+ * GNU General Public License for more details.                               *
+ *                                                                            *
+ * You should have received a copy of the GNU General Public License          *
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.      *
+ ******************************************************************************/
 package com.poterion.monitor.sensors.gerritcodereview.control
 
 import com.poterion.monitor.api.CommonIcon
@@ -32,16 +48,21 @@ import java.time.format.DateTimeParseException
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class GerritCodeReviewService(override val controller: ControllerInterface, config: GerritCodeReviewConfig) : Service<GerritCodeReviewConfig>(config) {
+class GerritCodeReviewService(override val controller: ControllerInterface, config: GerritCodeReviewConfig):
+		Service<GerritCodeReviewConfig>(config) {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(GerritCodeReviewService::class.java)
 	}
 
-	override val definition: Module<GerritCodeReviewConfig, ModuleInstanceInterface<GerritCodeReviewConfig>> = GerritCodeReviewModule
+	override val definition: Module<GerritCodeReviewConfig, ModuleInstanceInterface<GerritCodeReviewConfig>> =
+		GerritCodeReviewModule
 	private val service
 		get() = retrofit?.create(GerritCodeReviewRestService::class.java)
-	private val responseType = http.objectMapper.typeFactory.constructCollectionType(MutableList::class.java, GerritCodeReviewQueryResponse::class.java)
+	private val responseType = http
+			?.objectMapper
+			?.typeFactory
+			?.constructCollectionType(MutableList::class.java, GerritCodeReviewQueryResponse::class.java)
 	private var lastFound: MutableMap<String, MutableCollection<StatusItem>> = mutableMapOf()
 
 	private val queryTableSettingsPlugin = TableSettingsPlugin(
@@ -90,7 +111,8 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 						?.let { uri -> Button("", CommonIcon.LINK.toImageView()) to uri }
 						?.also { (btn, uri) -> btn.setOnAction { uri.openInExternalApplication() } }
 						?.first
-			})
+			},
+			fieldSizes = arrayOf(150.0))
 
 	override val configurationRows: List<Pair<Node, Node>>
 		get() = super.configurationRows + listOf(queryTableSettingsPlugin.rowNewItem)
@@ -100,8 +122,8 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		lastFound.keys
-			.filterNot { key -> config.queries.map { it.name }.contains(key) }
-			.forEach { lastFound.remove(it) }
+				.filterNot { key -> config.queries.map { it.name }.contains(key) }
+				.forEach { lastFound.remove(it) }
 		if (config.enabled && config.url.isNotEmpty()) {
 			val queries = config.queries.mapNotNull { q -> service?.check(q.query)?.let { q to it } }
 			for ((query, call) in queries) try {
@@ -112,10 +134,11 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 					val body = response.body() ?: ""
 					val startIndex = body.indexOf('[')
 					if (startIndex >= 0) {
-						val queryAlerts = http.objectMapper.readValue<List<GerritCodeReviewQueryResponse>>(
-							body.substring(startIndex), responseType)
-							.map { item -> item.toStatusItem(query) }
-							.takeIf { it.isNotEmpty() }
+						val queryAlerts = http?.objectMapper
+								?.readValue<List<GerritCodeReviewQueryResponse>>(body.substring(startIndex),
+										responseType)
+								?.map { item -> item.toStatusItem(query) }
+								?.takeIf { it.isNotEmpty() }
 						if (queryAlerts == null) lastFound.remove(query.name)
 						else lastFound[query.name] = queryAlerts.toMutableList()
 					}

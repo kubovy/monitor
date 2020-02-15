@@ -1,3 +1,19 @@
+/******************************************************************************
+ * Copyright (C) 2020 Jan Kubovy (jan@kubovy.eu)                              *
+ *                                                                            *
+ * This program is free software: you can redistribute it and/or modify       *
+ * it under the terms of the GNU General Public License as published by       *
+ * the Free Software Foundation, either version 3 of the License, or          *
+ * (at your option) any later version.                                        *
+ *                                                                            *
+ * This program is distributed in the hope that it will be useful,            *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of             *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              *
+ * GNU General Public License for more details.                               *
+ *                                                                            *
+ * You should have received a copy of the GNU General Public License          *
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.      *
+ ******************************************************************************/
 package com.poterion.monitor.api.ui
 
 import com.poterion.monitor.api.CommonIcon
@@ -28,9 +44,11 @@ class TableSettingsPlugin<S>(private val tableName: String,
 							 private val comparator: Comparator<S>,
 							 buttonText: String = "Add",
 							 private val actions: List<(S) -> Button?> = emptyList(),
-							 private val onSave: () -> Unit = {}) {
+							 private val onSave: () -> Unit = {},
+							 private val fieldSizes: Array<Double> = emptyArray()) {
 
 	data class ColumnDefinition<S, T>(val name: String,
+									  val shortName: String? = null,
 									  var getter: S.() -> T?,
 									  var setter: S.(T) -> Unit = {},
 									  val mutator: S.(T) -> S = {
@@ -45,6 +63,7 @@ class TableSettingsPlugin<S>(private val tableName: String,
 
 	private var newItem: S = createItem()
 	private val changeListener: MutableCollection<() -> Unit> = mutableListOf()
+	private var textFieldIndex = 0
 
 	private fun <T> ColumnDefinition<S, T>.createControl() = if (options == null) {
 		TextField(initialValue.title()).also { textField ->
@@ -52,7 +71,7 @@ class TableSettingsPlugin<S>(private val tableName: String,
 			textField.textProperty().addListener { _, _, value ->
 				newItem = newItem.mutator((value as? T) ?: initialValue)
 			}
-			textField.maxWidth = Double.MAX_VALUE
+			textField.maxWidth = fieldSizes.getOrNull(textFieldIndex++) ?: Double.MAX_VALUE
 			HBox.setHgrow(textField, Priority.SOMETIMES)
 		}
 	} else {
@@ -85,7 +104,7 @@ class TableSettingsPlugin<S>(private val tableName: String,
 	} to (listOf(controlElements.first()) +
 			(1 until columnDefinitions.size).flatMap {
 				listOf(
-						Label(columnDefinitions[it].name).apply {
+						Label(columnDefinitions[it].shortName ?: columnDefinitions[it].name).apply {
 							maxWidth = Double.MAX_VALUE
 							maxHeight = Double.MAX_VALUE
 							padding = Insets(5.0)
@@ -103,7 +122,7 @@ class TableSettingsPlugin<S>(private val tableName: String,
 		prefHeight = Region.USE_COMPUTED_SIZE
 		maxWidth = Double.MAX_VALUE
 		maxHeight = Double.MAX_VALUE
-		VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS)
+		VBox.setVgrow(this, Priority.ALWAYS)
 		setOnKeyReleased { event ->
 			when (event.code) {
 				KeyCode.DELETE -> selectionModel.selectedItem?.also { removeItem(it) }
@@ -113,7 +132,7 @@ class TableSettingsPlugin<S>(private val tableName: String,
 	}
 
 	val vbox = VBox(table)
-			.apply { VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS) }
+			.apply { VBox.setVgrow(this, Priority.ALWAYS) }
 
 	private fun <T> ColumnDefinition<S, T>.createColumn() = TableColumn<S, ColumnDefinition<S, T>>(name).apply {
 		isSortable = false
