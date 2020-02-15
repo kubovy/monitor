@@ -18,41 +18,37 @@ import java.util.concurrent.TimeUnit
 object StatusCollector {
 	private val LOGGER: Logger = LoggerFactory.getLogger(StatusCollector::class.java)
 
-	private val cacheFile = File(System.getProperty("user.home"))
-			.resolve(".config")
-			.resolve("poterion-monitor")
-			.resolve("cache.yaml")
-
-
 	private val itemMap = mutableMapOf<String, Collection<StatusItem>>()
 	var items = emptyList<StatusItem>()
 		private set
 	val status: PublishSubject<StatusCollector> = PublishSubject.create<StatusCollector>()
 
 	init {
-		if (cacheFile.exists()) {
-			val statusItems = objectMapper.readValue(cacheFile, object: TypeReference<List<StatusItem?>?>() {})
+		if (Shared.cacheFile.exists()) {
+			val statusItems = objectMapper
+					.readValue(Shared.cacheFile, object: TypeReference<List<StatusItem?>?>() {})
 					?.filterNotNull()
 			if (statusItems != null) update(statusItems, false)
 		}
 
 		status.sample(10, TimeUnit.SECONDS, true).subscribe { collector ->
-			val backupFile = File(cacheFile.absolutePath + "-" + LocalDateTime.now().toString())
+			val backupFile = File(Shared.cacheFile.absolutePath + "-" + LocalDateTime.now().toString())
 			try {
-				val tempFile = File(cacheFile.absolutePath + ".tmp")
+				val tempFile = File(Shared.cacheFile.absolutePath + ".tmp")
 				var success = tempFile.parentFile.exists() || tempFile.parentFile.mkdirs()
 				objectMapper.writeValue(tempFile, collector.items)
 				success = success
 						&& (!backupFile.exists() || backupFile.delete())
-						&& (cacheFile.parentFile.exists() || cacheFile.parentFile.mkdirs())
-						&& (!cacheFile.exists() || cacheFile.renameTo(backupFile))
-						&& tempFile.renameTo(cacheFile.absoluteFile)
+						&& (Shared.cacheFile.parentFile.exists() || Shared.cacheFile.parentFile.mkdirs())
+						&& (!Shared.cacheFile.exists() || Shared.cacheFile.renameTo(backupFile))
+						&& tempFile.renameTo(Shared.cacheFile.absoluteFile)
 				if (success) backupFile.delete()
-				else LOGGER.error("Failed saving status items to ${cacheFile.absolutePath} (backup ${backupFile})")
+				else LOGGER.error("Failed saving status items to ${Shared.cacheFile.absolutePath}"
+						+ " (backup ${backupFile})")
 			} catch (e: Exception) {
 				LOGGER.error(e.message, e)
 			} finally {
-				if (!cacheFile.exists() && backupFile.exists() && !backupFile.renameTo(cacheFile)) {
+				if (!Shared.cacheFile.exists() && backupFile.exists() && !backupFile.renameTo(Shared.cacheFile)) {
 					LOGGER.error("Restoring ${backupFile} failed!")
 				}
 			}

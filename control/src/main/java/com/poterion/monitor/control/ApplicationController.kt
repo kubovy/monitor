@@ -1,5 +1,6 @@
 package com.poterion.monitor.control
 
+import com.poterion.monitor.api.Shared
 import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
@@ -32,13 +33,12 @@ import kotlin.system.exitProcess
  *
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class ApplicationController(override val stage: Stage, configFileName: String, vararg modules: Module<*, *>):
+class ApplicationController(override val stage: Stage, vararg modules: Module<*, *>):
 		ControllerInterface {
 	companion object {
 		private val LOGGER: Logger = LoggerFactory.getLogger(ApplicationController::class.java)
 	}
 
-	private val configFile = File(configFileName)
 	override val modules = mutableListOf<Module<*, *>>()
 	override val services: ObservableList<Service<ServiceConfig>> = FXCollections.observableArrayList()
 	override val notifiers: ObservableList<Notifier<NotifierConfig>> = FXCollections.observableArrayList()
@@ -49,10 +49,10 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 	private val configListeners = mutableListOf<(ApplicationConfiguration) -> Unit>()
 
 	init {
-		LOGGER.info("Initializing with ${configFile.absolutePath} config file")
+		LOGGER.info("Initializing with ${Shared.configFile.absolutePath} config file")
 		modules.forEach { registerModule(it) }
-		if (configFile.exists()) try {
-			applicationConfiguration = objectMapper.readValue(configFile, ApplicationConfiguration::class.java)
+		if (Shared.configFile.exists()) try {
+			applicationConfiguration = objectMapper.readValue(Shared.configFile, ApplicationConfiguration::class.java)
 			(applicationConfiguration.services as MutableMap<String, ServiceConfig?>)
 					.filterValues { it == null }
 					.keys
@@ -64,7 +64,7 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 		} catch (e: Exception) {
 			LOGGER.error(e.message, e)
 			applicationConfiguration = ApplicationConfiguration()
-			configFile.copyTo(File(configFile.absolutePath + "-" + LocalDateTime.now().toString()))
+			Shared.configFile.copyTo(File(Shared.configFile.absolutePath + "-" + LocalDateTime.now().toString()))
 		}
 	}
 
@@ -118,23 +118,23 @@ class ApplicationController(override val stage: Stage, configFileName: String, v
 		}
 
 		configuration.sample(1, TimeUnit.SECONDS, true).subscribe { configuration ->
-			val backupFile = File(configFile.absolutePath + "-" + LocalDateTime.now().toString())
+			val backupFile = File(Shared.configFile.absolutePath + "-" + LocalDateTime.now().toString())
 			try {
 				configListeners.forEach { it.invoke(configuration) }
-				val tempFile = File(configFile.absolutePath + ".tmp")
+				val tempFile = File(Shared.configFile.absolutePath + ".tmp")
 				var success = tempFile.parentFile.exists() || tempFile.parentFile.mkdirs()
 				objectMapper.writeValue(tempFile, configuration)
 				success = success
 						&& (!backupFile.exists() || backupFile.delete())
-						&& (configFile.parentFile.exists() || configFile.parentFile.mkdirs())
-						&& (!configFile.exists() || configFile.renameTo(backupFile))
-						&& tempFile.renameTo(configFile.absoluteFile)
+						&& (Shared.configFile.parentFile.exists() || Shared.configFile.parentFile.mkdirs())
+						&& (!Shared.configFile.exists() || Shared.configFile.renameTo(backupFile))
+						&& tempFile.renameTo(Shared.configFile.absoluteFile)
 				if (success) backupFile.delete()
-				else LOGGER.error("Failed saving configuration to ${configFile.absolutePath} (backup ${backupFile})")
+				else LOGGER.error("Failed saving configuration to ${Shared.configFile.absolutePath} (backup ${backupFile})")
 			} catch (e: Exception) {
 				LOGGER.error(e.message, e)
 			} finally {
-				if (!configFile.exists() && backupFile.exists() && !backupFile.renameTo(configFile)) {
+				if (!Shared.configFile.exists() && backupFile.exists() && !backupFile.renameTo(Shared.configFile)) {
 					LOGGER.error("Restoring ${backupFile} failed!")
 				}
 			}
