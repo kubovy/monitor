@@ -349,3 +349,6 @@ Additionally to the [common configuration](#notifiers) the System Tray service d
   - **Refresh**: Whether the [``StatusItems``](data/src/main/java/com/poterion/monitor/data/StatusItem.kt) of services
     should be displayed and refreshed. Due to compatibility issue with MacOS, where this feature must be turned off. 
 
+## License
+
+The monitor application is licensed under [GNU General Public License (GPL) 3.0](COPYING)
