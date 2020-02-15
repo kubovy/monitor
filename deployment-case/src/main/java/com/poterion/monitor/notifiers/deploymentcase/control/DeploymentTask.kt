@@ -17,10 +17,10 @@ import java.util.concurrent.atomic.AtomicInteger
  *
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class DeploymentTask(private val configuration: Configuration,
+class DeploymentTask(configuration: Configuration,
 					 context: Map<String, Any?>,
 					 private val onUpdate: (Collection<Pair<String, String>>) -> Unit,
-					 private val onFinish: () -> Unit) : Runnable {
+					 private val onFinish: () -> Unit): Runnable {
 
 	companion object {
 		private val LOGGER: Logger = LoggerFactory.getLogger(DeploymentTask::class.java)
@@ -58,10 +58,10 @@ class DeploymentTask(private val configuration: Configuration,
 		}
 	}
 
-	private val httpServiceModule = HttpServiceModule(configuration)
+	private var httpServiceModule: HttpServiceModule? = null
 
 	private val retrofit: Retrofit?
-		get() = httpServiceModule.retrofit
+		get() = httpServiceModule?.retrofit
 
 	private val service = retrofit?.create(JenkinsRestService::class.java)
 

@@ -1,6 +1,5 @@
 package com.poterion.monitor.sensors.storyboard.data
 
-import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.monitor.data.services.ServiceConfig
@@ -14,7 +13,6 @@ class StoryboardConfig(override var type: String = StoryboardConfig::class.java.
 					   override var name: String = "",
 					   override var enabled: Boolean = false,
 					   override var url: String = "",
-					   override var proxy: HttpProxy? = null,
 					   override var trustCertificate: Boolean = false,
 					   override var auth: AuthConfig? = null,
 					   override var order: Int = Int.MAX_VALUE,
@@ -24,4 +22,4 @@ class StoryboardConfig(override var type: String = StoryboardConfig::class.java.
 					   override var readTimeout: Long? = null,
 					   override var writeTimeout: Long? = null,
 					   override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
-					   var projects: MutableSet<StoryboardProjectConfig> = mutableSetOf()) : ServiceConfig
+					   var projects: MutableSet<StoryboardProjectConfig> = mutableSetOf()): ServiceConfig

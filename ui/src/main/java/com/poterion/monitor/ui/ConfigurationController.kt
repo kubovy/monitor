@@ -75,13 +75,20 @@ class ConfigurationController {
 		}
 	}
 
-	@FXML private lateinit var tabPaneMain: TabPane
-	@FXML private lateinit var tabCommon: Tab
-	@FXML private lateinit var splitPane: SplitPane
-	@FXML private lateinit var tree: TreeView<ModuleItem>
-	@FXML private lateinit var imageViewLogo: ImageView
-	@FXML private lateinit var vboxContent: VBox
-	@FXML private lateinit var gridPane: GridPane
+	@FXML
+	private lateinit var tabPaneMain: TabPane
+	@FXML
+	private lateinit var tabCommon: Tab
+	@FXML
+	private lateinit var splitPane: SplitPane
+	@FXML
+	private lateinit var tree: TreeView<ModuleItem>
+	@FXML
+	private lateinit var imageViewLogo: ImageView
+	@FXML
+	private lateinit var vboxContent: VBox
+	@FXML
+	private lateinit var gridPane: GridPane
 
 	private lateinit var controller: ControllerInterface
 
@@ -250,7 +257,7 @@ class ConfigurationController {
 	}
 
 	private fun ControllerInterface.validModules(getter: (ControllerInterface) -> Collection<ModuleInstanceInterface<*>>) =
-			modules.filter { m -> !m.singleton || !getter(this).map { it.definition }.contains(m) }
+		modules.filter { m -> !m.singleton || !getter(this).map { it.definition }.contains(m) }
 
 	private fun load() {
 		splitPane.setDividerPosition(0, controller.applicationConfiguration.commonSplit)
@@ -324,7 +331,12 @@ class ConfigurationController {
 		} else initializeModule(treeItem)
 
 		gridPane.rowConstraints.addAll((0 until rowCount).map {
-			RowConstraints(30.0, Control.USE_COMPUTED_SIZE, Double.MAX_VALUE, javafx.scene.layout.Priority.ALWAYS, VPos.TOP, true)
+			RowConstraints(30.0,
+					Control.USE_COMPUTED_SIZE,
+					Double.MAX_VALUE,
+					javafx.scene.layout.Priority.ALWAYS,
+					VPos.TOP,
+					true)
 		})
 	}
 
@@ -390,6 +402,8 @@ class ConfigurationController {
 							GridPane.setHalignment(this, HPos.RIGHT)
 						},
 						Label("Bluetooth discovery").apply { maxWidth = Double.MAX_VALUE })
+				row = initializeProxy(row, { controller.applicationConfiguration.proxy },
+						{ controller.applicationConfiguration.proxy = it })
 				row = controller.applicationConfiguration.services.values.initializeModuleReferences(row, "Services:")
 			}
 			"Notifiers" -> {
@@ -532,18 +546,20 @@ class ConfigurationController {
 				},
 				HBox(
 						TextField(config.checkInterval?.toString() ?: "").apply {
+							maxWidth = 100.0
 							promptText = "Manual update only fi left empty"
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							textProperty().addListener { _, _, value -> config.checkInterval = value.toLongOrNull() }
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						},
 						Label("ms").apply {
-							maxWidth = Double.MAX_VALUE
 							maxHeight = Double.MAX_VALUE
 							padding = Insets(5.0)
 						},
 						Button("", CommonIcon.REFRESH.toImageView()).apply { setOnAction { refresh = true } }
-				).apply { alignment = Pos.CENTER })
+				).apply {
+					alignment = Pos.CENTER_LEFT
+				})
 
 		return initializeHttpService(row)
 	}
@@ -579,42 +595,6 @@ class ConfigurationController {
 					}
 				})
 
-		val textFieldProxyAddress = TextField(config.proxy?.address ?: "")
-				.apply { promptText = "Proxy URL or IP address" }
-		val textFieldProxyPort = TextField(config.proxy?.port?.toString() ?: "")
-				.apply { promptText = "80" }
-
-		addRow(row++,
-				Label("Proxy").apply {
-					maxWidth = Double.MAX_VALUE
-					maxHeight = Double.MAX_VALUE
-					alignment = Pos.CENTER_RIGHT
-				},
-				HBox(
-						textFieldProxyAddress.apply {
-							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							textProperty().addListener { _, _, value ->
-								val address = value.takeIf { it.isNotEmpty() }
-								val port = textFieldProxyPort.text.takeIf { it.isNotEmpty() }?.toIntOrNull() ?: 80
-								config.proxy = if (address == null)
-									null else HttpProxy(address, port)
-							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-						},
-						textFieldProxyPort.apply {
-							minWidth = 75.0
-							HBox.setHgrow(this, javafx.scene.layout.Priority.NEVER)
-							textProperty().addListener { _, _, value ->
-								val address = textFieldProxyAddress.text.takeIf { it.isNotEmpty() }
-								val port = value.takeIf { it.isNotEmpty() }?.toIntOrNull() ?: 80
-								config.proxy = if (address == null)
-									null else HttpProxy(address, port)
-							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-						}).apply { alignment = Pos.CENTER })
-
-		row = initializeAuthentication(row, { config.proxy?.auth }, { config.proxy?.auth = it })
-
 		addRow(row++,
 				Label("Connection timeout").apply {
 					maxWidth = Double.MAX_VALUE
@@ -623,16 +603,18 @@ class ConfigurationController {
 				},
 				HBox(
 						TextField(config.connectTimeout?.toString() ?: "").apply {
+							maxWidth = 100.0
 							promptText = "10000"
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.connectTimeout = it } }
+							textProperty().addListener { _, _, value ->
+								value.toLongOrNull().also { config.connectTimeout = it }
+							}
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						},
 						Label("ms").apply {
-							maxWidth = Double.MAX_VALUE
 							maxHeight = Double.MAX_VALUE
 							padding = Insets(5.0)
-						}).apply { alignment = Pos.CENTER })
+						}).apply { alignment = Pos.CENTER_LEFT })
 
 		addRow(row++,
 				Label("Read timeout").apply {
@@ -642,16 +624,18 @@ class ConfigurationController {
 				},
 				HBox(
 						TextField(config.readTimeout?.toString() ?: "").apply {
+							maxWidth = 100.0
 							promptText = "10000"
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.readTimeout = it } }
+							textProperty().addListener { _, _, value ->
+								value.toLongOrNull().also { config.readTimeout = it }
+							}
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						},
 						Label("ms").apply {
-							maxWidth = Double.MAX_VALUE
 							maxHeight = Double.MAX_VALUE
 							padding = Insets(5.0)
-						}).apply { alignment = Pos.CENTER })
+						}).apply { alignment = Pos.CENTER_LEFT })
 
 		addRow(row++,
 				Label("Write timeout").apply {
@@ -661,34 +645,123 @@ class ConfigurationController {
 				},
 				HBox(
 						TextField(config.writeTimeout?.toString() ?: "").apply {
+							maxWidth = 100.0
 							promptText = "10000"
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							textProperty().addListener { _, _, value -> value.toLongOrNull().also { config.writeTimeout = it } }
+							textProperty().addListener { _, _, value ->
+								value.toLongOrNull().also { config.writeTimeout = it }
+							}
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						},
 						Label("ms").apply {
-							maxWidth = Double.MAX_VALUE
 							maxHeight = Double.MAX_VALUE
 							padding = Insets(5.0)
-						}).apply { alignment = Pos.CENTER })
+						}).apply { alignment = Pos.CENTER_LEFT })
 
 		return row
 	}
 
-	private fun Service<*>.initializeAuthentication(rowIndex: Int,
-													getter: () -> AuthConfig?,
-													setter: (AuthConfig?) -> Unit): Int = gridPane.run {
+	private fun initializeProxy(rowIndex: Int,
+								getter: () -> HttpProxy?,
+								setter: (HttpProxy?) -> Unit): Int = gridPane.run {
+		var row = rowIndex
+
+		val textFieldProxyAddress = TextField(getter()?.address ?: "")
+				.apply { promptText = "Proxy URL or IP address" }
+		val textFieldProxyPort = TextField(getter()?.port?.toString() ?: "")
+				.apply { promptText = "80" }
+		val textFieldNoProxy = TextField(getter()?.noProxy ?: "")
+				.apply {
+					promptText = ".example.com,.another.net"
+				}
+
+		val radioBasicAuth = RadioButton()
+		val textFieldUsername = TextField()
+		val textFieldPassword = PasswordField()
+		val radioTokenAuth = RadioButton()
+		val textFieldToken = TextField()
+
+		addRow(row++,
+				Label("Proxy").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
+				HBox(*listOfNotNull(
+						textFieldProxyAddress.apply {
+							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+							textProperty().addListener { _, _, value ->
+								val address = value.takeIf { it.isNotEmpty() }
+								val port = textFieldProxyPort.text.takeIf { it.isNotEmpty() }?.toIntOrNull() ?: 80
+								val noProxy = textFieldNoProxy.text?.takeIf { it.isNotBlank() }
+								setter(if (address == null) null else HttpProxy(address, port, noProxy))
+							}
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+						},
+						textFieldProxyPort.apply {
+							minWidth = 75.0
+							maxWidth = 75.0
+							HBox.setHgrow(this, javafx.scene.layout.Priority.NEVER)
+							textProperty().addListener { _, _, value ->
+								val address = textFieldProxyAddress.text.takeIf { it.isNotEmpty() }
+								val port = value.takeIf { it.isNotEmpty() }?.toIntOrNull() ?: 80
+								val noProxy = textFieldNoProxy.text?.takeIf { it.isNotBlank() }
+								setter(if (address == null) null else HttpProxy(address, port, noProxy))
+							}
+							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+						}).toTypedArray()
+				).apply {
+					maxWidth = 500.0
+					alignment = Pos.CENTER
+				})
+
+		addRow(row++,
+				Label("No Proxy").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
+				textFieldNoProxy.apply {
+					maxWidth = 500.0
+					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
+					textProperty().addListener { _, _, value ->
+						val address = textFieldProxyAddress.text.takeIf { it.isNotEmpty() }
+						val port = textFieldProxyPort.text.takeIf { it.isNotEmpty() }?.toIntOrNull() ?: 80
+						val noProxy = value?.takeIf { it.isNotBlank() }
+						setter(if (address == null) null else HttpProxy(address, port, noProxy))
+					}
+					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+				})
+
+		addRow(row++, Pane(), Label("A comma-separated list of domain extensions proxy should not be used for."))
+
+		return initializeAuthentication(row, { getter()?.auth }, { getter()?.auth = it },
+				radioBasicAuth, textFieldUsername, textFieldPassword, radioTokenAuth, textFieldToken)
+	}
+
+	private fun initializeAuthentication(rowIndex: Int,
+										 getter: () -> AuthConfig?,
+										 setter: (AuthConfig?) -> Unit,
+										 radBasicAuth: RadioButton? = null,
+										 txtUsername: TextField? = null,
+										 txtPassword: PasswordField? = null,
+										 radTokenAuth: RadioButton? = null,
+										 txtToken: TextField? = null): Int = gridPane.run {
 		var row = rowIndex
 
 		val toggleGroupAuth = ToggleGroup()
-		val radioBasicAuth = RadioButton().apply { toggleGroup = toggleGroupAuth }
-		val textFieldUsername = TextField(getter()?.let { it as? BasicAuthConfig }?.username ?: "")
-				.apply { promptText = "No username" }
-		val textFieldPassword = PasswordField()
+		val radioBasicAuth = (radBasicAuth ?: RadioButton()).apply { toggleGroup = toggleGroupAuth }
+		val textFieldUsername = (txtUsername ?: TextField()).apply {
+			text = getter()?.let { it as? BasicAuthConfig }?.username ?: ""
+			promptText = "No username"
+		}
+		val textFieldPassword = (txtPassword ?: PasswordField())
 				.apply { promptText = "No password" }
-		val radioTokenAuth = RadioButton().apply { toggleGroup = toggleGroupAuth }
-		val textFieldToken = TextField(getter()?.let { it as? TokenAuthConfig }?.token ?: "")
-				.apply { promptText = "No token" }
+		val radioTokenAuth = (radTokenAuth ?: RadioButton()).apply { toggleGroup = toggleGroupAuth }
+		val textFieldToken = (txtToken ?: TextField()).apply {
+			text = getter()?.let { it as? TokenAuthConfig }?.token ?: ""
+			promptText = "No token"
+		}
 
 		addRow(row++,
 				Label("Basic Auth").apply {
@@ -701,7 +774,7 @@ class ConfigurationController {
 							maxHeight = Double.MAX_VALUE
 							isSelected = getter() is BasicAuthConfig
 							selectedProperty().addListener { _, _, value ->
-								if (value) {
+								if (value && !isDisable) {
 									val usr = textFieldUsername.text.takeIf { it.isNotBlank() }
 									val pwd = textFieldPassword.text.takeIf { it.isNotBlank() }
 									setter(if (usr == null && pwd == null)
@@ -713,7 +786,7 @@ class ConfigurationController {
 						textFieldUsername.apply {
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							textProperty().addListener { _, _, value ->
-								if (radioBasicAuth.isSelected) {
+								if (radioBasicAuth.isSelected && !isDisable) {
 									val usr = value.takeIf { it.isNotBlank() }
 									val pwd = textFieldPassword.text.takeIf { it.isNotBlank() }
 									setter(if (usr == null && pwd == null)
@@ -726,7 +799,7 @@ class ConfigurationController {
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							text = getter()?.let { it as? BasicAuthConfig }?.password ?: ""
 							textProperty().addListener { _, _, value ->
-								if (radioBasicAuth.isSelected) {
+								if (radioBasicAuth.isSelected && !isDisable) {
 									val usr = textFieldUsername.text.takeIf { it.isNotBlank() }
 									val pwd = value.takeIf { it.isNotBlank() }
 									setter(if (usr == null && pwd == null)
@@ -734,7 +807,10 @@ class ConfigurationController {
 								}
 							}
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-						}).apply { alignment = Pos.CENTER })
+						}).apply {
+					maxWidth = 500.0
+					alignment = Pos.CENTER
+				})
 
 		addRow(row++,
 				Label("Bearer Token").apply {
@@ -747,7 +823,7 @@ class ConfigurationController {
 							maxHeight = Double.MAX_VALUE
 							isSelected = getter() is TokenAuthConfig
 							selectedProperty().addListener { _, _, value ->
-								if (value) {
+								if (value && !isDisable) {
 									setter(textFieldToken.text
 											.takeIf { it.isNotEmpty() }
 											?.let { TokenAuthConfig(token = it) })
@@ -758,12 +834,15 @@ class ConfigurationController {
 						textFieldToken.apply {
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							textProperty().addListener { _, _, value ->
-								if (radioTokenAuth.isSelected) setter(value
+								if (radioTokenAuth.isSelected && !isDisable) setter(value
 										.takeIf { it.isNotBlank() }
 										?.let { TokenAuthConfig(token = it) })
 							}
 							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
-						}).apply { alignment = Pos.CENTER })
+						}).apply {
+					maxWidth = 500.0
+					alignment = Pos.CENTER
+				})
 		return row
 	}
 

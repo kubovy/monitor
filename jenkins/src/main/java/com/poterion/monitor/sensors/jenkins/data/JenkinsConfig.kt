@@ -1,6 +1,5 @@
 package com.poterion.monitor.sensors.jenkins.data
 
-import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.monitor.data.services.ServiceConfig
@@ -14,7 +13,6 @@ class JenkinsConfig(override var type: String = JenkinsConfig::class.java.simple
 					override var name: String = "",
 					override var enabled: Boolean = false,
 					override var url: String = "",
-					override var proxy: HttpProxy? = null,
 					override var trustCertificate: Boolean = false,
 					override var auth: AuthConfig? = null,
 					override var order: Int = Int.MAX_VALUE,
@@ -25,4 +23,4 @@ class JenkinsConfig(override var type: String = JenkinsConfig::class.java.simple
 					override var writeTimeout: Long? = null,
 					override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
 					var jobs: MutableCollection<JenkinsJobConfig> = mutableListOf(),
-					var filter: String? = null) : ServiceConfig
+					var filter: String? = null): ServiceConfig

@@ -1,6 +1,5 @@
 package com.poterion.monitor.sensors.jira.data
 
-import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.auth.AuthConfig
@@ -15,7 +14,6 @@ class JiraConfig(override var type: String = JiraConfig::class.java.simpleName,
 				 override var name: String = "",
 				 override var enabled: Boolean = false,
 				 override var url: String = "",
-				 override var proxy: HttpProxy? = null,
 				 override var trustCertificate: Boolean = false,
 				 override var auth: AuthConfig? = null,
 				 override var order: Int = Int.MAX_VALUE,
@@ -46,4 +44,4 @@ class JiraConfig(override var type: String = JiraConfig::class.java.simpleName,
 						 "Complete" to Status.OK,
 						 "Canceled" to Status.OK,
 						 "Closed" to Status.NONE),
-				 val queries: MutableSet<JiraQueryConfig> = mutableSetOf()) : ServiceConfig
+				 val queries: MutableSet<JiraQueryConfig> = mutableSetOf()): ServiceConfig

@@ -7,7 +7,6 @@ import com.poterion.monitor.data.auth.AuthConfig
  */
 interface HttpConfig {
 	var url: String
-	var proxy: HttpProxy?
 	var trustCertificate: Boolean
 	var auth: AuthConfig?
 	var connectTimeout: Long?

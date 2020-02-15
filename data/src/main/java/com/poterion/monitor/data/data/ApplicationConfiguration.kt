@@ -1,6 +1,7 @@
 package com.poterion.monitor.data.data
 
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.services.ServiceConfig
 
@@ -17,6 +18,7 @@ data class ApplicationConfiguration(
 		var commonSplit: Double = 0.3,
 		var selectedTab: String? = null,
 		var previousTab: String? = null,
+		var proxy: HttpProxy? = null,
 		val services: MutableMap<String, ServiceConfig> = mutableMapOf(),
 		val notifiers: MutableMap<String, NotifierConfig> = mutableMapOf(),
 		val silenced: MutableMap<String, SilencedStatusItem> = mutableMapOf())

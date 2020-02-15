@@ -35,13 +35,15 @@ import java.time.format.DateTimeParseException
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class AlertManagerService(override val controller: ControllerInterface, config: AlertManagerConfig) : Service<AlertManagerConfig>(config) {
+class AlertManagerService(override val controller: ControllerInterface, config: AlertManagerConfig):
+		Service<AlertManagerConfig>(config) {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(AlertManagerService::class.java)
 	}
 
-	override val definition: Module<AlertManagerConfig, ModuleInstanceInterface<AlertManagerConfig>> = AlertManagerModule
+	override val definition: Module<AlertManagerConfig, ModuleInstanceInterface<AlertManagerConfig>> =
+		AlertManagerModule
 	private val service
 		get() = retrofit?.create(AlertManagerRestService::class.java)
 
@@ -96,7 +98,8 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 						?.let { uri -> Button("", com.poterion.monitor.api.CommonIcon.LINK.toImageView()) to uri }
 						?.also { (btn, uri) -> btn.setOnAction { uri.openInExternalApplication() } }
 						?.first
-			})
+			},
+			fieldSizes = arrayOf(150.0))
 
 	override val configurationRows: List<Pair<Node, Node>>
 		get() = super.configurationRows + listOf(
@@ -156,41 +159,41 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 				if (response?.isSuccessful == true) {
 					val configPairs = config.labels.map { "${it.name}:${it.value}" to it }.toMap()
 					val alerts = response.body()
-						?.filter { it.status?.silencedBy?.isEmpty() != false }
-						?.filter { it.status?.inhibitedBy?.isEmpty() != false }
-						?.filter { a ->
-							config.receivers.isEmpty() || a.receivers.map { it.name }.any {
-								config.receivers.contains(it)
+							?.filter { it.status?.silencedBy?.isEmpty() != false }
+							?.filter { it.status?.inhibitedBy?.isEmpty() != false }
+							?.filter { a ->
+								config.receivers.isEmpty() || a.receivers.map { it.name }.any {
+									config.receivers.contains(it)
+								}
 							}
-						}
-						?.flatMap { item -> item.labels.map { "${it.key}:${it.value}" to item } }
-						?.filter { (pair, _) -> configPairs[pair] != null }
-						?.map { (pair, item) -> configPairs.getValue(pair) to item }
-						?.sortedWith(compareBy({ (c, _) -> c.status.ordinal }, { (p, _) -> p.priority.ordinal }))
-						?.associateBy { (_, i) ->
-							config.nameRefs.mapNotNull {
-								i.annotations[it] ?: i.labels[it]
-							}.firstOrNull() ?: ""
-						}
-						?.map { (name, p) -> Triple(name, p.first, p.second) }
-						?.also { lastFound = it }
-						?.map { (n, c, i) -> createStatusItem(n, c, i) }
-						?.takeIf { it.isNotEmpty() }
-						?: listOf(StatusItem(
-							id = "${config.uuid}-no-alerts",
-							serviceId = config.uuid,
-							priority = config.priority,
-							status = Status.OK,
-							title = "No alerts",
-							isRepeatable = false))
+							?.flatMap { item -> item.labels.map { "${it.key}:${it.value}" to item } }
+							?.filter { (pair, _) -> configPairs[pair] != null }
+							?.map { (pair, item) -> configPairs.getValue(pair) to item }
+							?.sortedWith(compareBy({ (c, _) -> c.status.ordinal }, { (p, _) -> p.priority.ordinal }))
+							?.associateBy { (_, i) ->
+								config.nameRefs.mapNotNull {
+									i.annotations[it] ?: i.labels[it]
+								}.firstOrNull() ?: ""
+							}
+							?.map { (name, p) -> Triple(name, p.first, p.second) }
+							?.also { lastFound = it }
+							?.map { (n, c, i) -> createStatusItem(n, c, i) }
+							?.takeIf { it.isNotEmpty() }
+							?: listOf(StatusItem(
+									id = "${config.uuid}-no-alerts",
+									serviceId = config.uuid,
+									priority = config.priority,
+									status = Status.OK,
+									title = "No alerts",
+									isRepeatable = false))
 					updater(alerts)
 				} else {
 					updater(getStatusItems("Service error", Status.SERVICE_ERROR))
 				}
 			} catch (e: Exception) {
 				call?.request()
-					?.also { LOGGER.warn("${it.method()} ${it.url()}: ${e.message}", e) }
-					?: LOGGER.warn(e.message)
+						?.also { LOGGER.warn("${it.method()} ${it.url()}: ${e.message}", e) }
+						?: LOGGER.warn(e.message)
 				updater(getStatusItems("Connection error", Status.CONNECTION_ERROR))
 			}
 		} catch (e: IOException) {

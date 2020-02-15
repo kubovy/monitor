@@ -8,18 +8,24 @@ import retrofit2.Retrofit
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-abstract class Service<out Config : ServiceConfig>(config: Config) : AbstractModule<Config>(config) {
+abstract class Service<out Config: ServiceConfig>(config: Config): AbstractModule<Config>(config) {
 	override val navigationRoot: NavigationItem
 		get() = NavigationItem(
 				title = config.name,
 				icon = definition.icon,
 				sub = mutableListOf())
 
-	val http = HttpServiceModule(config)
+	var http: HttpServiceModule? = null
+		get() {
+			if (field == null) field = HttpServiceModule(controller.applicationConfiguration, config)
+			return field
+		}
+		private set
+
 	var refresh: Boolean = false
 
 	protected val retrofit: Retrofit?
-		get() = http.retrofit
+		get() = http?.retrofit
 
 	/**
 	 * Check implementation.

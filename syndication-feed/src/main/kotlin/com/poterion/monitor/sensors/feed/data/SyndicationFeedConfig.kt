@@ -1,6 +1,5 @@
 package com.poterion.monitor.sensors.feed.data
 
-import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.auth.AuthConfig
@@ -15,7 +14,6 @@ class SyndicationFeedConfig(override var type: String = SyndicationFeedConfig::c
 							override var name: String = "",
 							override var enabled: Boolean = true,
 							override var url: String = "",
-							override var proxy: HttpProxy? = null,
 							override var trustCertificate: Boolean = false,
 							override var auth: AuthConfig? = null,
 							override var order: Int = Int.MAX_VALUE,
@@ -26,5 +24,5 @@ class SyndicationFeedConfig(override var type: String = SyndicationFeedConfig::c
 							override var writeTimeout: Long? = null,
 							override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
 							var status: Status = Status.NONE,
-							var filters: MutableCollection<SyndicationFeedFilterConfig> = mutableListOf()) :
-	ServiceConfig
+							var filters: MutableCollection<SyndicationFeedFilterConfig> = mutableListOf()):
+		ServiceConfig

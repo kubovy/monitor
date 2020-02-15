@@ -32,7 +32,8 @@ import java.time.format.DateTimeParseException
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class StoryboardService(override val controller: ControllerInterface, config: StoryboardConfig) : Service<StoryboardConfig>(config) {
+class StoryboardService(override val controller: ControllerInterface, config: StoryboardConfig):
+		Service<StoryboardConfig>(config) {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(StoryboardService::class.java)
@@ -75,7 +76,8 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 						?.let { uri -> Button("", CommonIcon.LINK.toImageView()) to uri }
 						?.also { (btn, uri) -> btn.setOnAction { uri.openInExternalApplication() } }
 						?.first
-			})
+			},
+			fieldSizes = arrayOf(200.0))
 
 	override val configurationRows: List<Pair<Node, Node>>
 		get() = super.configurationRows + listOf(projectTableSettingsPlugin.rowNewItem)
@@ -85,8 +87,8 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		lastFound.keys
-			.filterNot { key -> config.projects.map { it.name }.contains(key) }
-			.forEach { lastFound.remove(it) }
+				.filterNot { key -> config.projects.map { it.name }.contains(key) }
+				.forEach { lastFound.remove(it) }
 		if (config.enabled && config.url.isNotEmpty()) {
 			for (project in config.projects) try {
 				val alerts = mutableListOf<StatusItem>()
@@ -105,9 +107,9 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 							for (story in stories) if (story.id != null) {
 								alerts.add(story.toStatusItem(project))
 								val taskAlerts = service
-									?.tasks(story.id!!)
-									?.execute()
-									?.takeIf { it.isSuccessful }
+										?.tasks(story.id!!)
+										?.execute()
+										?.takeIf { it.isSuccessful }
 										?.body()
 										?.map { task -> task.toStatusItem(project, story) }
 										?: emptyList()

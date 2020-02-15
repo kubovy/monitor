@@ -28,9 +28,11 @@ class TableSettingsPlugin<S>(private val tableName: String,
 							 private val comparator: Comparator<S>,
 							 buttonText: String = "Add",
 							 private val actions: List<(S) -> Button?> = emptyList(),
-							 private val onSave: () -> Unit = {}) {
+							 private val onSave: () -> Unit = {},
+							 private val fieldSizes: Array<Double> = emptyArray()) {
 
 	data class ColumnDefinition<S, T>(val name: String,
+									  val shortName: String? = null,
 									  var getter: S.() -> T?,
 									  var setter: S.(T) -> Unit = {},
 									  val mutator: S.(T) -> S = {
@@ -45,6 +47,7 @@ class TableSettingsPlugin<S>(private val tableName: String,
 
 	private var newItem: S = createItem()
 	private val changeListener: MutableCollection<() -> Unit> = mutableListOf()
+	private var textFieldIndex = 0
 
 	private fun <T> ColumnDefinition<S, T>.createControl() = if (options == null) {
 		TextField(initialValue.title()).also { textField ->
@@ -52,7 +55,7 @@ class TableSettingsPlugin<S>(private val tableName: String,
 			textField.textProperty().addListener { _, _, value ->
 				newItem = newItem.mutator((value as? T) ?: initialValue)
 			}
-			textField.maxWidth = Double.MAX_VALUE
+			textField.maxWidth = fieldSizes.getOrNull(textFieldIndex++) ?: Double.MAX_VALUE
 			HBox.setHgrow(textField, Priority.SOMETIMES)
 		}
 	} else {
@@ -85,7 +88,7 @@ class TableSettingsPlugin<S>(private val tableName: String,
 	} to (listOf(controlElements.first()) +
 			(1 until columnDefinitions.size).flatMap {
 				listOf(
-						Label(columnDefinitions[it].name).apply {
+						Label(columnDefinitions[it].shortName ?: columnDefinitions[it].name).apply {
 							maxWidth = Double.MAX_VALUE
 							maxHeight = Double.MAX_VALUE
 							padding = Insets(5.0)
@@ -103,7 +106,7 @@ class TableSettingsPlugin<S>(private val tableName: String,
 		prefHeight = Region.USE_COMPUTED_SIZE
 		maxWidth = Double.MAX_VALUE
 		maxHeight = Double.MAX_VALUE
-		VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS)
+		VBox.setVgrow(this, Priority.ALWAYS)
 		setOnKeyReleased { event ->
 			when (event.code) {
 				KeyCode.DELETE -> selectionModel.selectedItem?.also { removeItem(it) }
@@ -113,7 +116,7 @@ class TableSettingsPlugin<S>(private val tableName: String,
 	}
 
 	val vbox = VBox(table)
-			.apply { VBox.setVgrow(this, javafx.scene.layout.Priority.ALWAYS) }
+			.apply { VBox.setVgrow(this, Priority.ALWAYS) }
 
 	private fun <T> ColumnDefinition<S, T>.createColumn() = TableColumn<S, ColumnDefinition<S, T>>(name).apply {
 		isSortable = false
