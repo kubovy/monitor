@@ -1,6 +1,5 @@
 package com.poterion.monitor.api.controllers
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.notifiers.NotifierConfig
@@ -9,7 +8,6 @@ import javafx.collections.ObservableList
 import javafx.stage.Stage
 
 interface ControllerInterface {
-	val mapper: ObjectMapper
 	val stage: Stage
 	val applicationConfiguration: ApplicationConfiguration
 	val modules: List<Module<*, *>>

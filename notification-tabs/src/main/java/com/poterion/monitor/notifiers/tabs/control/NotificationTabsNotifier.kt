@@ -42,7 +42,7 @@ class NotificationTabsNotifier(override val controller: ControllerInterface, con
 
 	override fun initialize() {
 		super.initialize()
-		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe {
+		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe {
 			Platform.runLater {
 				configurationTabIcon.set(it.maxStatus(controller.applicationConfiguration.silenced.keys,
 						config.minPriority, config.minStatus, config.services).toIcon().toImageView())

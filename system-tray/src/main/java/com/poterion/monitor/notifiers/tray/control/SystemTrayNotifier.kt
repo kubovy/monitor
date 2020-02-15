@@ -7,10 +7,8 @@ import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.modules.Module
-import com.poterion.utils.javafx.Icon
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.utils.javafx.toImageView
 import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.StatusItem
@@ -19,7 +17,9 @@ import com.poterion.monitor.notifiers.tray.SystemTrayIcon
 import com.poterion.monitor.notifiers.tray.SystemTrayModule
 import com.poterion.monitor.notifiers.tray.data.SystemTrayConfig
 import com.poterion.monitor.ui.ConfigurationController
+import com.poterion.utils.javafx.Icon
 import com.poterion.utils.javafx.openInExternalApplication
+import com.poterion.utils.javafx.toImageView
 import dorkbox.systemTray.*
 import javafx.application.Platform
 import javafx.geometry.Pos
@@ -60,7 +60,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 		} catch (e: IOException) {
 			LOGGER.error(e.message, e)
 		}
-		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe {
+		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe {
 			Platform.runLater { update(it) }
 		}
 	}

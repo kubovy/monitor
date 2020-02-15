@@ -8,6 +8,7 @@ import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.modules.ServiceModule
+import com.poterion.monitor.api.objectMapper
 import com.poterion.monitor.api.utils.toIcon
 import com.poterion.monitor.data.*
 import com.poterion.monitor.data.Priority
@@ -282,7 +283,7 @@ class ConfigurationController {
 
 		tableSilencedStatusItems.columns.addAll(tableColumnServiceName, tableColumnTitle, tableColumnSilencedAt,
 				tableColumnLastChange, tableColumnUntil, tableColumnAction)
-		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe {
+		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe {
 			tableSilencedStatusItems.items.setAll(controller.applicationConfiguration.silenced.values)
 		}
 	}
@@ -921,8 +922,8 @@ class ConfigurationController {
 	private fun TreeItem<ModuleItem>.duplicate() {
 		val module = value?.module?.definition
 		if (module != null) {
-			val config = controller.mapper
-					.let { it.readValue(it.writeValueAsString(value.module?.config), ModuleConfig::class.java) }
+			val config = objectMapper
+					.readValue(objectMapper.writeValueAsString(value.module?.config), ModuleConfig::class.java)
 					.apply {
 						uuid = UUID.randomUUID().toString()
 						name = "${name} (Copy)"

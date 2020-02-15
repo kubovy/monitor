@@ -33,6 +33,9 @@ dependencies {
     api project(':serial-communication')
     // Jackson
     implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.10.1'
+    implementation 'com.fasterxml.jackson.module:jackson-module-parameter-names:2.10.1'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.10.1'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.10.1'
     // ReactiveX
     compile 'io.reactivex.rxjava2:rxjava:2.2.17'
     compile 'io.reactivex.rxjava2:rxkotlin:2.4.0'

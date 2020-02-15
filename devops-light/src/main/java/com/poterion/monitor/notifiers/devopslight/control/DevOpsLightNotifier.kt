@@ -1,6 +1,6 @@
 package com.poterion.monitor.notifiers.devopslight.control
 
-import com.poterion.communication.serial.*
+import com.poterion.communication.serial.MessageKind
 import com.poterion.communication.serial.communicator.BluetoothCommunicator
 import com.poterion.communication.serial.communicator.Channel
 import com.poterion.communication.serial.communicator.USBCommunicator
@@ -149,7 +149,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 
 	override fun initialize() {
 		super.initialize()
-		StatusCollector.status.sample(10, TimeUnit.SECONDS).subscribe { collector ->
+		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe { collector ->
 			Platform.runLater {
 				val lights = if (config.combineMultipleServices) collector
 						.topStatuses(controller.applicationConfiguration.silenced.keys, config.minPriority,
