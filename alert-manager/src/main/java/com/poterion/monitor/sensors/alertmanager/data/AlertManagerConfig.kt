@@ -69,12 +69,12 @@ class AlertManagerConfig(override val type: String = AlertManagerConfig::class.j
 						 connectTimeout: Long? = null,
 						 readTimeout: Long? = null,
 						 writeTimeout: Long? = null,
-						 tableColumnWidths: Map<String, Int> = mutableMapOf(),
-						 nameRefs: Set<String> = mutableSetOf(),
-						 descriptionRefs: Set<String> = mutableSetOf(),
-						 receivers: Set<String> = mutableSetOf(),
-						 labelFilter: Set<String> = mutableSetOf(),
-						 labels: List<AlertManagerLabelConfig> = mutableListOf()) :
+						 tableColumnWidths: Map<String, Int> = emptyMap(),
+						 nameRefs: Set<String> = emptySet(),
+						 descriptionRefs: Set<String> = emptySet(),
+						 receivers: Set<String> = emptySet(),
+						 labelFilter: Set<String> = emptySet(),
+						 labels: List<AlertManagerLabelConfig> = emptyList()) :
 		AbstractServiceConfig(name, enabled, url, trustCertificate, auth, order, priority, checkInterval,
 				connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
 

@@ -31,6 +31,7 @@ import com.poterion.monitor.sensors.alertmanager.data.AlertManagerLabelConfig
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerResponse
 import com.poterion.utils.javafx.openInExternalApplication
 import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.javafx.toObservableList
 import com.poterion.utils.kotlin.setAll
 import com.poterion.utils.kotlin.toSet
 import com.poterion.utils.kotlin.toUriOrNull
@@ -77,32 +78,28 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Label",
-							getter = { name },
-							setter = { name = it },
+							property = { nameProperty },
 							initialValue = "",
 							isEditable = true),
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Value",
-							getter = { value },
-							setter = { value = it },
+							property = { valueProperty },
 							initialValue = "",
 							isEditable = true),
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Priority",
-							getter = { priority },
-							setter = { priority = it },
+							property = { priorityProperty },
 							initialValue = Priority.NONE,
 							isEditable = true,
 							icon = { toIcon() },
-							options = { Priority.values().toList() }),
+							options = Priority.values().toObservableList()),
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Status",
-							getter = { status },
-							setter = { status = it },
+							property = { statusProperty },
 							initialValue = Status.NONE,
 							isEditable = true,
 							icon = { toIcon() },
-							options = { Status.values().toList() })),
+							options = Status.values().toObservableList())),
 			comparator = compareBy(
 					{ -it.priority.ordinal },
 					{ -it.status.ordinal },

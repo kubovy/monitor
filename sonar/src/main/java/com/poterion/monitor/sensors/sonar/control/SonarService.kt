@@ -29,6 +29,7 @@ import com.poterion.monitor.sensors.sonar.SonarModule
 import com.poterion.monitor.sensors.sonar.data.SonarConfig
 import com.poterion.monitor.sensors.sonar.data.SonarProjectConfig
 import com.poterion.monitor.sensors.sonar.data.SonarProjectResponse
+import com.poterion.utils.javafx.toObservableList
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -62,26 +63,23 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 			items = config.projects,
 			displayName = { name },
 			columnDefinitions = listOf(
-					TableSettingsPlugin.ColumnDefinition(
+					TableSettingsPlugin.ColumnDefinition<SonarProjectConfig, Number>(
 							name = "ID",
-							getter = { id },
-							setter = { id = it },
+							property = { idProperty },
 							initialValue = 0,
 							isEditable = true),
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Project Name",
-							getter = { name },
-							setter = { name = it },
+							property = { nameProperty },
 							initialValue = "",
 							isEditable = true),
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Priority",
-							getter = { priority },
-							setter = { priority = it },
+							property = { priorityProperty },
 							initialValue = Priority.NONE,
 							isEditable = true,
 							icon = { toIcon() },
-							options = { Priority.values().toList() })),
+							options = Priority.values().toObservableList())),
 			comparator = compareBy({ -it.priority.ordinal }, { it.name })//,
 			//actions = listOf { item ->
 			//	item.let { URLEncoder.encode(it.name, Charsets.UTF_8.name()) }
