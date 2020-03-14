@@ -29,7 +29,7 @@ fun ByteArray.toIntList() = map { it.toUByte() }.map { it.toInt() }
 
 fun List<Int>.toByteArray() = map { it.toByte() }.toByteArray()
 
-fun TreeView<StateMachineItem>.toStateMachine(devices: Collection<Device>, variables: Collection<Variable>): List<State> = root.children
+fun TreeView<StateMachineItem>.toStateMachine(devices: Collection<Device>?, variables: Collection<Variable>?): List<State> = root.children
 		.map { it to (it.value as State) }
 		.map { (stateTreeItem, state) ->
 			state.apply {
@@ -278,7 +278,7 @@ fun Device.toData(): Int = when (kind) {
 	}
 }
 
-fun Int.toDevice(devices: Collection<Device>) = when (this) {
+fun Int.toDevice(devices: Collection<Device>?) = when (this) {
 	in (0 until 40) -> Device(kind = DeviceKind.MCP23017, key = "${this}")      // 0x00 - 0x27
 	in (40 until 72) -> Device(kind = DeviceKind.WS281x, key = "${this - 40}")  // 0x28 - 0x47
 	80 -> Device(kind = DeviceKind.LCD, key = "${LcdKey.MESSAGE.key}")          // 0x50
@@ -393,13 +393,13 @@ private fun List<Int>.toEnterString(): String {
 }
 
 
-fun Device.findName(devices: Collection<Device>) = apply {
+fun Device.findName(devices: Collection<Device>?) = apply {
 	name = when {
 		kind == DeviceKind.VIRTUAL && key == VirtualKey.GOTO.key -> "GOTO"
 		kind == DeviceKind.VIRTUAL && key == VirtualKey.ENTER.key -> "ENTER"
 		kind == DeviceKind.VIRTUAL && key == VirtualKey.ENTERED.key -> "ENTERED"
 		kind == DeviceKind.VIRTUAL && key == VirtualKey.ABORTED.key -> "ABORTED"
-		else -> devices.find { it.kind == kind && it.key == key }?.name ?: ""
+		else -> devices?.find { it.kind == kind && it.key == key }?.name ?: ""
 	}
 }
 
@@ -408,7 +408,7 @@ fun Variable.findName(variables: Collection<Variable>) = apply {
 }
 
 fun findInStateMachine(filter: (StateMachineItem) -> Boolean): List<StateMachineItem> =
-		findInStateMachine(filter, SharedUiData.stateMachine)
+		findInStateMachine(filter, SharedUiData.stateMachine ?: emptyList())
 
 private fun findInStateMachine(filter: (StateMachineItem) -> Boolean, states: List<State>):
 		List<StateMachineItem> = states.flatMap { it.children() }.filter { filter(it) }

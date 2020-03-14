@@ -59,7 +59,7 @@ import java.util.concurrent.TimeUnit
  */
 class DevOpsLightNotifier(override val controller: ControllerInterface, config: DevOpsLightConfig) :
 		Notifier<DevOpsLightConfig>(config),
-	CommunicatorListener {
+		CommunicatorListener {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(DevOpsLightNotifier::class.java)
@@ -67,9 +67,9 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 
 	override val definition: Module<DevOpsLightConfig, ModuleInstanceInterface<DevOpsLightConfig>> = DevOpsLight
 	val bluetoothCommunicator: BluetoothCommunicator =
-		BluetoothCommunicator()
+			BluetoothCommunicator()
 	val usbCommunicator: USBCommunicator =
-		USBCommunicator()
+			USBCommunicator()
 	private var lastState = emptyList<LightConfig>()
 	private val connectedIcon: Icon
 		get() = if (bluetoothCommunicator.isConnected || usbCommunicator.isConnected) DevOpsLightIcon.CONNECTED
@@ -91,23 +91,23 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 				sub?.add(NavigationItem(
 						title = title ?: "Default",
 						icon = title?.let { DevOpsLightIcon.ITEM_NON_DEFAULT } ?: DevOpsLightIcon.ITEM_DEFAULT,
-						sub = itemConfig.getSubMenu().toMutableList()))
+						sub = itemConfig.getSubMenu()))
 			}
 		}
 
 	private fun DevOpsLightItemConfig.getSubMenu() = listOf(
-			NavigationItem(title = "None", icon = CommonIcon.PRIORITY_NONE) to statusNone,
-			NavigationItem(title = "Unknown", icon = CommonIcon.STATUS_UNKNOWN) to statusUnknown,
-			NavigationItem(title = "OK", icon = CommonIcon.STATUS_OK) to statusOk,
-			NavigationItem(title = "Info", icon = CommonIcon.STATUS_INFO) to statusInfo,
-			NavigationItem(title = "Notification", icon = CommonIcon.STATUS_NOTIFICATION) to statusNotification,
-			NavigationItem(title = "Connection Error", icon = CommonIcon.BROKEN_LINK) to statusConnectionError,
-			NavigationItem(title = "Service Error", icon = CommonIcon.UNAVAILABLE) to statusServiceError,
-			NavigationItem(title = "Warning", icon = CommonIcon.STATUS_WARNING) to statusWarning,
-			NavigationItem(title = "Error", icon = CommonIcon.STATUS_ERROR) to statusError,
-			NavigationItem(title = "Fatal", icon = CommonIcon.STATUS_FATAL) to statusFatal)
-			.filter { (_, lights) -> lights.isNotEmpty() }
-			.map { (item, lights) -> item.also { it.action = { changeLights(lights) } } }
+			Triple("None", CommonIcon.PRIORITY_NONE, statusNone),
+			Triple("Unknown", CommonIcon.STATUS_UNKNOWN, statusUnknown),
+			Triple("OK", CommonIcon.STATUS_OK, statusOk),
+			Triple("Info", CommonIcon.STATUS_INFO, statusInfo),
+			Triple("Notification", CommonIcon.STATUS_NOTIFICATION, statusNotification),
+			Triple("Connection Error", CommonIcon.BROKEN_LINK, statusConnectionError),
+			Triple("Service Error", CommonIcon.UNAVAILABLE, statusServiceError),
+			Triple("Warning", CommonIcon.STATUS_WARNING, statusWarning),
+			Triple("Error", CommonIcon.STATUS_ERROR, statusError),
+			Triple("Fatal", CommonIcon.STATUS_FATAL, statusFatal))
+			.filter { (_, _, lights) -> lights.isNotEmpty() }
+			.map { (t, i, l) -> NavigationItem(title = t, icon = i, action = { changeLights(l) }) }
 
 	override val configurationRows: List<Pair<Node, Node>>
 		get() = super.configurationRows + listOf(
@@ -168,7 +168,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe { collector ->
 			Platform.runLater {
 				val lights = if (config.combineMultipleServices) collector
-						.topStatuses(controller.applicationConfiguration.silenced.keys, config.minPriority,
+						.topStatuses(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
 								config.minStatus, config.services)
 						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
 						.mapNotNull { it.toLightConfig() }
@@ -176,7 +176,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 						.takeIf { it.isNotEmpty() }
 						?: config.items.firstOrNull { it.id == "" }?.statusOk
 				else collector
-						.topStatus(controller.applicationConfiguration.silenced.keys, config.minPriority,
+						.topStatus(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
 								config.minStatus, config.services)
 						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
 						?.toLightConfig()

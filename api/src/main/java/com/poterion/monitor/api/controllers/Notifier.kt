@@ -35,7 +35,7 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 		get() = NavigationItem(
 				title = config.name,
 				icon = definition.icon,
-				sub = mutableListOf(
+				sub = listOf(
 						NavigationItem(
 								title = "Enabled",
 								checked = config.enabled,
@@ -46,7 +46,7 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 				))
 
 	private val String.getService: ServiceConfig?
-		get() = controller.applicationConfiguration.services[this]
+		get() = controller.applicationConfiguration.serviceMap[this]
 
 	private val String.getServiceIcon: Icon?
 		get() = getService
@@ -78,9 +78,8 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 										controller
 												.applicationConfiguration
 												.services
-												.filterKeys { id -> !config.services.contains(id) }
-												.values
-												.sortedBy { it.name }
+												.filtered { x -> selectedServices.map { it.config.uuid }.contains(x.uuid) }
+												.sorted(compareBy { it.name })
 												.map { it.uuid }
 									})),
 					comparator = compareBy { it.getService?.name },

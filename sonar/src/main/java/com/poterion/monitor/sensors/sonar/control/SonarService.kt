@@ -116,7 +116,7 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 						" ${response?.code()} ${response?.message()}")
 				if (response?.isSuccessful == true) {
 					val foundProjects = response.body()
-						?.filter { job -> config.filter?.let { job.name.matches(it.toRegex()) } ?: true }
+							?.filter { project -> config.filter?.let { project.name.matches(it.toRegex()) } != false }
 
 					lastFoundProjectNames = foundProjects?.map { it.name } ?: projects.keys
 

@@ -35,7 +35,6 @@ import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.toUriOrNull
 import com.rometools.rome.io.SyndFeedInput
 import com.rometools.rome.io.XmlReader
-import javafx.collections.FXCollections
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -114,7 +113,7 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
-				} to ComboBox<Status>(FXCollections.observableList(Status.values().toList())).apply {
+				} to ComboBox<Status>(Status.values().toObservableList()).apply {
 					factory { item, empty ->
 						text = item?.takeUnless { empty }?.name
 						graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()

@@ -16,30 +16,56 @@
  ******************************************************************************/
 package com.poterion.monitor.sensors.jira.data
 
+import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.auth.AuthConfig
-import com.poterion.monitor.data.services.ServiceConfig
+import com.poterion.monitor.data.services.AbstractServiceConfig
+import com.poterion.utils.javafx.toObservableList
+import com.poterion.utils.javafx.toObservableMap
+import com.poterion.utils.kotlin.setAll
+import javafx.collections.ObservableList
+import javafx.collections.ObservableMap
 import java.util.*
 
 /**
+ * JIRA service module configuration.
+ *
+ * @param name Module name
+ * @param enabled Whether module is enabled (`true`) or not (`false`)
+ * @param url Service [URL][java.net.URL] (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param trustCertificate Whether to trust all certificates (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param auth Service [authentication][AuthConfig] (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param order Order of the service in which it will be evaluated
+ * @param priority Priority of the service used for [items][com.poterion.monitor.data.StatusItem] yield by it unless
+ *        otherwise additionally configured.
+ * @param checkInterval Interval in which the service will be periodically checked for new
+ *        [items][com.poterion.monitor.data.StatusItem].
+ * @param connectTimeout Connection timeout (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param readTimeout Read timeout (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param writeTimeout Write timeout (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param tableColumnWidths Saved UI table column widths (column name -> width)
+ * @param priorityMapping [Priority] mapping
+ * @param statusMapping [Status] mapping
+ * @param queries Set of JQL queries (see [JiraQueryConfig])
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 class JiraConfig(override var type: String = JiraConfig::class.java.simpleName,
 				 override var uuid: String = UUID.randomUUID().toString(),
-				 override var name: String = "",
-				 override var enabled: Boolean = false,
-				 override var url: String = "",
-				 override var trustCertificate: Boolean = false,
-				 override var auth: AuthConfig? = null,
-				 override var order: Int = Int.MAX_VALUE,
-				 override var priority: Priority = Priority.NONE,
-				 override var checkInterval: Long? = null,
-				 override var connectTimeout: Long? = null,
-				 override var readTimeout: Long? = null,
-				 override var writeTimeout: Long? = null,
-				 override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
-				 val priorityMapping: MutableMap<String, Priority> = mutableMapOf(
+				 name: String = "",
+				 enabled: Boolean = false,
+				 url: String = "",
+				 trustCertificate: Boolean = false,
+				 auth: AuthConfig? = null,
+				 order: Int = Int.MAX_VALUE,
+				 priority: Priority = Priority.NONE,
+				 checkInterval: Long? = null,
+				 connectTimeout: Long? = null,
+				 readTimeout: Long? = null,
+				 writeTimeout: Long? = null,
+				 tableColumnWidths: Map<String, Int> = emptyMap(),
+				 priorityMapping: Map<String, Priority> = mapOf(
 						 "Minor" to Priority.NONE,
 						 "Trivial" to Priority.NONE,
 						 "Lowest" to Priority.LOW,
@@ -48,7 +74,7 @@ class JiraConfig(override var type: String = JiraConfig::class.java.simpleName,
 						 "High" to Priority.HIGH,
 						 "Highest" to Priority.MAXIMUM,
 						 "Blocker" to Priority.MAXIMUM),
-				 val statusMapping: MutableMap<String, Status> = mutableMapOf(
+				 statusMapping: Map<String, Status> = mapOf(
 						 "Public Incident" to Status.FATAL,
 						 "Incident" to Status.FATAL,
 						 "Problem" to Status.ERROR,
@@ -60,4 +86,39 @@ class JiraConfig(override var type: String = JiraConfig::class.java.simpleName,
 						 "Complete" to Status.OK,
 						 "Canceled" to Status.OK,
 						 "Closed" to Status.NONE),
-				 val queries: MutableSet<JiraQueryConfig> = mutableSetOf()): ServiceConfig
+				 queries: List<JiraQueryConfig> = emptyList()) :
+		AbstractServiceConfig(name, enabled, url, trustCertificate, auth, order, priority, checkInterval,
+				connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
+
+	@Suppress("unused")
+	private var _priorityMapping: Map<String, Priority>
+		@JsonProperty("priorityMapping") get() = priorityMapping
+		set(value) = priorityMapping.setAll(value)
+
+	/** [Priority] mapping. */
+	val priorityMapping: ObservableMap<String, Priority> = priorityMapping.toObservableMap()
+		@JsonIgnore get
+
+	@Suppress("unused")
+	private var _statusMapping: Map<String, Status>
+		@JsonProperty("statusMapping") get() = statusMapping
+		set(value) = statusMapping.setAll(value)
+
+	/** [Status] mapping. */
+	val statusMapping: ObservableMap<String, Status> = statusMapping.toObservableMap()
+		@JsonIgnore get
+
+	@Suppress("unused")
+	private var _queries: List<JiraQueryConfig>
+		@JsonProperty("queries") get() = queries
+		set(value) {
+			queries.setAll(value)
+		}
+
+	/**
+	 * Set of JQL queries.
+	 * @see JiraQueryConfig
+	 */
+	val queries: ObservableList<JiraQueryConfig> = queries.toObservableList()
+		@JsonIgnore get
+}

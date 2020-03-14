@@ -17,8 +17,11 @@
 package com.poterion.monitor.data.auth
 
 /**
+ * Service authentication interface.
+ *
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 interface AuthConfig {
-	var type: String
+	/** Class simple name for polymorphic deserialization */
+	val type: String
 }

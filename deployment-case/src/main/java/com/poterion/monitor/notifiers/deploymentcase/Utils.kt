@@ -32,7 +32,8 @@ fun Device.getDisplayName(): String = this.name.takeUnless { it.isEmpty() } ?: t
 }
 
 
-fun String.toDevice(devices: List<Device>) = devices.find { it.name == this || "${it.kind} [${it.key}]" == this }
+fun String.toDevice(devices: List<Device>?) = devices
+		?.find { it.name == this || "${it.kind} [${it.key}]" == this }
 
 fun getDisplayString(value: String?, type: VariableType) = when (type) {
 	VariableType.COLOR_PATTERN -> value
@@ -73,6 +74,6 @@ fun Variable.getDisplayNameValue() = when (type) {
 	else -> "${name}: ${getDisplayString()}"
 }
 
-fun String.toVariable(variables: Collection<Variable>) = variables.find { it.name == this }
+fun String.toVariable(variables: Collection<Variable>?) = variables?.find { it.name == this }
 
-fun String?.toVariableFromValue(variables: List<Variable>) = variables.find { it.value == this }
+fun String?.toVariableFromValue(variables: List<Variable>?) = variables?.find { it.value == this }

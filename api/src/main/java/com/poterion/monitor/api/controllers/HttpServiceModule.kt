@@ -97,16 +97,21 @@ class HttpServiceModule(private val appConfig: ApplicationConfiguration, private
 									}
 								}
 								.addInterceptor { chain ->
-									val requestBuilder = chain.request().newBuilder()
-									when (val auth = config.auth) {
-										is BasicAuthConfig -> requestBuilder
+									val request = when (val auth = config.auth) {
+										is BasicAuthConfig -> chain
+												.request()
+												.newBuilder()
 												.header("Authorization", Base64.getEncoder()
 														.encodeToString("${auth.username}:${auth.password}".toByteArray())
 														.let { "Basic ${it}" })
-										is TokenAuthConfig -> requestBuilder
+												.build()
+										is TokenAuthConfig -> chain
+												.request()
+												.newBuilder()
 												.header("Authorization", "Bearer ${auth.token}")
+												.build()
+										else -> chain.request()
 									}
-									val request = requestBuilder.build()
 									try {
 										val response = chain.proceed(request)
 										LOGGER.debug("${request.method()} ${request.url()}...")

@@ -16,10 +16,50 @@
  ******************************************************************************/
 package com.poterion.monitor.sensors.jenkins.data
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.Priority
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
 
 /**
+ * Jenkins job / [Priority] mapping configuration item.
+ *
+ * @param name Job name
+ * @param priority [Priority]
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-data class JenkinsJobConfig(var name: String = "",
-							var priority: Priority = Priority.NONE)
+class JenkinsJobConfig(name: String = "",
+					   priority: Priority = Priority.NONE) {
+
+	/**
+	 * Job name.
+	 * @see nameProperty
+	 */
+	var name: String
+		get() = nameProperty.get()
+		set(value) = nameProperty.set(value)
+
+	/**
+	 * Job name property.
+	 * @see nameProperty
+	 */
+	val nameProperty: StringProperty = SimpleStringProperty(name)
+		@JsonIgnore get
+
+	/**
+	 * [Priority].
+	 * @see priorityProperty
+	 */
+	var priority: Priority
+		get() = priorityProperty.get()
+		set(value) = priorityProperty.set(value)
+
+	/**
+	 * [Priority] property.
+	 * @see priority
+	 */
+	val priorityProperty: ObjectProperty<Priority> = SimpleObjectProperty(priority)
+		@JsonIgnore get
+}

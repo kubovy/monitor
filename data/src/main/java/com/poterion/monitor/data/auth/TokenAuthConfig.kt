@@ -16,8 +16,30 @@
  ******************************************************************************/
 package com.poterion.monitor.data.auth
 
+import com.fasterxml.jackson.annotation.JsonIgnore
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
+
 /**
+ * @param type Class simple name for polymorphic deserialization
+ * @param token Authentication token
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-data class TokenAuthConfig(override var type: String = TokenAuthConfig::class.java.simpleName,
-						   var token: String = "") : AuthConfig
+class TokenAuthConfig(override var type: String = TokenAuthConfig::class.java.simpleName,
+					  token: String = "") : AuthConfig {
+
+	/**
+	 * Token.
+	 * @see tokenProperty
+	 */
+	var token: String
+		get() = tokenProperty.get()
+		set(value) = tokenProperty.set(value)
+
+	/**
+	 * Token property
+	 * @see token
+	 */
+	val tokenProperty: StringProperty = SimpleStringProperty(token)
+		@JsonIgnore get
+}

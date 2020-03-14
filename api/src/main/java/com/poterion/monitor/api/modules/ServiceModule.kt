@@ -37,7 +37,6 @@ interface ServiceModule<out Conf : ServiceConfig, out Ctrl : Service<Conf>> : Mo
 	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
 			Collection<Ctrl> = applicationConfiguration
 			.services
-			.values
 			.filterIsInstance(configClass.java)
 			.map { loadController(controller, it) }
 }

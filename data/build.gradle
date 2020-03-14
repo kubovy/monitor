@@ -27,6 +27,7 @@ repositories {
 }
 
 dependencies {
+    compile project(':javafx-utils')
     // Kotlin
     implementation 'org.jetbrains.kotlin:kotlin-reflect:1.3.61'
     // Jackson

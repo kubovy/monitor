@@ -29,7 +29,7 @@ abstract class Service<out Config: ServiceConfig>(config: Config): AbstractModul
 		get() = NavigationItem(
 				title = config.name,
 				icon = definition.icon,
-				sub = mutableListOf())
+				sub = listOf())
 
 	var http: HttpServiceModule? = null
 		get() {

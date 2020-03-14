@@ -16,24 +16,61 @@
  ******************************************************************************/
 package com.poterion.monitor.data
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
+import javafx.beans.property.BooleanProperty
+import javafx.beans.property.StringProperty
+import javafx.collections.ObservableMap
 
 /**
+ * Module config interface.
+ *
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)
 interface ModuleConfig {
-	var type: String
+	/** Module type constant for polymorphic deserialization. */
+	val type: String
 		@JsonInclude(value = JsonInclude.Include.ALWAYS)
 		get
+
+	/** Module UUID for unique identification. */
 	var uuid: String
 		@JsonInclude(value = JsonInclude.Include.ALWAYS)
 		get
+
+	/**
+	 * Module name
+	 * @see nameProperty
+	 */
 	var name: String
-		@JsonInclude(value = JsonInclude.Include.ALWAYS)
-		get
+		@JsonInclude(value = JsonInclude.Include.ALWAYS) get
+
+	/**
+	 * Module name property
+	 * @see name
+	 */
+	val nameProperty: StringProperty
+		@JsonIgnore get
+
+	/**
+	 * Whether module is enabled (`true`) or not (`false`)
+	 * @see enabledProperty
+	 */
 	var enabled: Boolean
-		@JsonInclude(value = JsonInclude.Include.ALWAYS)
-		get
-	var tableColumnWidths: MutableMap<String, Int>
+
+	/**
+	 * Enabled property
+	 * @see enabled
+	 */
+	val enabledProperty: BooleanProperty
+		@JsonIgnore get
+
+	/**
+	 * Saved UI table column widths.
+	 *
+	 * A map containing name of the column as a key and the saved width as value.
+	 */
+	val tableColumnWidths: ObservableMap<String, Int>
+		@JsonInclude(value = JsonInclude.Include.ALWAYS) get
 }

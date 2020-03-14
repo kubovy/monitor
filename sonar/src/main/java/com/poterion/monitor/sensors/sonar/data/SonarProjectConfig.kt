@@ -16,11 +16,63 @@
  ******************************************************************************/
 package com.poterion.monitor.sensors.sonar.data
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.Priority
+import javafx.beans.property.*
 
 /**
+ * Sonar project ID / [Priority] mapping configuration item.
+ *
+ * @param id Project ID
+ * @param name Project name
+ * @param priority [Priority]
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-data class SonarProjectConfig(var id: Int = 0,
-							  var name: String = "",
-							  var priority: Priority = Priority.NONE)
+class SonarProjectConfig(id: Int = 0,
+						 name: String = "",
+						 priority: Priority = Priority.NONE) {
+	/**
+	 * Project ID.
+	 * @see idProperty
+	 */
+	var id: Int
+		get() = idProperty.get()
+		set(value) = idProperty.set(value)
+
+	/**
+	 * Project ID property.
+	 * @see id
+	 */
+	val idProperty: IntegerProperty = SimpleIntegerProperty(id)
+		@JsonIgnore get
+
+	/**
+	 * Project name.
+	 * @see nameProperty
+	 */
+	var name: String
+		get() = nameProperty.get()
+		set(value) = nameProperty.set(value)
+
+	/**
+	 * Project name property.
+	 * @see name
+	 */
+	val nameProperty: StringProperty = SimpleStringProperty(name)
+		@JsonIgnore get
+
+	/**
+	 * [Priority].
+	 * @see priorityProperty
+	 */
+	var priority: Priority
+		get() = priorityProperty.get()
+		set(value) = priorityProperty.set(value)
+
+	/**
+	 * [Priority] property.
+	 * @see priority
+	 */
+	val priorityProperty: ObjectProperty<Priority> = SimpleObjectProperty(priority)
+		@JsonIgnore get
+}

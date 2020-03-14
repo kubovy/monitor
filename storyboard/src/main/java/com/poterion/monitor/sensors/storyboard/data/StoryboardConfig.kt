@@ -16,26 +16,64 @@
  ******************************************************************************/
 package com.poterion.monitor.sensors.storyboard.data
 
+import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.auth.AuthConfig
-import com.poterion.monitor.data.services.ServiceConfig
+import com.poterion.monitor.data.services.AbstractServiceConfig
+import com.poterion.utils.javafx.toObservableList
+import javafx.collections.ObservableList
 import java.util.*
 
 /**
+ * Storyboard service module configuration.
+ *
+ * @param name Module name
+ * @param enabled Whether module is enabled (`true`) or not (`false`)
+ * @param url Service [URL][java.net.URL] (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param trustCertificate Whether to trust all certificates (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param auth Service [authentication][AuthConfig] (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param order Order of the service in which it will be evaluated
+ * @param priority Priority of the service used for [items][com.poterion.monitor.data.StatusItem] yield by it unless
+ *        otherwise additionally configured.
+ * @param checkInterval Interval in which the service will be periodically checked for new
+ *        [items][com.poterion.monitor.data.StatusItem].
+ * @param connectTimeout Connection timeout (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param readTimeout Read timeout (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param writeTimeout Write timeout (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param tableColumnWidths Saved UI table column widths (column name -> width)
+ * @param projects Project name / [Priority] mapping (see [StoryboardProjectConfig])
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 class StoryboardConfig(override var type: String = StoryboardConfig::class.java.simpleName,
 					   override var uuid: String = UUID.randomUUID().toString(),
-					   override var name: String = "",
-					   override var enabled: Boolean = false,
-					   override var url: String = "",
-					   override var trustCertificate: Boolean = false,
-					   override var auth: AuthConfig? = null,
-					   override var order: Int = Int.MAX_VALUE,
-					   override var priority: Priority = Priority.NONE,
-					   override var checkInterval: Long? = null,
-					   override var connectTimeout: Long? = null,
-					   override var readTimeout: Long? = null,
-					   override var writeTimeout: Long? = null,
-					   override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
-					   var projects: MutableSet<StoryboardProjectConfig> = mutableSetOf()): ServiceConfig
+					   name: String = "",
+					   enabled: Boolean = false,
+					   url: String = "",
+					   trustCertificate: Boolean = false,
+					   auth: AuthConfig? = null,
+					   order: Int = Int.MAX_VALUE,
+					   priority: Priority = Priority.NONE,
+					   checkInterval: Long? = null,
+					   connectTimeout: Long? = null,
+					   readTimeout: Long? = null,
+					   writeTimeout: Long? = null,
+					   tableColumnWidths: Map<String, Int> = emptyMap(),
+					   projects: List<StoryboardProjectConfig> = emptyList()) :
+		AbstractServiceConfig(name, enabled, url, trustCertificate, auth, order, priority, checkInterval,
+				connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
+
+	@Suppress("unused")
+	private var _projects: List<StoryboardProjectConfig>
+		@JsonProperty("projects") get() = projects
+		set(value) {
+			projects.setAll(value)
+		}
+
+	/**
+	 * Project name / [Priority] mapping
+	 * @see [StoryboardProjectConfig]
+	 */
+	val projects: ObservableList<StoryboardProjectConfig> = projects.toObservableList()
+		@JsonIgnore get
+}

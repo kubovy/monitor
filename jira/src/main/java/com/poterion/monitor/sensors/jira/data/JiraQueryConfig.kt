@@ -16,5 +16,47 @@
  ******************************************************************************/
 package com.poterion.monitor.sensors.jira.data
 
-data class JiraQueryConfig(var name: String = "",
-						   var jql: String = "")
+import com.fasterxml.jackson.annotation.JsonIgnore
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
+
+/**
+ * JIRA JQL query configuration item.
+ *
+ * @param name Query name
+ * @param jql JQL query
+ * @author Jan Kubovy [jan@kubovy.eu]
+ */
+class JiraQueryConfig(name: String = "",
+					  jql: String = "") {
+
+	/**
+	 * Query name.
+	 * @see nameProperty
+	 */
+	var name: String
+		get() = nameProperty.get()
+		set(value) = nameProperty.set(value)
+
+	/**
+	 * Query name property
+	 * @see name
+	 */
+	val nameProperty: StringProperty = SimpleStringProperty(name)
+		@JsonIgnore get
+
+	/**
+	 * JQL query.
+	 * @see jqlProperty
+	 */
+	var jql: String
+		get() = jqlProperty.get()
+		set(value) = jqlProperty.set(value)
+
+	/**
+	 * JQL query property.
+	 * @see jql
+	 */
+	val jqlProperty: StringProperty = SimpleStringProperty(jql)
+		@JsonIgnore get
+}

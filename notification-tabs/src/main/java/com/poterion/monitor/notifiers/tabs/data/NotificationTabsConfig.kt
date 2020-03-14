@@ -16,28 +16,124 @@
  ******************************************************************************/
 package com.poterion.monitor.notifiers.tabs.data
 
+import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
-import com.poterion.monitor.data.notifiers.NotifierConfig
+import com.poterion.monitor.data.notifiers.AbstractNotifierConfig
+import com.poterion.utils.javafx.toObservableSet
+import com.poterion.utils.kotlin.setAll
+import javafx.beans.property.*
+import javafx.collections.ObservableSet
 import java.util.*
 
 /**
+ * Notification tabs notifier module configuration.
+ *
+ * @param name Module name
+ * @param enabled Whether module is enabled (`true`) or not (`false`)
+ * @param minPriority Minimum priority a [StatusItem][com.poterion.monitor.data.StatusItem] must have in order to be
+ *        considered by this notifier.
+ * @param minStatus Minimum status a [StatusItem][com.poterion.monitor.data.StatusItem] must have in order to be
+ *        considered by this notifier.
+ * @param services List of service [UUIDs][java.util.UUID] of [services][com.poterion.monitor.api.controllers.Service]
+ *        contributing their [status items][com.poterion.monitor.data.StatusItem] to this notifier. (An empty list means
+ *        that all [services][com.poterion.monitor.api.controllers.Service] are contributing with their
+ *        [status items][com.poterion.monitor.data.StatusItem] to this notifier)
+ * @param tableColumnWidths Saved UI table column widths (column name -> width)
+ * @param alertLabelsWidth
+ * @param alertServiceWidth
+ * @param alertTitleWidth
+ * @param selectedPriority
+ * @param selectedStatus
+ * @param selectedServiceId
+ * @param showWatched
+ * @param showSilenced
+ * @param watchedItems
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-data class NotificationTabsConfig(override var type: String = NotificationTabsConfig::class.java.simpleName,
-								  override var uuid: String = UUID.randomUUID().toString(),
-								  override var name: String = "Notification Tabs",
-								  override var enabled: Boolean = false,
-								  override var minPriority: Priority = Priority.LOW,
-								  override var minStatus: Status = Status.NONE,
-								  override val services: MutableSet<String> = mutableSetOf(),
-								  override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
-								  var alertTitleWidth: Double = 200.0,
-								  var alertServiceWidth: Double = 200.0,
-								  var alertLabelsWidth: Double = 200.0,
-								  var selectedPriority: Priority? = null,
-								  var selectedStatus: Status? = null,
-								  var selectedServiceId: String? = null,
-								  var showWatched: Boolean = false,
-								  var showSilenced: Boolean = false,
-								  val watchedItems: MutableSet<String> = mutableSetOf()) : NotifierConfig
+class NotificationTabsConfig(override var type: String = NotificationTabsConfig::class.java.simpleName,
+							 override var uuid: String = UUID.randomUUID().toString(),
+							 name: String = "Notification Tabs",
+							 enabled: Boolean = false,
+							 minPriority: Priority = Priority.LOW,
+							 minStatus: Status = Status.NONE,
+							 services: List<String> = emptyList(),
+							 tableColumnWidths: Map<String, Int> = emptyMap(),
+							 alertTitleWidth: Double = 200.0,
+							 alertServiceWidth: Double = 200.0,
+							 alertLabelsWidth: Double = 200.0,
+							 selectedPriority: Priority? = null,
+							 selectedStatus: Status? = null,
+							 selectedServiceId: String? = null,
+							 showWatched: Boolean = false,
+							 showSilenced: Boolean = false,
+							 watchedItems: Set<String> = emptySet()) :
+		AbstractNotifierConfig(name, enabled, minPriority, minStatus, services, tableColumnWidths) {
+
+	var alertTitleWidth: Double
+		get() = alertTitleWidthProperty.get()
+		set(value) = alertTitleWidthProperty.set(value)
+
+	val alertTitleWidthProperty: DoubleProperty = SimpleDoubleProperty(alertTitleWidth)
+		@JsonIgnore get
+
+	var alertServiceWidth: Double
+		get() = alertServiceWidthProperty.get()
+		set(value) = alertServiceWidthProperty.set(value)
+
+	val alertServiceWidthProperty: DoubleProperty = SimpleDoubleProperty(alertServiceWidth)
+		@JsonIgnore get
+
+	var alertLabelsWidth: Double
+		get() = alertLabelsWidthProperty.get()
+		set(value) = alertLabelsWidthProperty.set(value)
+
+	val alertLabelsWidthProperty: DoubleProperty = SimpleDoubleProperty(alertLabelsWidth)
+		@JsonIgnore get
+
+	var selectedPriority: Priority?
+		get() = selectedPriorityProperty.get()
+		set(value) = selectedPriorityProperty.set(value)
+
+	val selectedPriorityProperty: ObjectProperty<Priority?> = SimpleObjectProperty(selectedPriority)
+		@JsonIgnore get
+
+	var selectedStatus: Status?
+		get() = selectedStatusProperty.get()
+		set(value) = selectedStatusProperty.set(value)
+
+	val selectedStatusProperty: ObjectProperty<Status?> = SimpleObjectProperty(selectedStatus)
+		@JsonIgnore get
+
+	var selectedServiceId: String?
+		get() = selectedServiceIdProperty.get()
+		set(value) = selectedServiceIdProperty.set(value)
+
+	val selectedServiceIdProperty: StringProperty = SimpleStringProperty(selectedServiceId)
+		@JsonIgnore get
+
+	var showWatched: Boolean
+		get() = showWatchedProperty.get()
+		set(value) = showWatchedProperty.set(value)
+
+	val showWatchedProperty: BooleanProperty = SimpleBooleanProperty(showWatched)
+		@JsonIgnore get
+
+	var showSilenced: Boolean
+		get() = showSilencedProperty.get()
+		set(value) = showSilencedProperty.set(value)
+
+	val showSilencedProperty: BooleanProperty = SimpleBooleanProperty(showSilenced)
+		@JsonIgnore get
+
+	@Suppress("unused")
+	private var _watchedItems: Set<String>
+		@JsonProperty("watchedItems") get() = watchedItems
+		set(value) {
+			watchedItems.setAll(value)
+		}
+
+	val watchedItems: ObservableSet<String> = watchedItems.toObservableSet()
+		@JsonIgnore get
+}

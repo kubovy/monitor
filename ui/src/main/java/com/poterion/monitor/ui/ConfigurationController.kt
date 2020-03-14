@@ -144,14 +144,21 @@ class ConfigurationController {
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Double.MAX_VALUE
 		cell("serviceId") { item, _, empty ->
-			val service = item?.takeUnless { empty }?.item?.service(controller.applicationConfiguration)
+			val service = item
+					?.takeUnless { empty }
+					?.item
+					?.let { controller.applicationConfiguration.serviceMap[it.serviceId] }
 			graphic = controller
 					.takeUnless { empty }
 					?.modules
 					?.find { module -> module.configClass == service?.let { it::class } }
 					?.icon
 					?.toImageView()
-			text = item?.takeUnless { empty }?.item?.serviceName(controller.applicationConfiguration)
+			item?.takeUnless { empty }
+					?.item
+					?.let { controller.applicationConfiguration.serviceMap[it.serviceId] }
+					?.nameProperty
+					?.also { textProperty().bind(it) }
 		}
 	}
 
@@ -287,11 +294,11 @@ class ConfigurationController {
 			children.addAll(
 					TreeItem(ModuleItem(SimpleStringProperty("Application"), CommonIcon.SETTINGS)),
 					TreeItem(ModuleItem(SimpleStringProperty("Services"), UiIcon.SERVICES)).apply {
-						controller.services.forEach { children.addItem(it) }
+						controller.services.forEach { children.addItem(it) } // TODO without saving
 						isExpanded = true
 					},
 					TreeItem(ModuleItem(SimpleStringProperty("Notifiers"), UiIcon.NOTIFIERS)).apply {
-						controller.notifiers.forEach { children.addItem(it) }
+						controller.notifiers.forEach { children.addItem(it) } // TODO without saving
 						isExpanded = true
 					},
 					TreeItem(ModuleItem(SimpleStringProperty("About"), CommonIcon.APPLICATION)))
@@ -300,7 +307,7 @@ class ConfigurationController {
 		tableSilencedStatusItems.columns.addAll(tableColumnServiceName, tableColumnTitle, tableColumnSilencedAt,
 				tableColumnLastChange, tableColumnUntil, tableColumnAction)
 		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe {
-			tableSilencedStatusItems.items.setAll(controller.applicationConfiguration.silenced.values)
+			tableSilencedStatusItems.items.setAll(controller.applicationConfiguration.silenced) // TODO bind
 		}
 	}
 
@@ -324,8 +331,8 @@ class ConfigurationController {
 	private fun TreeItem<ModuleItem>.remove() {
 		controller.services.removeIf { it.config == value?.module?.config }
 		controller.notifiers.removeIf { it.config == value?.module?.config }
-		controller.applicationConfiguration.services.remove(value.module?.config?.uuid)
-		controller.applicationConfiguration.notifiers.remove(value.module?.config?.uuid)
+		controller.applicationConfiguration.serviceMap.remove(value.module?.config?.uuid)
+		controller.applicationConfiguration.notifierMap.remove(value.module?.config?.uuid)
 		parent.children.remove(this)
 
 		tabPaneMain.tabs.removeIf { it.userData == value.module }
@@ -421,10 +428,10 @@ class ConfigurationController {
 						Label("Bluetooth discovery").apply { maxWidth = Double.MAX_VALUE })
 				row = initializeProxy(row, { controller.applicationConfiguration.proxy },
 						{ controller.applicationConfiguration.proxy = it })
-				row = controller.applicationConfiguration.services.values.initializeModuleReferences(row, "Services:")
+				row = controller.applicationConfiguration.services.initializeModuleReferences(row, "Services:")
 			}
 			"Notifiers" -> {
-				row = controller.applicationConfiguration.notifiers.values.initializeModuleReferences(row, "Notifiers:")
+				row = controller.applicationConfiguration.notifiers.initializeModuleReferences(row, "Notifiers:")
 			}
 			"About" -> {
 				row = initializeAbout(row)
@@ -892,7 +899,7 @@ class ConfigurationController {
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				},
-				ComboBox<Status>(FXCollections.observableList(Status.values().toList())).apply {
+				ComboBox<Status>(Status.values().toObservableList()).apply {
 					factory { item, empty ->
 						text = item?.takeUnless { empty }?.name
 						graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
@@ -966,7 +973,7 @@ class ConfigurationController {
 				title = "Unsilence confirmation",
 				content = "Do you really want to unsilence ${statusItem.item.title}?") {
 			tableSilencedStatusItems.items.remove(statusItem)
-			controller.applicationConfiguration.silenced.remove(statusItem.item.id)
+			controller.applicationConfiguration.silencedMap.remove(statusItem.item.id)
 			controller.saveConfig()
 		}
 	}

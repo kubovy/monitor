@@ -60,8 +60,8 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 	override val notifiers: ObservableList<Notifier<NotifierConfig>> = FXCollections.observableArrayList()
 
 	override var applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration()
-	private val configuration: PublishSubject<ApplicationConfiguration> = PublishSubject
-			.create<ApplicationConfiguration>()
+	private val configuration: PublishSubject<Boolean> = PublishSubject.create<Boolean>()
+	@Deprecated("Use properties in config")
 	private val configListeners = mutableListOf<(ApplicationConfiguration) -> Unit>()
 
 	init {
@@ -69,14 +69,14 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 		modules.forEach { registerModule(it) }
 		if (Shared.configFile.exists()) try {
 			applicationConfiguration = objectMapper.readValue(Shared.configFile, ApplicationConfiguration::class.java)
-			(applicationConfiguration.services as MutableMap<String, ServiceConfig?>)
+			(applicationConfiguration.serviceMap as MutableMap<String, ServiceConfig?>)
 					.filterValues { it == null }
 					.keys
-					.forEach { applicationConfiguration.services.remove(it) }
-			(applicationConfiguration.notifiers as MutableMap<String, NotifierConfig?>)
+					.forEach { applicationConfiguration.serviceMap.remove(it) }
+			(applicationConfiguration.notifierMap as MutableMap<String, NotifierConfig?>)
 					.filterValues { it == null }
 					.keys
-					.forEach { applicationConfiguration.notifiers.remove(it) }
+					.forEach { applicationConfiguration.notifierMap.remove(it) }
 		} catch (e: Exception) {
 			LOGGER.error(e.message, e)
 			applicationConfiguration = ApplicationConfiguration()
@@ -106,8 +106,6 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 				}
 			}
 		}
-		services.sortBy { it.config.priority }
-		notifiers.sortBy { it.config.name }
 
 		(services + notifiers).forEach { it.initialize() }
 
@@ -117,29 +115,29 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 
 		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe { collector ->
 			val removes = collector.items
-					.mapNotNull { item -> applicationConfiguration.silenced[item.id]?.let { item to it } }
+					.mapNotNull { item -> applicationConfiguration.silencedMap[item.id]?.let { item to it } }
 					.filter { (item, silenced) -> silenced.untilChanged && item.startedAt != silenced.lastChange }
 					.map { (item, _) -> item.id }
 			val changes = collector.items
 					.filterNot { removes.contains(it.id) }
-					.mapNotNull { item -> applicationConfiguration.silenced[item.id]?.let { item to it } }
+					.mapNotNull { item -> applicationConfiguration.silencedMap[item.id]?.let { item to it } }
 					.filter { (item, silenced) -> item != silenced.item }
 					.map { (item, silenced) -> item.id to silenced.copy(item = item, lastChange = item.startedAt) }
 					.toMap()
 			if (changes.isNotEmpty() || removes.isNotEmpty()) {
-				applicationConfiguration.silenced.replaceAll { id, item -> changes[id] ?: item }
-				removes.forEach { applicationConfiguration.silenced.remove(it) }
+				applicationConfiguration.silencedMap.replaceAll { id, item -> changes[id] ?: item }
+				removes.forEach { applicationConfiguration.silencedMap.remove(it) }
 				saveConfig()
 			}
 		}
 
-		configuration.sample(1, TimeUnit.SECONDS, true).subscribe { configuration ->
+		configuration.sample(1, TimeUnit.SECONDS, true).subscribe {
 			val backupFile = File(Shared.configFile.absolutePath + "-" + LocalDateTime.now().toString())
 			try {
-				configListeners.forEach { it.invoke(configuration) }
+				configListeners.forEach { it.invoke(applicationConfiguration) }
 				val tempFile = File(Shared.configFile.absolutePath + ".tmp")
 				var success = tempFile.parentFile.exists() || tempFile.parentFile.mkdirs()
-				objectMapper.writeValue(tempFile, configuration)
+				objectMapper.writeValue(tempFile, applicationConfiguration)
 				success = success
 						&& (!backupFile.exists() || backupFile.delete())
 						&& (Shared.configFile.parentFile.exists() || Shared.configFile.parentFile.mkdirs())
@@ -164,11 +162,11 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 	override fun add(controller: ModuleInstanceInterface<*>): ModuleInstanceInterface<*>? {
 		when (controller) {
 			is Service<*> -> {
-				applicationConfiguration.services[controller.config.uuid] = controller.config
+				applicationConfiguration.serviceMap[controller.config.uuid] = controller.config
 				services.add(controller as Service<ServiceConfig>)
 			}
 			is Notifier<*> -> {
-				applicationConfiguration.notifiers[controller.config.uuid] = controller.config
+				applicationConfiguration.notifierMap[controller.config.uuid] = controller.config
 				notifiers.add(controller as Notifier<NotifierConfig>)
 			}
 			else -> return null
@@ -190,6 +188,6 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 	}
 
 	override fun saveConfig() {
-		configuration.onNext(applicationConfiguration.copy())
+		configuration.onNext(true)
 	}
 }

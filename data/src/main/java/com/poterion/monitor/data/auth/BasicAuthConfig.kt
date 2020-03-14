@@ -16,9 +16,49 @@
  ******************************************************************************/
 package com.poterion.monitor.data.auth
 
+import com.fasterxml.jackson.annotation.JsonIgnore
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
+
 /**
+ * HTTP basic authentication configuration.
+ *
+ * @param type Class simple name for polymorphic deserialization
+ * @param username Username
+ * @param password Password
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-data class BasicAuthConfig(override var type: String = BasicAuthConfig::class.java.simpleName,
-						   var username: String = "",
-						   var password: String = "") : AuthConfig
+class BasicAuthConfig(override val type: String = BasicAuthConfig::class.java.simpleName,
+					  username: String = "",
+					  password: String = "") : AuthConfig {
+
+	/**
+	 * Username
+	 * @see usernameProperty
+	 */
+	var username: String
+		get() = usernameProperty.get()
+		set(value) = usernameProperty.set(value)
+
+	/**
+	 * Username property
+	 * @see username
+	 */
+	val usernameProperty: StringProperty = SimpleStringProperty(username)
+		@JsonIgnore get
+
+	/**
+	 * Password
+	 * @see passwordProperty
+	 */
+	var password: String
+		get() = passwordProperty.get()
+		set(value) = passwordProperty.set(value)
+
+	/**
+	 * Password property
+	 * @see password
+	 */
+	val passwordProperty: StringProperty = SimpleStringProperty(password)
+		@JsonIgnore get
+}

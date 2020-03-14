@@ -30,7 +30,7 @@ data class Action(var device: Int? = null,
 				  var includingEnteringState: Boolean = false) : StateMachineItem {
 
 	@JsonIgnore
-	override fun getTitle(devices: Collection<Device>, variables: Collection<Variable>): String =
+	override fun getTitle(devices: Collection<Device>?, variables: Collection<Variable>?): String =
 			"${device?.toDevice(devices)?.getDisplayName()} = ${value?.toVariable(variables)?.getDisplayName()}" +
 					(if (includingEnteringState) " (including entering state)" else "")
 
@@ -38,7 +38,7 @@ data class Action(var device: Int? = null,
 		@JsonIgnore
 		get() = DeploymentCaseIcon.ACTION
 
-	override fun isBinarySame(other: StateMachineItem, devices: Collection<Device>, variables: Collection<Variable>):
+	override fun isBinarySame(other: StateMachineItem, devices: Collection<Device>?, variables: Collection<Variable>?):
 			Boolean = other is Action
 			&& device?.toDevice(devices)?.kind == other.device?.toDevice(devices)?.kind
 			&& device?.toDevice(devices)?.key == other.device?.toDevice(devices)?.key

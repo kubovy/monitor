@@ -26,7 +26,6 @@ import com.poterion.monitor.api.utils.toIcon
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.notifiers.NotifierAction
-import com.poterion.monitor.data.serviceName
 import com.poterion.monitor.notifiers.notifications.NotificationsModule
 import com.poterion.monitor.notifiers.notifications.data.LastUpdatedConfig
 import com.poterion.monitor.notifiers.notifications.data.NotificationsConfig
@@ -123,7 +122,7 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 		super.initialize()
 		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe {
 			Platform.runLater {
-				update(it.filter(controller.applicationConfiguration.silenced.keys,
+				update(it.filter(controller.applicationConfiguration.silencedMap.keys,
 						config.minPriority,
 						config.minStatus,
 						config.services))
@@ -175,11 +174,12 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 
 				val duration = config.durations[statusItem.status.name]?.let { Duration(it.toDouble()) }
 						?: Duration.INDEFINITE
-				val title = statusItem.serviceName(controller.applicationConfiguration)
+				val title = controller.applicationConfiguration.serviceMap[statusItem.serviceId]?.name ?: ""
+				val since = formatter.format(statusItem.startedAt ?: Instant.now())
 				val notification = Notifications.create()
 						.owner(owner)
 						.graphic(statusItem.status.toIcon().toImageView(48, 48))
-						.title("${title.cutLastWords(30)} since ${formatter.format(statusItem.startedAt)}")
+						.title("${title.cutLastWords(30)} since ${since}")
 						.text(statusItem.title.cutLastWords(40))
 						//.threshold(5)
 						.position(Pos.BOTTOM_RIGHT)

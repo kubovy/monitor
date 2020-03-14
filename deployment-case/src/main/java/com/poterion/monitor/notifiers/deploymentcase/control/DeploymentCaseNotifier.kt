@@ -16,7 +16,8 @@
  ******************************************************************************/
 package com.poterion.monitor.notifiers.deploymentcase.control
 
-import com.poterion.communication.serial.*
+import com.poterion.communication.serial.byte2Bools
+import com.poterion.communication.serial.calculateChecksum
 import com.poterion.communication.serial.communicator.BluetoothCommunicator
 import com.poterion.communication.serial.communicator.Channel
 import com.poterion.communication.serial.extensions.*
@@ -375,17 +376,17 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	override fun onStateMachineActionReceived(channel: Channel, actions: List<Pair<Int, IntArray>>) =
 		Platform.runLater {
 			val configuration = config.configurations.find { it.isActive }
-			val states = configuration?.stateMachine ?: emptyList()
-			val devices = configuration?.devices ?: emptyList()
-			val variables = configuration?.variables ?: emptyList()
+			val states: List<State> = configuration?.stateMachine ?: emptyList()
+			val devices: List<Device> = configuration?.devices ?: emptyList()
+			val variables: List<Variable> = configuration?.variables ?: emptyList()
 			actions.asSequence()
-				.map { (device, v) -> Triple((device and 0x80) == 0x80, (device and 0x7F).toDevice(devices), v) }
-				.map { (e, d, v) -> Triple(e, d, v.toList().toVariableWhole(states, d, variables)) }
-				.map { (e, d, v) -> Action(d.toData(), v.name, e) }
-				.map { it.device?.toDevice(devices) to it.value }
-				.filter { (d, v) -> d != null && v != null }
-				.map { (d, v) -> d!! to v!! }
-				.forEach { (d, v) -> listeners.forEach { it.onAction(d, v) } }
+					.map { (device, v) -> Triple((device and 0x80) == 0x80, (device and 0x7F).toDevice(devices), v) }
+					.map { (e, d, v) -> Triple(e, d, v.toList().toVariableWhole(states, d, variables)) }
+					.map { (e, d, v) -> Action(d.toData(), v.name, e) }
+					.map { it.device?.toDevice(devices) to it.value }
+					.filter { (d, v) -> d != null && v != null }
+					.map { (d, v) -> d!! to v!! }
+					.forEach { (d, v) -> listeners.forEach { it.onAction(d, v) } }
 			//message.copyOfRange(2, message.size)
 			//	.toList()
 			//	.toActions(states, devices, variables)

@@ -16,13 +16,15 @@
  ******************************************************************************/
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.poterion.utils.javafx.autoFitTable
-import com.poterion.utils.kotlin.noop
 import com.poterion.monitor.api.utils.toColor
 import com.poterion.monitor.api.utils.toHex
 import com.poterion.monitor.notifiers.deploymentcase.control.findInStateMachine
 import com.poterion.monitor.notifiers.deploymentcase.data.*
 import com.poterion.monitor.notifiers.deploymentcase.getDisplayString
+import com.poterion.utils.javafx.autoFitTable
+import com.poterion.utils.javafx.toObservableList
+import com.poterion.utils.kotlin.noop
+import javafx.beans.InvalidationListener
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.fxml.FXML
@@ -63,6 +65,7 @@ class ConfigWindowTabVariables {
 	private lateinit var config: DeploymentCaseConfig
 	private lateinit var saveConfig: () -> Unit
 	private var variableToCopy: Variable? = null
+	private val variablesInvalidationListener = InvalidationListener { tableVariables.refresh() }
 
 	@FXML
 	fun initialize() {
@@ -70,7 +73,7 @@ class ConfigWindowTabVariables {
 				propertyName = "name",
 				styler = { variable ->
 					when {
-						SharedUiData.jobStatus.values.find { it == variable?.name } != null -> "-fx-font-weight: bold; -fx-font-style: italic;"
+						SharedUiData.jobStatus?.values?.find { it == variable?.name } != null -> "-fx-font-weight: bold; -fx-font-style: italic;"
 						findInStateMachine { it is Action && it.value == variable?.name }.isNotEmpty() -> "-fx-font-weight: bold;"
 						else -> null
 					}
@@ -103,14 +106,15 @@ class ConfigWindowTabVariables {
 				isReadOnly = { variable -> variable?.type == VariableType.STATE || variable?.type == VariableType.BOOLEAN })
 		tableVariables.sortOrder.setAll(columnVariableName)
 		tableVariables.isEditable = true
-		SharedUiData.variablesProperty.addListener { _, _, variables ->
-			tableVariables.items = variables
-			tableVariables.items.addListener(ListChangeListener { tableVariables.refresh() })
+		SharedUiData.configurationProperty.addListener { _, old, new ->
+			old?.variables?.removeListener(variablesInvalidationListener)
+			new?.variables?.addListener(variablesInvalidationListener)
+			tableVariables.items = new.variables
 			tableVariables.refresh()
 			tableVariables.autoFitTable()
 		}
+		SharedUiData.variables?.addListener(variablesInvalidationListener)
 		tableVariables.items = SharedUiData.variables
-		tableVariables.items.addListener(ListChangeListener { tableVariables.refresh() })
 		tableVariables.refresh()
 		tableVariables.autoFitTable()
 	}
@@ -129,7 +133,7 @@ class ConfigWindowTabVariables {
 			KeyCode.V -> if (keyEvent.isControlDown) {
 				variableToCopy?.copy()
 						?.also { it.name = "${it.name}_copy" }
-						?.also { SharedUiData.variables.add(it) }
+						?.also { SharedUiData.variables?.add(it) }
 			}
 			KeyCode.DELETE -> tableVariables.selectionModel.selectedItem
 					.takeIf { it != null }
@@ -265,10 +269,17 @@ class ConfigWindowTabVariables {
 					colorPicker = ColorPicker(color).apply {
 						minWidth = 110.0
 						maxWidth = 110.0
-						customColors?.addAll(config.customColors?.mapNotNull { it.toColor() }?.takeIf { it.isNotEmpty() }
+						customColors?.addAll(config.customColors.mapNotNull { it.toColor() }.takeIf { it.isNotEmpty() }
 								?: listOf(Color.RED, Color.YELLOW, Color.LIME, Color.CYAN, Color.BLUE, Color.MAGENTA))
 						customColors?.addListener(ListChangeListener<Color> { change ->
-							config.customColors = change.list.map { it.toHex() }
+							while (change.next()) when {
+								change.wasPermutated() -> noop()
+								change.wasUpdated() -> noop()
+								else -> {
+									config.customColors.removeAll(change.removed.map { it.toHex() })
+									config.customColors.addAll(change.addedSubList.map { it.toHex() })
+								}
+							}
 							saveConfig()
 						})
 					}
@@ -426,7 +437,7 @@ class ConfigWindowTabVariables {
 				}
 
 				private fun createComboBox(): ComboBox<Type>? {
-					comboBox = ComboBox(FXCollections.observableArrayList(itemsProvider(tableView.items[index]).toList())).apply {
+					comboBox = ComboBox(itemsProvider(tableView.items[index]).toObservableList()).apply {
 						minWidth = width - graphicTextGap * 2
 						selectionModel?.select(item)
 						converter = object : StringConverter<Type>() {
@@ -454,7 +465,7 @@ class ConfigWindowTabVariables {
 		}
 	}
 
-	private fun Variable.isUsed(): Boolean = SharedUiData.jobStatus.values.find { it == name } != null
+	private fun Variable.isUsed(): Boolean = SharedUiData.jobStatus?.values?.find { it == name } != null
 			|| findInStateMachine { it is Action && it.value == name }.isNotEmpty()
 
 	private fun Color.textColor(): Color {

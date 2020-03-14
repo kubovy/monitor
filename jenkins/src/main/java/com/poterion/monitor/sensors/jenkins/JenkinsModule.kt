@@ -36,7 +36,7 @@ object JenkinsModule : ServiceModule<JenkinsConfig, JenkinsService> {
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
 			JenkinsService = JenkinsService(controller,
-			JenkinsConfig(uuid = applicationConfiguration.services.nextUUID(), name = title))
+			JenkinsConfig(uuid = applicationConfiguration.serviceMap.nextUUID(), name = title))
 
 	override fun loadController(controller: ControllerInterface, config: ModuleConfig): JenkinsService =
 			JenkinsService(controller, config as JenkinsConfig)

@@ -16,9 +16,49 @@
  ******************************************************************************/
 package com.poterion.monitor.sensors.storyboard.data
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.Priority
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
 
 /**
+ * Storyboard project name / [Priority] mapping configuration item.
+ *
+ * @param name Project name
+ * @param priority [Priority]
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-data class StoryboardProjectConfig(var name: String = "", var priority: Priority = Priority.NONE)
+class StoryboardProjectConfig(name: String = "",
+							  priority: Priority = Priority.NONE) {
+	/**
+	 * Project name.
+	 * @see nameProperty
+	 */
+	var name: String
+		get() = nameProperty.get()
+		set(value) = nameProperty.set(value)
+
+	/**
+	 * Project name property.
+	 * @see name
+	 */
+	val nameProperty: StringProperty = SimpleStringProperty(name)
+		@JsonIgnore get
+
+	/**
+	 * [Priority].
+	 * @see priorityProperty
+	 */
+	var priority: Priority
+		get() = priorityProperty.get()
+		set(value) = priorityProperty.set(value)
+
+	/**
+	 * [Priority] property.
+	 * @see priority
+	 */
+	val priorityProperty: ObjectProperty<Priority> = SimpleObjectProperty(priority)
+		@JsonIgnore get
+}

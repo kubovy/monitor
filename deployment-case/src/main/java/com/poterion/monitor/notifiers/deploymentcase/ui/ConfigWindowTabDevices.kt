@@ -16,11 +16,11 @@
  ******************************************************************************/
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.poterion.utils.javafx.autoFitTable
 import com.poterion.monitor.notifiers.deploymentcase.control.toData
 import com.poterion.monitor.notifiers.deploymentcase.data.Device
 import com.poterion.monitor.notifiers.deploymentcase.data.DeviceKind
 import com.poterion.monitor.notifiers.deploymentcase.data.SharedUiData
+import com.poterion.utils.javafx.autoFitTable
 import javafx.collections.ListChangeListener
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
@@ -52,6 +52,7 @@ class ConfigWindowTabDevices {
 	@FXML private lateinit var columnDevicesId: TableColumn<Device, String>
 
 	private lateinit var saveConfig: () -> Unit
+	private val deviceChangeListener = ListChangeListener<Device> { tableDevices.refresh() }
 
 	@FXML
 	fun initialize() {
@@ -65,14 +66,15 @@ class ConfigWindowTabDevices {
 		columnDevicesKey.init("key") { _, key -> key ?: "" }
 		columnDevicesId.init("key") { device, _ -> device?.toData()?.let { "0x%02X".format(it) } ?: "" }
 		tableDevices.sortOrder.setAll(columnDevicesName)
-		SharedUiData.devicesProperty.addListener { _, _, devices ->
-			tableDevices.items = devices
-			tableDevices.items.addListener(ListChangeListener { tableDevices.refresh() })
+		SharedUiData.configurationProperty.addListener { _, old, new ->
+			old?.devices?.removeListener(deviceChangeListener)
+			new?.devices?.addListener(deviceChangeListener)
+			tableDevices.items = new.devices
 			tableDevices.refresh()
 			tableDevices.autoFitTable()
 		}
+		SharedUiData.devices?.addListener(deviceChangeListener)
 		tableDevices.items = SharedUiData.devices
-		tableDevices.items.addListener(ListChangeListener { tableDevices.refresh() })
 		tableDevices.refresh()
 		tableDevices.autoFitTable()
 	}

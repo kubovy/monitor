@@ -36,7 +36,7 @@ object AlertManagerModule : ServiceModule<AlertManagerConfig, AlertManagerServic
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
 			AlertManagerService = AlertManagerService(controller,
-			AlertManagerConfig(uuid = applicationConfiguration.services.nextUUID(), name = title))
+			AlertManagerConfig(uuid = applicationConfiguration.serviceMap.nextUUID(), name = title))
 
 	override fun loadController(controller: ControllerInterface, config: ModuleConfig): AlertManagerService =
 			AlertManagerService(controller, config as AlertManagerConfig)

@@ -18,8 +18,8 @@ package com.poterion.monitor.notifiers.devopslight.ui
 
 import com.poterion.communication.serial.communicator.BluetoothCommunicator
 import com.poterion.communication.serial.communicator.Channel
-import com.poterion.communication.serial.listeners.CommunicatorListener
 import com.poterion.communication.serial.communicator.USBCommunicator
+import com.poterion.communication.serial.listeners.CommunicatorListener
 import com.poterion.communication.serial.payload.DeviceCapabilities
 import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.data.RGBColor
@@ -33,7 +33,6 @@ import com.poterion.monitor.notifiers.devopslight.deepCopy
 import com.poterion.utils.javafx.*
 import com.poterion.utils.kotlin.noop
 import javafx.application.Platform
-import javafx.collections.FXCollections
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.geometry.Insets
@@ -126,7 +125,7 @@ class ConfigWindowController : CommunicatorListener {
 	private var currentLightConfiguration: List<LightConfig> = emptyList()
 	private val clipboard = mutableListOf<LightConfig>()
 
-	private val patterns = FXCollections.observableArrayList(*LightPattern.values())
+	private val patterns = LightPattern.values().toList()
 
 	private val selectedParent: TreeItem<StateConfig>?
 		get() {
@@ -145,7 +144,7 @@ class ConfigWindowController : CommunicatorListener {
 		textServiceName.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 
 		comboBoxPattern.apply {
-			items?.addAll(patterns)
+			items.addAll(patterns)
 			selectionModel.select(0)
 			selectionModel.selectedItemProperty().addListener { _, _, value -> selectPattern(value) }
 			converter = object : StringConverter<LightPattern>() {
@@ -219,18 +218,9 @@ class ConfigWindowController : CommunicatorListener {
 	private val ServiceConfig.icon: Icon?
 		get() = notifier.controller.modules.find { it.configClass == this::class }?.icon
 
-	private val serviceMapping: Map<String, ServiceConfig>
-		get() = notifier
-				.controller
-				.applicationConfiguration
-				.services
-				.values
-				.map { it.uuid to it }
-				.toMap()
-
 	private val configComparator: Comparator<DevOpsLightItemConfig> = Comparator { c1, c2 ->
-		val n1 = serviceMapping[c1.id]?.name ?: "Default"
-		val n2 = serviceMapping[c2.id]?.name ?: "Default"
+		val n1 = notifier.controller.applicationConfiguration.serviceMap[c1.id]?.name ?: "Default"
+		val n2 = notifier.controller.applicationConfiguration.serviceMap[c2.id]?.name ?: "Default"
 
 		when {
 			n1 == "Default" && n2 != "Default" -> 1
@@ -246,23 +236,12 @@ class ConfigWindowController : CommunicatorListener {
 			notifier.controller.saveConfig()
 		}
 
-		if (config.items.none { it.id.isBlank() }) config.items.add(DevOpsLightItemConfig(
-				id = "",
-				statusNone = emptyList(),
-				statusUnknown = emptyList(),
-				statusOk = emptyList(),
-				statusInfo = emptyList(),
-				statusNotification = emptyList(),
-				statusConnectionError = emptyList(),
-				statusServiceError = emptyList(),
-				statusWarning = emptyList(),
-				statusError = emptyList(),
-				statusFatal = emptyList()))
+		if (config.items.none { it.id.isBlank() }) config.items.add(DevOpsLightItemConfig())
 
 		treeConfigs.root = TreeItem(StateConfig("Configurations")).apply {
 			config.items
 					.sortedWith(configComparator)
-					.map { it to serviceMapping[it.id] }
+					.map { it to notifier.controller.applicationConfiguration.serviceMap[it.id] }
 					.map { (item, service) ->
 						TreeItem(StateConfig(service?.name ?: "Default", serviceId = item.id)).apply {
 							children.addAll(
@@ -283,18 +262,17 @@ class ConfigWindowController : CommunicatorListener {
 		}
 		comboConfigName.apply {
 			factory { item, empty ->
-				text = item?.takeUnless { empty }?.name
+				item?.takeUnless { empty }?.nameProperty?.also { textProperty().bindBidirectional(it) }
 				graphic = item?.takeUnless { empty }?.icon?.toImageView()
 			}
-			notifier.controller
+			items = notifier.controller
 					.applicationConfiguration
 					.services
-					.values
-					.filter { !config.items.map { i -> i.id }.contains(it.uuid) }
-					.distinctBy { it.uuid }
-					.sortedBy { it.name }
-					.takeIf { it.isNotEmpty() }
-					?.also { items?.addAll(it) }
+					.bindFiltered(config.items) { !config.items.map { i -> i.id }.contains(it.uuid) }
+					//.distinctBy { it.uuid }
+					.sorted(compareBy { it.name })
+			//.takeIf { it.isNotEmpty() }
+			//?.also { items?.addAll(it) }
 			selectionModel.clearSelection()
 			value = null
 		}
@@ -613,7 +591,8 @@ class ConfigWindowController : CommunicatorListener {
 				.filter { (_, children) -> children.size == 10 }
 				.filter { (_, children) -> children.all { it.lightConfigs != null } }
 				.map { (node, children) ->
-					DevOpsLightItemConfig(node.serviceId,
+					DevOpsLightItemConfig(
+							id = node.serviceId,
 							statusNone = children[0].lightConfigs ?: emptyList(),
 							statusUnknown = children[1].lightConfigs ?: emptyList(),
 							statusOk = children[2].lightConfigs ?: emptyList(),

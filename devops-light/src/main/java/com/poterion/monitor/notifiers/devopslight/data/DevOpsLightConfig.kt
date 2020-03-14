@@ -16,25 +16,96 @@
  ******************************************************************************/
 package com.poterion.monitor.notifiers.devopslight.data
 
+import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
-import com.poterion.monitor.data.notifiers.NotifierConfig
+import com.poterion.monitor.data.notifiers.AbstractNotifierConfig
+import com.poterion.utils.javafx.toObservableList
+import javafx.beans.property.*
+import javafx.collections.ObservableList
 import java.util.*
 
 /**
+ * Dev/Ops light notifier module configuration.
+ *
+ * @param name Module name
+ * @param enabled Whether module is enabled (`true`) or not (`false`)
+ * @param minPriority Minimum priority a [StatusItem][com.poterion.monitor.data.StatusItem] must have in order to be
+ *        considered by this notifier.
+ * @param minStatus Minimum status a [StatusItem][com.poterion.monitor.data.StatusItem] must have in order to be
+ *        considered by this notifier.
+ * @param services List of service [UUIDs][java.util.UUID] of [services][com.poterion.monitor.api.controllers.Service]
+ *        contributing their [status items][com.poterion.monitor.data.StatusItem] to this notifier. (An empty list means
+ *        that all [services][com.poterion.monitor.api.controllers.Service] are contributing with their
+ *        [status items][com.poterion.monitor.data.StatusItem] to this notifier)
+ * @param tableColumnWidths Saved UI table column widths (column name -> width)
+ * @param deviceAddress
+ * @param usbPort
+ * @param grbColors
+ * @param combineMultipleServices
+ * @param split
+ * @param items
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-data class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.java.simpleName,
-							 override var uuid: String = UUID.randomUUID().toString(),
-							 override var name: String = "",
-							 override var enabled: Boolean = false,
-							 override var minPriority: Priority = Priority.LOW,
-							 override var minStatus: Status = Status.NONE,
-							 override val services: MutableSet<String> = mutableSetOf(),
-							 override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
-							 var deviceAddress: String = "",
-							 var usbPort: String = "",
-							 var grbColors: Boolean = false,
-							 var combineMultipleServices: Boolean = true,
-							 var split: Double = 0.2,
-							 val items: MutableCollection<DevOpsLightItemConfig> = mutableListOf()) : NotifierConfig
+class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.java.simpleName,
+						override var uuid: String = UUID.randomUUID().toString(),
+						name: String = "",
+						enabled: Boolean = false,
+						minPriority: Priority = Priority.LOW,
+						minStatus: Status = Status.NONE,
+						services: List<String> = emptyList(),
+						tableColumnWidths: Map<String, Int> = emptyMap(),
+						deviceAddress: String = "",
+						usbPort: String = "",
+						grbColors: Boolean = false,
+						combineMultipleServices: Boolean = true,
+						split: Double = 0.2,
+						items: List<DevOpsLightItemConfig> = emptyList()) :
+		AbstractNotifierConfig(name, enabled, minPriority, minStatus, services, tableColumnWidths) {
+
+	var deviceAddress: String
+		get() = deviceAddressProperty.get()
+		set(value) = deviceAddressProperty.set(value)
+
+	val deviceAddressProperty: StringProperty = SimpleStringProperty(deviceAddress)
+		@JsonIgnore get
+
+	var usbPort: String
+		get() = usbPortProperty.get()
+		set(value) = usbPortProperty.set(value)
+
+	val usbPortProperty: StringProperty = SimpleStringProperty(usbPort)
+		@JsonIgnore get
+
+	var grbColors: Boolean
+		get() = grbColorsProperty.get()
+		set(value) = grbColorsProperty.set(value)
+
+	val grbColorsProperty: BooleanProperty = SimpleBooleanProperty(grbColors)
+		@JsonIgnore get
+
+	var combineMultipleServices: Boolean
+		get() = combineMultipleServicesProperty.get()
+		set(value) = combineMultipleServicesProperty.set(value)
+
+	val combineMultipleServicesProperty: BooleanProperty = SimpleBooleanProperty(combineMultipleServices)
+		@JsonIgnore get
+
+	var split: Double
+		get() = splitProperty.get()
+		set(value) = splitProperty.set(value)
+
+	val splitProperty: DoubleProperty = SimpleDoubleProperty(split)
+		@JsonIgnore get
+
+	@Suppress("unused")
+	private var _items: List<DevOpsLightItemConfig>
+		@JsonProperty("items") get() = items
+		set(value) {
+			items.setAll(value)
+		}
+
+	val items: ObservableList<DevOpsLightItemConfig> = items.toObservableList()
+		@JsonIgnore get
+}

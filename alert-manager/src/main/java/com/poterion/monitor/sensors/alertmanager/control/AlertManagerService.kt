@@ -31,6 +31,7 @@ import com.poterion.monitor.sensors.alertmanager.data.AlertManagerLabelConfig
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerResponse
 import com.poterion.utils.javafx.openInExternalApplication
 import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.kotlin.setAll
 import com.poterion.utils.kotlin.toSet
 import com.poterion.utils.kotlin.toUriOrNull
 import javafx.geometry.Pos
@@ -124,8 +125,12 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to TextField(config.nameRefs.joinToString(",")).apply {
-					textProperty().addListener { _, _, value -> config.nameRefs = value.toSet(",") }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+					focusedProperty().addListener { _, _, hasFocus ->
+						if (!hasFocus) {
+							config.nameRefs.setAll(text.replace("[\\n\\r\\t]".toRegex(), "").toSet(","))
+							controller.saveConfig()
+						}
+					}
 				},
 				Pane() to Label("Comma separated list of annotations or labels. First found will be used."),
 				Label("Description").apply {
@@ -133,8 +138,12 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to TextField(config.descriptionRefs.joinToString(",")).apply {
-					textProperty().addListener { _, _, value -> config.descriptionRefs = value.toSet(",") }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+					focusedProperty().addListener { _, _, hasFocus ->
+						if (!hasFocus) {
+							config.descriptionRefs.setAll(text.replace("[\\n\\r\\t]".toRegex(), "").toSet(","))
+							controller.saveConfig()
+						}
+					}
 				},
 				Pane() to Label("Comma separated list of annotations or labels. First found will be used."),
 				Label("Receivers").apply {
@@ -143,7 +152,7 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 					alignment = Pos.CENTER_RIGHT
 				} to TextField(config.receivers.joinToString(",")).apply {
 					promptText = "All receivers"
-					textProperty().addListener { _, _, value -> config.receivers = value.toSet(",") }
+					textProperty().addListener { _, _, v -> config.receivers.setAll(v.toSet(",")) }
 					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				},
 				Pane() to Label("Comma separated list of receivers to take into account."),
@@ -154,10 +163,12 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 				} to TextArea(config.labelFilter.joinToString(",")).apply {
 					promptText = "All labels and annotations"
 					prefHeight = 60.0
-					textProperty().addListener { _, _, value ->
-						config.labelFilter = value.replace("[\\n\\r\\t]".toRegex(), "").toSet(",")
+					focusedProperty().addListener { _, _, hasFocus ->
+						if (!hasFocus) {
+							config.labelFilter.setAll(text.replace("[\\n\\r\\t]".toRegex(), "").toSet(","))
+							controller.saveConfig()
+						}
 					}
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				},
 				Pane() to Label("Comma separated list labels or annotation to be used in status items. Use ! for negation."),
 				labelTableSettingsPlugin.rowNewItem)

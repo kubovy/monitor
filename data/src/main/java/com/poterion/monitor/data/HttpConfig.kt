@@ -16,16 +16,93 @@
  ******************************************************************************/
 package com.poterion.monitor.data
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.auth.AuthConfig
+import javafx.beans.property.BooleanProperty
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.StringProperty
 
 /**
+ * HTTP configuration interface.
+ *
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 interface HttpConfig {
+	/**
+	 * Service [URL][java.net.URL]
+	 * @see urlProperty
+	 */
 	var url: String
+
+	/**
+	 * [URL][java.net.URL] property.
+	 * @see url
+	 */
+	val urlProperty: StringProperty
+		@JsonIgnore get
+
+	/**
+	 * If `true`, all certificates will be trusted, if `false` only trusted certificates will be trusted.
+	 * @see trustCertificateProperty
+	 */
 	var trustCertificate: Boolean
+
+	/**
+	 * Trust certificate property.
+	 * @see trustCertificate
+	 */
+	val trustCertificateProperty: BooleanProperty
+		@JsonIgnore get
+
+	/**
+	 * Service [authentication][AuthConfig]
+	 * @see authProperty
+	 */
 	var auth: AuthConfig?
+
+	/**
+	 * Service [authentication][AuthConfig] property.
+	 * @see auth
+	 */
+	val authProperty: ObjectProperty<AuthConfig?>
+		@JsonIgnore get
+
+	/**
+	 * Connection timeout.
+	 * @see connectTimeoutProperty
+	 */
 	var connectTimeout: Long?
+
+	/**
+	 * Connection timeout property
+	 * @see connectTimeout
+	 */
+	val connectTimeoutProperty: ObjectProperty<Long?>
+		@JsonIgnore get
+
+	/**
+	 * Read timeout
+	 * @see readTimeoutProperty
+	 */
 	var readTimeout: Long?
+
+	/**
+	 * Read timeout property
+	 * @see readTimeout
+	 */
+	val readTimeoutProperty: ObjectProperty<Long?>
+		@JsonIgnore get
+
+	/**
+	 * Write timeout.
+	 * @see writeTimeoutProperty
+	 */
 	var writeTimeout: Long?
+
+	/**
+	 * Write timeout property.
+	 * @see writeTimeout
+	 */
+	val writeTimeoutProperty: ObjectProperty<Long?>
+		@JsonIgnore get
 }
