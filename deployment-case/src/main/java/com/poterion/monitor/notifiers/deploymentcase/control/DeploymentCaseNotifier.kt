@@ -62,7 +62,7 @@ import java.io.FileWriter
  */
 class DeploymentCaseNotifier(override val controller: ControllerInterface, config: DeploymentCaseConfig) :
 		Notifier<DeploymentCaseConfig>(config),
-	CommunicatorListener, DataCommunicatorListener, LcdCommunicatorListener,
+	DataCommunicatorListener, LcdCommunicatorListener,
 	RegistryCommunicatorListener, RgbIndicatorCommunicatorListener, StateMachineCommunicatorListener {
 
 	companion object {
@@ -181,6 +181,8 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	}
 
 	override fun onMessageReceived(channel: Channel, message: IntArray) = noop()
+
+	override fun onMessagePrepare(channel: Channel) = noop()
 
 	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) = Platform.runLater {
 			if (stateMachineChunks > 0) {

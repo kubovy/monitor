@@ -273,6 +273,8 @@ class ConfigWindowController : DeploymentCaseMessageListener,
 		textLog.scrollTop = Double.MAX_VALUE
 	}
 
+	override fun onMessagePrepare(channel: Channel) = noop()
+
 	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) = noop()
 
 	override fun onDeviceCapabilitiesChanged(channel: Channel, capabilities: DeviceCapabilities) = noop()

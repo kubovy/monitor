@@ -19,3 +19,4 @@ build/
 /deployment-case/*.bin
 .DS_Store
 /.gitconfig
+.directory

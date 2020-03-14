@@ -16,8 +16,8 @@
  ******************************************************************************/
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.poterion.monitor.api.utils.toColor
-import com.poterion.monitor.api.utils.toHex
+import com.poterion.communication.serial.toColor
+import com.poterion.communication.serial.toHex
 import com.poterion.monitor.notifiers.deploymentcase.control.findInStateMachine
 import com.poterion.monitor.notifiers.deploymentcase.data.*
 import com.poterion.monitor.notifiers.deploymentcase.getDisplayString
