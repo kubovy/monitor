@@ -27,7 +27,7 @@ import retrofit2.Retrofit
 abstract class Service<out Config: ServiceConfig>(config: Config): AbstractModule<Config>(config) {
 	override val navigationRoot: NavigationItem
 		get() = NavigationItem(
-				title = config.name,
+				titleProperty = config.nameProperty,
 				icon = definition.icon,
 				sub = listOf())
 

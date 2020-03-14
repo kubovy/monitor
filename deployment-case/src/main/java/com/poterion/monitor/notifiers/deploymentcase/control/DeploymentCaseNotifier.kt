@@ -40,6 +40,8 @@ import com.poterion.monitor.notifiers.deploymentcase.ui.StateCompareWindowContro
 import com.poterion.utils.javafx.Icon
 import com.poterion.utils.kotlin.noop
 import javafx.application.Platform
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.SimpleObjectProperty
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -91,15 +93,14 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	private var repairStateMachine = false
 	private var lastStateMachineConfigurationCheck = 0L
 
-	private val connectedIcon: Icon
-		get() = if (bluetoothCommunicator.isConnected)
-			DeploymentCaseIcon.CONNECTED else DeploymentCaseIcon.DISCONNECTED
+	private val connectedIconProperty: ObjectProperty<Icon?> = SimpleObjectProperty(
+			if (bluetoothCommunicator.isConnected) DeploymentCaseIcon.CONNECTED else DeploymentCaseIcon.DISCONNECTED)
 
 	override val navigationRoot: NavigationItem
 		get() = super.navigationRoot.apply {
 			sub?.add(NavigationItem(
 					title = "Reconnect",
-					icon = connectedIcon,
+					iconProperty = connectedIconProperty,
 					action = { bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6)) }))
 		}
 
@@ -153,11 +154,16 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	 */
 	fun register(listener: DeploymentCaseMessageListener) = listeners.add(listener)
 
-	override fun onConnecting(channel: Channel) = noop()
+	override fun onConnecting(channel: Channel) {
+		if (channel == Channel.BLUETOOTH) {
+			connectedIconProperty.set(DeploymentCaseIcon.DISCONNECTED)
+		}
+	}
 
 	override fun onConnect(channel: Channel) = Platform.runLater {
 		if (channel == Channel.BLUETOOTH) {
 			LOGGER.info("${channel} Connected")
+			connectedIconProperty.set(DeploymentCaseIcon.CONNECTED)
 			listeners.forEach { it.onProgress(-1, 1, false) }
 		}
 	}
@@ -169,6 +175,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	override fun onDisconnect(channel: Channel) = Platform.runLater {
 		if (channel == Channel.BLUETOOTH) {
 			LOGGER.info("${channel} Disconnected")
+			connectedIconProperty.set(DeploymentCaseIcon.DISCONNECTED)
 			stateMachineTransfer = false
 		}
 	}
