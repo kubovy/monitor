@@ -83,6 +83,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 
 	@FXML private lateinit var textServiceName: TextField
 	@FXML private lateinit var comboBoxPattern: ComboBox<RgbLightPattern>
+	@FXML private lateinit var choiceRainbow: ChoiceBox<String>
 	@FXML private lateinit var comboBoxColor1: ColorPicker
 	@FXML private lateinit var comboBoxColor2: ColorPicker
 	@FXML private lateinit var comboBoxColor3: ColorPicker
@@ -164,6 +165,17 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 			treeConfigs.refresh()
 		}
 		textServiceName.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
+
+		choiceRainbow.items.addAll("Colors", "Rainbow Row", "Rainbow Row Circle", "Rainbow", "Rainbow Circle")
+		choiceRainbow.selectionModel.selectedIndexProperty().addListener { _, _, value ->
+			comboBoxColor1.isDisable = value.toInt() > 0
+			comboBoxColor2.isDisable = value.toInt() > 0
+			comboBoxColor3.isDisable = value.toInt() > 0
+			comboBoxColor4.isDisable = value.toInt() > 0
+			//comboBoxColor5.isDisable = value.toInt() > 0
+			//comboBoxColor6.isDisable = value.toInt() > 0
+			comboBoxColor7.isDisable = value.toInt() > 0
+		}
 
 		comboBoxPattern.apply {
 			items.addAll(patterns)
@@ -534,6 +546,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 		sliderMin.isDisable = treeItem?.value?.lightConfigs == null
 		sliderMax.isDisable = treeItem?.value?.lightConfigs == null
 		textTimeout.isDisable = treeItem?.value?.lightConfigs == null
+		choiceRainbow.isDisable = treeItem?.value?.lightConfigs == null
 
 		buttonTestLightSequence.isDisable = treeItem?.value?.lightConfigs == null
 		tableLightConfigs.items.clear()
@@ -559,6 +572,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 			sliderMin.value = lightConfig?.minimum?.toDouble()?.times(100.0)?.div(255.0) ?: 0.0
 			sliderMax.value = lightConfig?.maximum?.toDouble()?.times(100.0)?.div(255.0) ?: 100.0
 			textTimeout.text = "${lightConfig?.timeout ?: 10}"
+			choiceRainbow.selectionModel.select(lightConfig?.rainbow ?: 0)
 			setLightConfigButtonsEnabled(lightConfig != null)
 		}
 	}
@@ -597,6 +611,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 		val min = sliderMin.value.times(255.0).div(100).roundToInt()
 		val max = sliderMax.value.times(255.0).div(100).roundToInt()
 		val timeout = textTimeout.text.toIntOrNull() ?: 10
+		val rainbow = choiceRainbow.selectionModel.selectedIndex
 
 		return if (pattern != null
 				&& color1 != null
@@ -607,7 +622,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 				&& color6 != null
 				&& color7 != null)
 			RgbLightConfiguration(pattern, color1, color2, color3, color4, color5, color6, color7, delay, width, fade,
-					min, max, timeout)
+					min, max, timeout, rainbow)
 		else null
 	}
 
