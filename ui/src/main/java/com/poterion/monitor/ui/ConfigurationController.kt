@@ -264,7 +264,7 @@ class ConfigurationController {
 							}
 							.let { ContextMenu(*it.toTypedArray()) }
 					is String -> ContextMenu(
-							MenuItem("Duplicade [Ctrl+D]", CommonIcon.DUPLICATE.toImageView()).apply {
+							MenuItem("Duplicate [Ctrl+D]", CommonIcon.DUPLICATE.toImageView()).apply {
 								setOnAction { treeItem?.duplicate() }
 							},
 							MenuItem("Delete [Delete]", CommonIcon.TRASH.toImageView()).apply {

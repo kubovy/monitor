@@ -18,6 +18,9 @@ package com.poterion.monitor.notifiers.devopslight.data
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.poterion.communication.serial.payload.RgbColor
+import com.poterion.communication.serial.toHex
+import com.poterion.communication.serial.toRGBColor
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.notifiers.AbstractNotifierConfig
@@ -62,7 +65,8 @@ class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.jav
 						grbColors: Boolean = false,
 						combineMultipleServices: Boolean = true,
 						split: Double = 0.2,
-						items: List<DevOpsLightItemConfig> = emptyList()) :
+						items: List<DevOpsLightItemConfig> = emptyList(),
+						customColors: List<RgbColor> = emptyList()) :
 		AbstractNotifierConfig(name, enabled, minPriority, minStatus, services, tableColumnWidths) {
 
 	var deviceAddress: String
@@ -115,5 +119,15 @@ class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.jav
 		}
 
 	val items: ObservableList<DevOpsLightItemConfig> = items.toObservableList()
+		@JsonIgnore get
+
+	@Suppress("unused")
+	private var _customColors: List<String>
+		@JsonProperty("customColors") get() = customColors.map { it.toHex() }
+		set(value) {
+			customColors.setAll(value.map { it.toRGBColor() })
+		}
+
+	val customColors: ObservableList<RgbColor> = customColors.toObservableList()
 		@JsonIgnore get
 }

@@ -38,6 +38,7 @@ import com.poterion.utils.javafx.*
 import com.poterion.utils.kotlin.ensureSuffix
 import com.poterion.utils.kotlin.noop
 import javafx.application.Platform
+import javafx.collections.ListChangeListener
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.geometry.Insets
@@ -54,7 +55,6 @@ import javafx.scene.layout.BackgroundFill
 import javafx.scene.layout.CornerRadii
 import javafx.scene.layout.Pane
 import javafx.scene.paint.Color
-import javafx.scene.text.TextAlignment
 import javafx.util.StringConverter
 import kotlin.math.roundToInt
 
@@ -192,16 +192,19 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 			}
 		}
 
-		// Up o 12
-		val customColors = listOf(Color.RED, Color.LIME, Color.BLUE, Color.MAGENTA, Color.YELLOW, Color.CYAN)
-		// Color.AZURE, Color.AQUA, Color.PINK, Color.OLIVE, Color.NAVY, Color.MAROON
-		comboBoxColor1.customColors.addAll(customColors)
-		comboBoxColor2.customColors.addAll(customColors)
-		comboBoxColor3.customColors.addAll(customColors)
-		comboBoxColor4.customColors.addAll(customColors)
-		comboBoxColor5.customColors.addAll(customColors)
-		comboBoxColor6.customColors.addAll(customColors)
-		comboBoxColor7.customColors.addAll(customColors)
+		val customColorChangeListener = ListChangeListener<Color> { change ->
+			setCustomColors(change.list)
+			config.customColors.setAll(change.list.map { it.toRGBColor() })
+			notifier.controller.saveConfig()
+		}
+		comboBoxColor1.customColors.addListener(customColorChangeListener)
+		comboBoxColor2.customColors.addListener(customColorChangeListener)
+		comboBoxColor3.customColors.addListener(customColorChangeListener)
+		comboBoxColor4.customColors.addListener(customColorChangeListener)
+		comboBoxColor5.customColors.addListener(customColorChangeListener)
+		comboBoxColor6.customColors.addListener(customColorChangeListener)
+		comboBoxColor7.customColors.addListener(customColorChangeListener)
+
 
 		sliderMin.valueProperty().addListener { _, _, value -> labelMinValue.text = "${value.toInt()}%" }
 		sliderMax.valueProperty().addListener { _, _, value -> labelMaxValue.text = "${value.toInt()}%" }
@@ -318,6 +321,8 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 			selectionModel.clearSelection()
 			value = null
 		}
+
+		setCustomColors(config.customColors.map { it.toColor() })
 
 		// Status
 		iconBluetooth.image =
@@ -559,12 +564,12 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 		(patterns.firstOrNull { it == lightConfig?.pattern } ?: patterns.first()).also { pattern ->
 			comboBoxPattern.selectionModel.select(pattern)
 			selectPattern(pattern)
-			comboBoxColor1.value = lightConfig?.color1?.toColor() ?: Color.WHITE
-			comboBoxColor2.value = lightConfig?.color2?.toColor() ?: Color.WHITE
-			comboBoxColor3.value = lightConfig?.color3?.toColor() ?: Color.WHITE
-			comboBoxColor4.value = lightConfig?.color4?.toColor() ?: Color.WHITE
-			comboBoxColor5.value = lightConfig?.color5?.toColor() ?: Color.WHITE
-			comboBoxColor6.value = lightConfig?.color6?.toColor() ?: Color.WHITE
+			comboBoxColor1.value = lightConfig?.color1?.toColor() ?: Color.BLACK
+			comboBoxColor2.value = lightConfig?.color2?.toColor() ?: Color.BLACK
+			comboBoxColor3.value = lightConfig?.color3?.toColor() ?: Color.BLACK
+			comboBoxColor4.value = lightConfig?.color4?.toColor() ?: Color.BLACK
+			comboBoxColor5.value = lightConfig?.color5?.toColor() ?: Color.BLACK
+			comboBoxColor6.value = lightConfig?.color6?.toColor() ?: Color.BLACK
 			comboBoxColor7.value = lightConfig?.color7?.toColor() ?: Color.BLACK
 			textDelay.text = "${lightConfig?.delay ?: 50}"
 			textWidth.text = "${lightConfig?.width ?: 3}"
@@ -655,6 +660,27 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 			notifier.usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
 		}
 	}
+
+	private fun setCustomColors(colors: List<Color>) {
+		val customColors = colors
+				.takeUnless { it.isEmpty() }
+				?: listOf(Color.RED, Color.LIME, Color.BLUE, Color.MAGENTA, Color.YELLOW, Color.CYAN)
+		// Color.AZURE, Color.AQUA, Color.PINK, Color.OLIVE, Color.NAVY, Color.MAROON
+		if (!comboBoxColor1.customColors.isSame(customColors)) comboBoxColor1.customColors.setAll(customColors)
+		if (!comboBoxColor2.customColors.isSame(customColors)) comboBoxColor2.customColors.setAll(customColors)
+		if (!comboBoxColor3.customColors.isSame(customColors)) comboBoxColor3.customColors.setAll(customColors)
+		if (!comboBoxColor4.customColors.isSame(customColors)) comboBoxColor4.customColors.setAll(customColors)
+		if (!comboBoxColor5.customColors.isSame(customColors)) comboBoxColor5.customColors.setAll(customColors)
+		if (!comboBoxColor6.customColors.isSame(customColors)) comboBoxColor6.customColors.setAll(customColors)
+		if (!comboBoxColor7.customColors.isSame(customColors)) comboBoxColor7.customColors.setAll(customColors)
+	}
+
+	private fun List<Color>.isSame(other: List<Color>): Boolean = this.size == other.size
+			&& this.mapIndexed { index, color -> color to other[index] }
+			.map { (c, o) -> c.red == o.red && c.green == o.green && c.blue == o.blue }
+			.takeUnless { it.isEmpty() }
+			?.reduce { acc, b -> acc && b }
+			?: true
 
 	private fun TableColumn<RgbLightConfiguration, RgbColor>.init(propertyName: String) = cell(propertyName) { _, value, empty ->
 		graphic = Pane().takeUnless { empty }?.apply {
