@@ -20,7 +20,6 @@ import com.poterion.communication.serial.MessageKind
 import com.poterion.communication.serial.communicator.BluetoothCommunicator
 import com.poterion.communication.serial.communicator.USBCommunicator
 import com.poterion.communication.serial.extensions.RgbLightCommunicatorExtension
-import com.poterion.communication.serial.payload.RgbColor
 import com.poterion.communication.serial.payload.RgbLightConfiguration
 import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.StatusCollector

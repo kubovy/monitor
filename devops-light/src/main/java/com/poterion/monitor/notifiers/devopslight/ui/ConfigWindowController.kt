@@ -19,8 +19,8 @@ package com.poterion.monitor.notifiers.devopslight.ui
 import com.poterion.communication.serial.communicator.BluetoothCommunicator
 import com.poterion.communication.serial.communicator.Channel
 import com.poterion.communication.serial.communicator.USBCommunicator
-import com.poterion.communication.serial.listeners.CommunicatorListener
-import com.poterion.communication.serial.payload.DeviceCapabilities
+import com.poterion.communication.serial.extensions.RgbLightCommunicatorExtension
+import com.poterion.communication.serial.listeners.RgbLightCommunicatorListener
 import com.poterion.communication.serial.payload.RgbColor
 import com.poterion.communication.serial.payload.RgbLightConfiguration
 import com.poterion.communication.serial.payload.RgbLightPattern
@@ -60,7 +60,7 @@ import kotlin.math.roundToInt
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class ConfigWindowController : CommunicatorListener {
+class ConfigWindowController : RgbLightCommunicatorListener {
 	companion object {
 		internal fun getRoot(config: DevOpsLightConfig, controller: DevOpsLightNotifier): Pair<Parent, ConfigWindowController> =
 				FXMLLoader(ConfigWindowController::class.java.getResource("config-window.fxml"))
@@ -139,6 +139,19 @@ class ConfigWindowController : CommunicatorListener {
 			return item
 		}
 
+	private val configComparator: Comparator<DevOpsLightItemConfig> = Comparator { c1, c2 ->
+		val n1 = notifier.controller.applicationConfiguration.serviceMap[c1.id]?.name ?: "Default"
+		val n2 = notifier.controller.applicationConfiguration.serviceMap[c2.id]?.name ?: "Default"
+
+		when {
+			n1 == "Default" && n2 != "Default" -> 1
+			n1 != "Default" && n2 == "Default" -> -1
+			else -> compareValues(n1, n2)
+		}
+	}
+
+	private val ServiceConfig.icon: Icon?
+		get() = notifier.controller.modules.find { it.configClass == this::class }?.icon
 
 	@FXML
 	fun initialize() {
@@ -218,20 +231,6 @@ class ConfigWindowController : CommunicatorListener {
 		treeConfigs.selectionModel.clearSelection()
 		selectStateConfig(null)
 		selectLightConfig(null)
-	}
-
-	private val ServiceConfig.icon: Icon?
-		get() = notifier.controller.modules.find { it.configClass == this::class }?.icon
-
-	private val configComparator: Comparator<DevOpsLightItemConfig> = Comparator { c1, c2 ->
-		val n1 = notifier.controller.applicationConfiguration.serviceMap[c1.id]?.name ?: "Default"
-		val n2 = notifier.controller.applicationConfiguration.serviceMap[c2.id]?.name ?: "Default"
-
-		when {
-			n1 == "Default" && n2 != "Default" -> 1
-			n1 != "Default" && n2 == "Default" -> -1
-			else -> compareValues(n1, n2)
-		}
 	}
 
 	private fun load() {
@@ -474,8 +473,6 @@ class ConfigWindowController : CommunicatorListener {
 		}
 	}
 
-	override fun onConnectionReady(channel: Channel) = noop()
-
 	override fun onDisconnect(channel: Channel) = Platform.runLater {
 		btnConnect.text = "Connect [F5]"
 		when (channel) {
@@ -484,15 +481,10 @@ class ConfigWindowController : CommunicatorListener {
 		}
 	}
 
-	override fun onMessageReceived(channel: Channel, message: IntArray) = noop()
+	override fun onRgbLightCountChanged(channel: Channel, count: Int) = noop()
 
-	override fun onMessagePrepare(channel: Channel) = noop()
-
-	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) = noop()
-
-	override fun onDeviceCapabilitiesChanged(channel: Channel, capabilities: DeviceCapabilities) = noop()
-
-	override fun onDeviceNameChanged(channel: Channel, name: String) = noop()
+	override fun onRgbLightConfiguration(channel: Channel, num: Int, count: Int, index: Int,
+										 configuration: RgbLightConfiguration) = noop()
 
 	internal fun changeLights(lightConfiguration: List<RgbLightConfiguration>?) {
 		currentLightConfiguration = lightConfiguration ?: emptyList()
@@ -611,8 +603,12 @@ class ConfigWindowController : CommunicatorListener {
 							statusFatal = children[9].lightConfigs ?: emptyList())
 				})
 		notifier.controller.saveConfig()
-		notifier.bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
-		notifier.usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
+		if (notifier.bluetoothCommunicator.isConnected) {
+			notifier.bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
+		}
+		if (notifier.usbCommunicator.isConnected) {
+			notifier.usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
+		}
 	}
 
 	private fun TableColumn<RgbLightConfiguration, RgbColor>.init(propertyName: String) = cell(propertyName) { _, value, empty ->
