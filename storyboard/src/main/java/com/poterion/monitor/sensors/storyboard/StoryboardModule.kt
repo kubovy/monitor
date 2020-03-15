@@ -39,7 +39,7 @@ object StoryboardModule : ServiceModule<StoryboardConfig, StoryboardService> {
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
 			StoryboardService = StoryboardService(controller,
-			StoryboardConfig(uuid = applicationConfiguration.services.nextUUID(), name = title))
+			StoryboardConfig(uuid = applicationConfiguration.serviceMap.nextUUID(), name = title))
 
 	override fun loadController(controller: ControllerInterface, config: ModuleConfig): StoryboardService =
 			StoryboardService(controller, config as StoryboardConfig)

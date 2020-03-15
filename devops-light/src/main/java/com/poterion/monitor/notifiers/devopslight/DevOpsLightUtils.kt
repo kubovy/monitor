@@ -16,14 +16,6 @@
  ******************************************************************************/
 package com.poterion.monitor.notifiers.devopslight
 
-import com.poterion.monitor.notifiers.devopslight.data.LightConfig
+import com.poterion.communication.serial.payload.RgbLightConfiguration
 
-fun List<LightConfig>.deepCopy(): List<LightConfig> = map { it.deepCopy() }
-
-fun LightConfig.deepCopy(): LightConfig = copy(
-		color1 = color1.copy(),
-		color2 = color2.copy(),
-		color3 = color3.copy(),
-		color4 = color4.copy(),
-		color5 = color5.copy(),
-		color6 = color6.copy())
+fun List<RgbLightConfiguration>.deepCopy(): List<RgbLightConfiguration> = map { it.copy() }

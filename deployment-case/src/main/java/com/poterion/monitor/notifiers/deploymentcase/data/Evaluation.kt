@@ -26,11 +26,11 @@ data class Evaluation(var conditions: List<Condition> = listOf(),
 					  var actions: List<Action> = listOf()) : StateMachineItem {
 
 	@JsonIgnore
-	override fun getTitle(devices: Collection<Device>, variables: Collection<Variable>): String = "Evaluation"
+	override fun getTitle(devices: Collection<Device>?, variables: Collection<Variable>?): String = "Evaluation"
 
 	override val icon: DeploymentCaseIcon?
 		@JsonIgnore
 		get() = DeploymentCaseIcon.EVALUATION
 
-	override fun isBinarySame(other: StateMachineItem, devices: Collection<Device>, variables: Collection<Variable>): Boolean = true
+	override fun isBinarySame(other: StateMachineItem, devices: Collection<Device>?, variables: Collection<Variable>?): Boolean = true
 }

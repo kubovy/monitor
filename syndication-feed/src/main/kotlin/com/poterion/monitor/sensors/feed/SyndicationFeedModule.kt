@@ -37,8 +37,8 @@ object SyndicationFeedModule : ServiceModule<SyndicationFeedConfig, SyndicationF
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
 			SyndicationFeedService =
 		SyndicationFeedService(controller,
-			SyndicationFeedConfig(uuid = applicationConfiguration.services.nextUUID(),
-				name = title))
+				SyndicationFeedConfig(uuid = applicationConfiguration.serviceMap.nextUUID(),
+						name = title))
 
 	override fun loadController(controller: ControllerInterface, config: ModuleConfig): SyndicationFeedService =
 		SyndicationFeedService(controller,

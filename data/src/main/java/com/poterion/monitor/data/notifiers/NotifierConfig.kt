@@ -16,20 +16,61 @@
  ******************************************************************************/
 package com.poterion.monitor.data.notifiers
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
+import javafx.beans.property.ObjectProperty
+import javafx.collections.ObservableList
+
 
 /**
+ * Notifier config interface.
+ *
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 interface NotifierConfig : ModuleConfig {
+	/**
+	 * Minimum priority a [StatusItem][com.poterion.monitor.data.StatusItem] must have in order to be considered by
+	 * this notifier.
+	 * @see minPriorityProperty
+	 */
 	var minPriority: Priority
 		@JsonInclude(value = JsonInclude.Include.ALWAYS)
-		get
+		get() = minPriorityProperty.get()
+		set(value) = minPriorityProperty.set(value)
+
+	/**
+	 * Minimum priority property.
+	 * @see minPriority
+	 */
+	val minPriorityProperty: ObjectProperty<Priority>
+		@JsonIgnore get
+
+	/**
+	 * Minimum status a [StatusItem][com.poterion.monitor.data.StatusItem] must have in order to be considered by
+	 * this notifier.
+	 * @see minStatusProperty
+	 */
 	var minStatus: Status
 		@JsonInclude(value = JsonInclude.Include.ALWAYS)
-		get
-	val services: MutableSet<String>
+		get() = minStatusProperty.get()
+		set(value) = minStatusProperty.set(value)
+
+	/**
+	 * Minimum status property.
+	 * @see minStatus
+	 */
+	val minStatusProperty: ObjectProperty<Status>
+		@JsonIgnore get
+
+	/**
+	 * List of service [UUIDs][java.util.UUID] of [services][com.poterion.monitor.api.controllers.Service] contributing
+	 * their [status items][com.poterion.monitor.data.StatusItem] to this notifier.
+	 *
+	 * An empty list means that all [services][com.poterion.monitor.api.controllers.Service] are contributing with their
+	 * [status items][com.poterion.monitor.data.StatusItem] to this notifier.
+	 */
+	val services: ObservableList<String>
 }

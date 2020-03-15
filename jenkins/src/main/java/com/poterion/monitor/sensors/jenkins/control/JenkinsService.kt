@@ -29,6 +29,7 @@ import com.poterion.monitor.sensors.jenkins.JenkinsModule
 import com.poterion.monitor.sensors.jenkins.data.JenkinsConfig
 import com.poterion.monitor.sensors.jenkins.data.JenkinsJobConfig
 import com.poterion.monitor.sensors.jenkins.data.JenkinsJobResponse
+import com.poterion.utils.javafx.toObservableList
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -64,18 +65,16 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Job Name",
-							getter = { name },
-							setter = { name = it },
+							property = { nameProperty },
 							initialValue = "",
 							isEditable = true),
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Priority",
-							getter = { priority },
-							setter = { priority = it },
+							property = { priorityProperty },
 							initialValue = Priority.NONE,
 							isEditable = true,
 							icon = { toIcon() },
-							options = { Priority.values().toList() })),
+							options = Priority.values().toObservableList())),
 			comparator = compareBy({ -it.priority.ordinal }, { it.name })//,
 			//actions = listOf { item ->
 			//	item.let { URLEncoder.encode(it.name, Charsets.UTF_8.name()) }

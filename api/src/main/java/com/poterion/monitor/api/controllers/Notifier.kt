@@ -22,7 +22,10 @@ import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.utils.javafx.Icon
+import com.poterion.utils.javafx.mapped
 import com.poterion.utils.kotlin.noop
+import javafx.collections.FXCollections
+import javafx.collections.ObservableList
 import javafx.scene.Node
 import javafx.scene.Parent
 
@@ -33,12 +36,12 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 
 	override val navigationRoot: NavigationItem
 		get() = NavigationItem(
-				title = config.name,
+				titleProperty = config.nameProperty,
 				icon = definition.icon,
-				sub = mutableListOf(
+				sub = listOf(
 						NavigationItem(
 								title = "Enabled",
-								checked = config.enabled,
+								checkedProperty = config.enabledProperty.asObject(),
 								action = {
 									execute(NotifierAction.TOGGLE)
 									if (!config.enabled) execute(NotifierAction.SHUTDOWN)
@@ -46,15 +49,22 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 				))
 
 	private val String.getService: ServiceConfig?
-		get() = controller.applicationConfiguration.services[this]
+		get() = controller.applicationConfiguration.serviceMap[this]
 
 	private val String.getServiceIcon: Icon?
 		get() = getService
 				.let { conf -> controller.modules.find { module -> module.configClass == conf?.let { it::class } } }
 				?.icon
 
-	val selectedServices: Collection<Service<ServiceConfig>>
-		get() = controller.services.filter { config.services.isEmpty() || config.services.contains(it.config.uuid) }
+	var selectedServices: ObservableList<Service<ServiceConfig>> = FXCollections.emptyObservableList()
+		get() {
+			if (field == FXCollections.emptyObservableList<Service<ServiceConfig>>()) {
+				field = controller.services
+						.filtered { config.services.isEmpty() || config.services.contains(it.config.uuid) }
+			}
+			return field
+		}
+		private set
 
 	private var serviceTableSettingsPlugin: TableSettingsPlugin<String>? = null
 		get() {
@@ -70,19 +80,25 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 							TableSettingsPlugin.ColumnDefinition(
 									name = "Service Name",
 									getter = { this },
-									mutator = { it },
 									title = { getService?.name ?: "" },
 									icon = { getServiceIcon },
 									initialValue = "",
-									options = {
-										controller
-												.applicationConfiguration
-												.services
-												.filterKeys { id -> !config.services.contains(id) }
-												.values
-												.sortedBy { it.name }
-												.map { it.uuid }
-									})),
+									options = controller
+											.applicationConfiguration
+											.services
+											.filtered { x -> selectedServices.map { it.config.uuid }.contains(x.uuid) }
+											.sorted(compareBy { it.name })
+											.mapped { it?.uuid }
+//									options = {
+//										controller
+//												.applicationConfiguration
+//												.services
+//												.filterKeys { id -> !config.services.contains(id) }
+//												.values
+//												.sortedBy { it.name }
+//												.map { it.uuid }
+//									}
+							)),
 					comparator = compareBy { it.getService?.name },
 					onSave = this::onServicesChanged)
 			return field
@@ -93,7 +109,6 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOfNotNull(serviceTableSettingsPlugin?.vbox)
-
 
 	open fun onServicesChanged() = noop()
 

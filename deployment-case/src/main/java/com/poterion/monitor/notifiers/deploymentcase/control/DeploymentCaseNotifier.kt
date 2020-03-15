@@ -16,7 +16,8 @@
  ******************************************************************************/
 package com.poterion.monitor.notifiers.deploymentcase.control
 
-import com.poterion.communication.serial.*
+import com.poterion.communication.serial.byte2Bools
+import com.poterion.communication.serial.calculateChecksum
 import com.poterion.communication.serial.communicator.BluetoothCommunicator
 import com.poterion.communication.serial.communicator.Channel
 import com.poterion.communication.serial.extensions.*
@@ -39,6 +40,8 @@ import com.poterion.monitor.notifiers.deploymentcase.ui.StateCompareWindowContro
 import com.poterion.utils.javafx.Icon
 import com.poterion.utils.kotlin.noop
 import javafx.application.Platform
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.SimpleObjectProperty
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -59,7 +62,7 @@ import java.io.FileWriter
  */
 class DeploymentCaseNotifier(override val controller: ControllerInterface, config: DeploymentCaseConfig) :
 		Notifier<DeploymentCaseConfig>(config),
-	CommunicatorListener, DataCommunicatorListener, LcdCommunicatorListener,
+	DataCommunicatorListener, LcdCommunicatorListener,
 	RegistryCommunicatorListener, RgbIndicatorCommunicatorListener, StateMachineCommunicatorListener {
 
 	companion object {
@@ -90,15 +93,14 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	private var repairStateMachine = false
 	private var lastStateMachineConfigurationCheck = 0L
 
-	private val connectedIcon: Icon
-		get() = if (bluetoothCommunicator.isConnected)
-			DeploymentCaseIcon.CONNECTED else DeploymentCaseIcon.DISCONNECTED
+	private val connectedIconProperty: ObjectProperty<Icon?> = SimpleObjectProperty(
+			if (bluetoothCommunicator.isConnected) DeploymentCaseIcon.CONNECTED else DeploymentCaseIcon.DISCONNECTED)
 
 	override val navigationRoot: NavigationItem
 		get() = super.navigationRoot.apply {
 			sub?.add(NavigationItem(
 					title = "Reconnect",
-					icon = connectedIcon,
+					iconProperty = connectedIconProperty,
 					action = { bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6)) }))
 		}
 
@@ -152,11 +154,16 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	 */
 	fun register(listener: DeploymentCaseMessageListener) = listeners.add(listener)
 
-	override fun onConnecting(channel: Channel) = noop()
+	override fun onConnecting(channel: Channel) {
+		if (channel == Channel.BLUETOOTH) {
+			connectedIconProperty.set(DeploymentCaseIcon.DISCONNECTED)
+		}
+	}
 
 	override fun onConnect(channel: Channel) = Platform.runLater {
 		if (channel == Channel.BLUETOOTH) {
 			LOGGER.info("${channel} Connected")
+			connectedIconProperty.set(DeploymentCaseIcon.CONNECTED)
 			listeners.forEach { it.onProgress(-1, 1, false) }
 		}
 	}
@@ -168,11 +175,14 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	override fun onDisconnect(channel: Channel) = Platform.runLater {
 		if (channel == Channel.BLUETOOTH) {
 			LOGGER.info("${channel} Disconnected")
+			connectedIconProperty.set(DeploymentCaseIcon.DISCONNECTED)
 			stateMachineTransfer = false
 		}
 	}
 
 	override fun onMessageReceived(channel: Channel, message: IntArray) = noop()
+
+	override fun onMessagePrepare(channel: Channel) = noop()
 
 	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) = Platform.runLater {
 			if (stateMachineChunks > 0) {
@@ -375,17 +385,17 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	override fun onStateMachineActionReceived(channel: Channel, actions: List<Pair<Int, IntArray>>) =
 		Platform.runLater {
 			val configuration = config.configurations.find { it.isActive }
-			val states = configuration?.stateMachine ?: emptyList()
-			val devices = configuration?.devices ?: emptyList()
-			val variables = configuration?.variables ?: emptyList()
+			val states: List<State> = configuration?.stateMachine ?: emptyList()
+			val devices: List<Device> = configuration?.devices ?: emptyList()
+			val variables: List<Variable> = configuration?.variables ?: emptyList()
 			actions.asSequence()
-				.map { (device, v) -> Triple((device and 0x80) == 0x80, (device and 0x7F).toDevice(devices), v) }
-				.map { (e, d, v) -> Triple(e, d, v.toList().toVariableWhole(states, d, variables)) }
-				.map { (e, d, v) -> Action(d.toData(), v.name, e) }
-				.map { it.device?.toDevice(devices) to it.value }
-				.filter { (d, v) -> d != null && v != null }
-				.map { (d, v) -> d!! to v!! }
-				.forEach { (d, v) -> listeners.forEach { it.onAction(d, v) } }
+					.map { (device, v) -> Triple((device and 0x80) == 0x80, (device and 0x7F).toDevice(devices), v) }
+					.map { (e, d, v) -> Triple(e, d, v.toList().toVariableWhole(states, d, variables)) }
+					.map { (e, d, v) -> Action(d.toData(), v.name, e) }
+					.map { it.device?.toDevice(devices) to it.value }
+					.filter { (d, v) -> d != null && v != null }
+					.map { (d, v) -> d!! to v!! }
+					.forEach { (d, v) -> listeners.forEach { it.onAction(d, v) } }
 			//message.copyOfRange(2, message.size)
 			//	.toList()
 			//	.toActions(states, devices, variables)

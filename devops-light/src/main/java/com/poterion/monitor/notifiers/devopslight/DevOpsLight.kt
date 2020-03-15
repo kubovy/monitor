@@ -36,7 +36,7 @@ object DevOpsLight : NotifierModule<DevOpsLightConfig, DevOpsLightNotifier> {
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
 			DevOpsLightNotifier = DevOpsLightNotifier(controller,
-			DevOpsLightConfig(uuid = applicationConfiguration.notifiers.nextUUID(), name = title))
+			DevOpsLightConfig(uuid = applicationConfiguration.notifierMap.nextUUID(), name = title))
 
 	override fun loadController(controller: ControllerInterface, config: ModuleConfig): DevOpsLightNotifier =
 			DevOpsLightNotifier(controller, config as DevOpsLightConfig)

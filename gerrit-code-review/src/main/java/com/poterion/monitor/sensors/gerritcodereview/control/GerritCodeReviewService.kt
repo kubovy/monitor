@@ -32,6 +32,7 @@ import com.poterion.monitor.sensors.gerritcodereview.data.GerritCodeReviewQueryC
 import com.poterion.monitor.sensors.gerritcodereview.data.GerritCodeReviewQueryResponse
 import com.poterion.utils.javafx.openInExternalApplication
 import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.javafx.toObservableList
 import com.poterion.utils.kotlin.toUriOrNull
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -77,32 +78,28 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Name",
-							getter = { name },
-							setter = { name = it },
+							property = { nameProperty },
 							initialValue = "",
 							isEditable = true),
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Query",
-							getter = { query },
-							setter = { query = it },
+							property = { queryProperty },
 							initialValue = "",
 							isEditable = true),
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Priority",
-							getter = { priority },
-							setter = { priority = it },
+							property = { priorityProperty },
 							initialValue = Priority.NONE,
 							isEditable = true,
 							icon = { toIcon() },
-							options = { Priority.values().toList() }),
+							options = Priority.values().toObservableList()),
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Status",
-							getter = { status },
-							setter = { status = it },
+							property = { statusProperty },
 							initialValue = Status.NONE,
 							isEditable = true,
 							icon = { toIcon() },
-							options = { Status.values().toList() })),
+							options = Status.values().toObservableList())),
 			comparator = compareBy({ -it.priority.ordinal }, { -it.status.ordinal }, { it.name }),
 			actions = listOf { item ->
 				item.let { URLEncoder.encode(it.query, Charsets.UTF_8.name()) }

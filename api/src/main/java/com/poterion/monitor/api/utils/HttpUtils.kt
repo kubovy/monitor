@@ -37,7 +37,7 @@ fun HttpProxy.useProxyFor(url: String): Boolean {
 		try {
 			InetAddress.getByName(it)
 		} catch (e: Exception) {
-			LOGGER.error(e.message, e)
+			LOGGER.error("${it}: ${e.message}")
 			null
 		}
 	}?.hostName

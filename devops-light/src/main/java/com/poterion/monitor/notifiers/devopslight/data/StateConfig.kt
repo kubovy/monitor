@@ -16,6 +16,7 @@
  ******************************************************************************/
 package com.poterion.monitor.notifiers.devopslight.data
 
+import com.poterion.communication.serial.payload.RgbLightConfiguration
 import com.poterion.utils.javafx.Icon
 
 /**
@@ -23,5 +24,5 @@ import com.poterion.utils.javafx.Icon
  */
 data class StateConfig(var title: String,
 					   val icon: Icon? = null,
-					   var lightConfigs: List<LightConfig>? = null,
+					   var lightConfigs: List<RgbLightConfiguration>? = null,
 					   var serviceId: String = "")

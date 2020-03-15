@@ -18,22 +18,26 @@ package com.poterion.monitor.notifiers.devopslight.ui
 
 import com.poterion.communication.serial.communicator.BluetoothCommunicator
 import com.poterion.communication.serial.communicator.Channel
-import com.poterion.communication.serial.listeners.CommunicatorListener
 import com.poterion.communication.serial.communicator.USBCommunicator
+import com.poterion.communication.serial.listeners.CommunicatorListener
 import com.poterion.communication.serial.payload.DeviceCapabilities
+import com.poterion.communication.serial.payload.RgbColor
+import com.poterion.communication.serial.payload.RgbLightConfiguration
+import com.poterion.communication.serial.payload.RgbLightPattern
+import com.poterion.communication.serial.toColor
+import com.poterion.communication.serial.toRGBColor
 import com.poterion.monitor.api.CommonIcon
-import com.poterion.monitor.api.data.RGBColor
-import com.poterion.monitor.api.utils.toColor
-import com.poterion.monitor.api.utils.toRGBColor
+import com.poterion.monitor.api.utils.title
 import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.notifiers.devopslight.DevOpsLightIcon
 import com.poterion.monitor.notifiers.devopslight.control.DevOpsLightNotifier
-import com.poterion.monitor.notifiers.devopslight.data.*
+import com.poterion.monitor.notifiers.devopslight.data.DevOpsLightConfig
+import com.poterion.monitor.notifiers.devopslight.data.DevOpsLightItemConfig
+import com.poterion.monitor.notifiers.devopslight.data.StateConfig
 import com.poterion.monitor.notifiers.devopslight.deepCopy
 import com.poterion.utils.javafx.*
 import com.poterion.utils.kotlin.noop
 import javafx.application.Platform
-import javafx.collections.FXCollections
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.geometry.Insets
@@ -76,7 +80,7 @@ class ConfigWindowController : CommunicatorListener {
 	@FXML private lateinit var buttonDeleteConfig: Button
 
 	@FXML private lateinit var textServiceName: TextField
-	@FXML private lateinit var comboBoxPattern: ComboBox<LightPattern>
+	@FXML private lateinit var comboBoxPattern: ComboBox<RgbLightPattern>
 	@FXML private lateinit var comboBoxColor1: ColorPicker
 	@FXML private lateinit var comboBoxColor2: ColorPicker
 	@FXML private lateinit var comboBoxColor3: ColorPicker
@@ -96,20 +100,20 @@ class ConfigWindowController : CommunicatorListener {
 	@FXML private lateinit var buttonSaveLight: Button
 	@FXML private lateinit var buttonClearLight: Button
 
-	@FXML private lateinit var tableLightConfigs: TableView<LightConfig>
-	@FXML private lateinit var columnLightPattern: TableColumn<LightConfig, String>
-	@FXML private lateinit var columnLightColor1: TableColumn<LightConfig, RGBColor>
-	@FXML private lateinit var columnLightColor2: TableColumn<LightConfig, RGBColor>
-	@FXML private lateinit var columnLightColor3: TableColumn<LightConfig, RGBColor>
-	@FXML private lateinit var columnLightColor4: TableColumn<LightConfig, RGBColor>
-	@FXML private lateinit var columnLightColor5: TableColumn<LightConfig, RGBColor>
-	@FXML private lateinit var columnLightColor6: TableColumn<LightConfig, RGBColor>
-	@FXML private lateinit var columnLightDelay: TableColumn<LightConfig, Int>
-	@FXML private lateinit var columnLightWidth: TableColumn<LightConfig, Int>
-	@FXML private lateinit var columnLightFading: TableColumn<LightConfig, Int>
-	@FXML private lateinit var columnLightMinimum: TableColumn<LightConfig, Int>
-	@FXML private lateinit var columnLightMaximum: TableColumn<LightConfig, Int>
-	@FXML private lateinit var columnLightTimeout: TableColumn<LightConfig, Int>
+	@FXML private lateinit var tableLightConfigs: TableView<RgbLightConfiguration>
+	@FXML private lateinit var columnLightPattern: TableColumn<RgbLightConfiguration, String>
+	@FXML private lateinit var columnLightColor1: TableColumn<RgbLightConfiguration, RgbColor>
+	@FXML private lateinit var columnLightColor2: TableColumn<RgbLightConfiguration, RgbColor>
+	@FXML private lateinit var columnLightColor3: TableColumn<RgbLightConfiguration, RgbColor>
+	@FXML private lateinit var columnLightColor4: TableColumn<RgbLightConfiguration, RgbColor>
+	@FXML private lateinit var columnLightColor5: TableColumn<RgbLightConfiguration, RgbColor>
+	@FXML private lateinit var columnLightColor6: TableColumn<RgbLightConfiguration, RgbColor>
+	@FXML private lateinit var columnLightDelay: TableColumn<RgbLightConfiguration, Int>
+	@FXML private lateinit var columnLightWidth: TableColumn<RgbLightConfiguration, Int>
+	@FXML private lateinit var columnLightFading: TableColumn<RgbLightConfiguration, Int>
+	@FXML private lateinit var columnLightMinimum: TableColumn<RgbLightConfiguration, Int>
+	@FXML private lateinit var columnLightMaximum: TableColumn<RgbLightConfiguration, Int>
+	@FXML private lateinit var columnLightTimeout: TableColumn<RgbLightConfiguration, Int>
 
 	@FXML private lateinit var buttonTestLightSequence: Button
 	@FXML private lateinit var buttonTurnOffLight: Button
@@ -123,10 +127,10 @@ class ConfigWindowController : CommunicatorListener {
 
 	private lateinit var config: DevOpsLightConfig
 	private lateinit var notifier: DevOpsLightNotifier
-	private var currentLightConfiguration: List<LightConfig> = emptyList()
-	private val clipboard = mutableListOf<LightConfig>()
+	private var currentLightConfiguration: List<RgbLightConfiguration> = emptyList()
+	private val clipboard = mutableListOf<RgbLightConfiguration>()
 
-	private val patterns = FXCollections.observableArrayList(*LightPattern.values())
+	private val patterns = RgbLightPattern.values().toList()
 
 	private val selectedParent: TreeItem<StateConfig>?
 		get() {
@@ -145,12 +149,12 @@ class ConfigWindowController : CommunicatorListener {
 		textServiceName.focusedProperty().addListener { _, _, focused -> if (!focused) saveConfig() }
 
 		comboBoxPattern.apply {
-			items?.addAll(patterns)
+			items.addAll(patterns)
 			selectionModel.select(0)
 			selectionModel.selectedItemProperty().addListener { _, _, value -> selectPattern(value) }
-			converter = object : StringConverter<LightPattern>() {
-				override fun toString(obj: LightPattern?): String = obj?.title ?: ""
-				override fun fromString(string: String?): LightPattern = patterns
+			converter = object : StringConverter<RgbLightPattern>() {
+				override fun toString(obj: RgbLightPattern?): String = obj?.title ?: ""
+				override fun fromString(string: String?): RgbLightPattern = patterns
 						.firstOrNull { it.title == string }
 						?: patterns.first()
 			}
@@ -219,18 +223,9 @@ class ConfigWindowController : CommunicatorListener {
 	private val ServiceConfig.icon: Icon?
 		get() = notifier.controller.modules.find { it.configClass == this::class }?.icon
 
-	private val serviceMapping: Map<String, ServiceConfig>
-		get() = notifier
-				.controller
-				.applicationConfiguration
-				.services
-				.values
-				.map { it.uuid to it }
-				.toMap()
-
 	private val configComparator: Comparator<DevOpsLightItemConfig> = Comparator { c1, c2 ->
-		val n1 = serviceMapping[c1.id]?.name ?: "Default"
-		val n2 = serviceMapping[c2.id]?.name ?: "Default"
+		val n1 = notifier.controller.applicationConfiguration.serviceMap[c1.id]?.name ?: "Default"
+		val n2 = notifier.controller.applicationConfiguration.serviceMap[c2.id]?.name ?: "Default"
 
 		when {
 			n1 == "Default" && n2 != "Default" -> 1
@@ -246,23 +241,12 @@ class ConfigWindowController : CommunicatorListener {
 			notifier.controller.saveConfig()
 		}
 
-		if (config.items.none { it.id.isBlank() }) config.items.add(DevOpsLightItemConfig(
-				id = "",
-				statusNone = emptyList(),
-				statusUnknown = emptyList(),
-				statusOk = emptyList(),
-				statusInfo = emptyList(),
-				statusNotification = emptyList(),
-				statusConnectionError = emptyList(),
-				statusServiceError = emptyList(),
-				statusWarning = emptyList(),
-				statusError = emptyList(),
-				statusFatal = emptyList()))
+		if (config.items.none { it.id.isBlank() }) config.items.add(DevOpsLightItemConfig())
 
 		treeConfigs.root = TreeItem(StateConfig("Configurations")).apply {
 			config.items
 					.sortedWith(configComparator)
-					.map { it to serviceMapping[it.id] }
+					.map { it to notifier.controller.applicationConfiguration.serviceMap[it.id] }
 					.map { (item, service) ->
 						TreeItem(StateConfig(service?.name ?: "Default", serviceId = item.id)).apply {
 							children.addAll(
@@ -283,18 +267,17 @@ class ConfigWindowController : CommunicatorListener {
 		}
 		comboConfigName.apply {
 			factory { item, empty ->
-				text = item?.takeUnless { empty }?.name
+				item?.takeUnless { empty }?.nameProperty?.also { textProperty().bindBidirectional(it) }
 				graphic = item?.takeUnless { empty }?.icon?.toImageView()
 			}
-			notifier.controller
+			items = notifier.controller
 					.applicationConfiguration
 					.services
-					.values
-					.filter { !config.items.map { i -> i.id }.contains(it.uuid) }
-					.distinctBy { it.uuid }
-					.sortedBy { it.name }
-					.takeIf { it.isNotEmpty() }
-					?.also { items?.addAll(it) }
+					.bindFiltered(config.items) { !config.items.map { i -> i.id }.contains(it.uuid) }
+					//.distinctBy { it.uuid }
+					.sorted(compareBy { it.name })
+			//.takeIf { it.isNotEmpty() }
+			//?.also { items?.addAll(it) }
 			selectionModel.clearSelection()
 			value = null
 		}
@@ -391,12 +374,12 @@ class ConfigWindowController : CommunicatorListener {
 
 	@FXML
 	fun onTurnOffLight() {
-		notifier.changeLights(listOf(LightConfig()))
+		notifier.changeLights(listOf(RgbLightConfiguration()))
 	}
 
 	@FXML
 	fun onMoveUpLight() {
-		val selectedLight = tableLightConfigs.selectionModel.selectedItem?.deepCopy()
+		val selectedLight = tableLightConfigs.selectionModel.selectedItem?.copy()
 		tableLightConfigs.selectionModel.selectedIndex
 				.takeIf { it > 0 && it < tableLightConfigs.items.size }
 				?.also {
@@ -409,7 +392,7 @@ class ConfigWindowController : CommunicatorListener {
 
 	@FXML
 	fun onMoveDownLight() {
-		val selectedLight = tableLightConfigs.selectionModel.selectedItem?.deepCopy()
+		val selectedLight = tableLightConfigs.selectionModel.selectedItem?.copy()
 		tableLightConfigs.selectionModel.selectedIndex
 				.takeIf { it >= 0 && it < tableLightConfigs.items.size - 1 }
 				?.also {
@@ -469,7 +452,7 @@ class ConfigWindowController : CommunicatorListener {
 		KeyCode.DOWN -> if (keyEvent.isAltDown) onMoveDownLight() else null
 		KeyCode.C -> if (keyEvent.isControlDown) {
 			clipboard.clear()
-			tableLightConfigs.selectionModel.selectedItem?.deepCopy()?.also { clipboard.add(it) }
+			tableLightConfigs.selectionModel.selectedItem?.copy()?.also { clipboard.add(it) }
 			null
 		} else null
 		KeyCode.V -> if (keyEvent.isControlDown) {
@@ -503,13 +486,15 @@ class ConfigWindowController : CommunicatorListener {
 
 	override fun onMessageReceived(channel: Channel, message: IntArray) = noop()
 
+	override fun onMessagePrepare(channel: Channel) = noop()
+
 	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) = noop()
 
 	override fun onDeviceCapabilitiesChanged(channel: Channel, capabilities: DeviceCapabilities) = noop()
 
 	override fun onDeviceNameChanged(channel: Channel, name: String) = noop()
 
-	internal fun changeLights(lightConfiguration: List<LightConfig>?) {
+	internal fun changeLights(lightConfiguration: List<RgbLightConfiguration>?) {
 		currentLightConfiguration = lightConfiguration ?: emptyList()
 	}
 
@@ -537,7 +522,7 @@ class ConfigWindowController : CommunicatorListener {
 		if (tableLightConfigs.items.size > 0) tableLightConfigs.selectionModel.select(0)
 	}
 
-	private fun selectLightConfig(lightConfig: LightConfig?) {
+	private fun selectLightConfig(lightConfig: RgbLightConfiguration?) {
 		buttonSaveLight.text = if (lightConfig == null) "Add [Ctrl+S]" else "Save [Ctrl+S]"
 		(patterns.firstOrNull { it == lightConfig?.pattern } ?: patterns.first()).also { pattern ->
 			comboBoxPattern.selectionModel.select(pattern)
@@ -551,13 +536,13 @@ class ConfigWindowController : CommunicatorListener {
 			textDelay.text = "${lightConfig?.delay ?: 50}"
 			textWidth.text = "${lightConfig?.width ?: 3}"
 			textFade.text = "${lightConfig?.fading ?: 0}"
-			sliderMin.value = lightConfig?.min?.toDouble() ?: 0.0
-			sliderMax.value = lightConfig?.max?.toDouble() ?: 100.0
+			sliderMin.value = lightConfig?.minimum?.toDouble() ?: 0.0
+			sliderMax.value = lightConfig?.maximum?.toDouble() ?: 100.0
 			setLightConfigButtonsEnabled(lightConfig != null)
 		}
 	}
 
-	private fun selectPattern(pattern: LightPattern) {
+	private fun selectPattern(pattern: RgbLightPattern) {
 		textDelay.isDisable = pattern.delay == null
 		textWidth.isDisable = pattern.width == null
 		textFade.isDisable = pattern.fading == null
@@ -576,7 +561,7 @@ class ConfigWindowController : CommunicatorListener {
 		buttonDeleteLight.isDisable = !enabled
 	}
 
-	private fun createLightConfig(): LightConfig? {
+	private fun createLightConfig(): RgbLightConfiguration? {
 		val pattern = comboBoxPattern.selectionModel.selectedItem
 		val color1 = comboBoxColor1.value?.toRGBColor()
 		val color2 = comboBoxColor2.value?.toRGBColor()
@@ -584,7 +569,7 @@ class ConfigWindowController : CommunicatorListener {
 		val color4 = comboBoxColor4.value?.toRGBColor()
 		val color5 = comboBoxColor5.value?.toRGBColor()
 		val color6 = comboBoxColor6.value?.toRGBColor()
-		val color7 = RGBColor()
+		val color7 = RgbColor()
 		val delay = textDelay.text?.toIntOrNull() ?: 1000
 		val width = textWidth.text?.toIntOrNull() ?: 3
 		val fade = textFade.text?.toIntOrNull() ?: 0
@@ -599,9 +584,8 @@ class ConfigWindowController : CommunicatorListener {
 				&& color4 != null
 				&& color5 != null
 				&& color6 != null)
-			LightConfig(pattern,
-					color1, color2, color3, color4, color5, color6, color7,
-					delay, width, fade, min, max, timeout)
+			RgbLightConfiguration(pattern, color1, color2, color3, color4, color5, color6, color7, delay, width, fade,
+					min, max, timeout)
 		else null
 	}
 
@@ -613,7 +597,8 @@ class ConfigWindowController : CommunicatorListener {
 				.filter { (_, children) -> children.size == 10 }
 				.filter { (_, children) -> children.all { it.lightConfigs != null } }
 				.map { (node, children) ->
-					DevOpsLightItemConfig(node.serviceId,
+					DevOpsLightItemConfig(
+							id = node.serviceId,
 							statusNone = children[0].lightConfigs ?: emptyList(),
 							statusUnknown = children[1].lightConfigs ?: emptyList(),
 							statusOk = children[2].lightConfigs ?: emptyList(),
@@ -630,7 +615,7 @@ class ConfigWindowController : CommunicatorListener {
 		notifier.usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
 	}
 
-	private fun TableColumn<LightConfig, RGBColor>.init(propertyName: String) = cell(propertyName) { _, value, empty ->
+	private fun TableColumn<RgbLightConfiguration, RgbColor>.init(propertyName: String) = cell(propertyName) { _, value, empty ->
 		graphic = Pane().takeUnless { empty }?.apply {
 			background = Background(BackgroundFill(value?.toColor() ?: Color.TRANSPARENT,
 					CornerRadii.EMPTY,

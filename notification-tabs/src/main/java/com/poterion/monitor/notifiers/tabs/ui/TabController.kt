@@ -24,7 +24,6 @@ import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.data.SilencedStatusItem
-import com.poterion.monitor.data.serviceName
 import com.poterion.monitor.notifiers.tabs.NotificationTabsIcon
 import com.poterion.monitor.notifiers.tabs.control.NotificationTabsNotifier
 import com.poterion.monitor.notifiers.tabs.data.NotificationTabsConfig
@@ -84,7 +83,7 @@ class TabController {
 		get() = config.watchedItems.contains(id)
 
 	private val StatusItem.isSilenced: Boolean
-		get() = controller.applicationConfiguration.silenced.keys.contains(id)
+		get() = controller.applicationConfiguration.silencedMap.keys.contains(id)
 
 	private val filtered: Collection<StatusItem>
 		get() = statusItemCache
@@ -118,7 +117,7 @@ class TabController {
 			{ -it.value.status.ordinal },
 			{ -it.value.priority.ordinal },
 			{ -(it.value.startedAt ?: Instant.now()).epochSecond },
-			{ it.value.serviceName(controller.applicationConfiguration) },
+			{ controller.applicationConfiguration.serviceMap[it.value.serviceId]?.name ?: "" },
 			{ it.value.title })
 
 	@FXML
@@ -236,7 +235,10 @@ class TabController {
 		}
 
 		columnAlertsService.cell("serviceId") { item, _, empty ->
-			text = item?.takeUnless { empty }?.serviceName(controller.applicationConfiguration)
+			item?.takeUnless { empty }
+					?.let { controller.applicationConfiguration.serviceMap[it.serviceId] }
+					?.nameProperty
+					?.also { textProperty().bind(it) }
 			style = when {
 				config.watchedItems.contains(item?.id) -> "-fx-font-weight: bold; -fx-text-fill: #600;"
 				index == 0 -> "-fx-font-weight: bold;"
@@ -437,7 +439,7 @@ class TabController {
 	}
 
 	private fun StatusItem.toggleSilence(untilChanged: Boolean, refresh: Boolean = true, save: Boolean = true) {
-		controller.applicationConfiguration.silenced.also {
+		controller.applicationConfiguration.silencedMap.also {
 			if (isSilenced) it.remove(id)
 			else it[id] = SilencedStatusItem(item = this, lastChange = startedAt, untilChanged = untilChanged)
 		}
@@ -446,7 +448,7 @@ class TabController {
 	}
 
 	private val StatusItem.groupOrder: Int
-		get() = if (serviceName(controller.applicationConfiguration.services) == ""
+		get() = if ((controller.applicationConfiguration.serviceMap[serviceId]?.name ?: "") == ""
 				&& priority == Priority.NONE
 				&& status == Status.NONE
 				&& title == "")

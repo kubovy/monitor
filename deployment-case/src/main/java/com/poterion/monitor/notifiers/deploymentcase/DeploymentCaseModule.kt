@@ -39,7 +39,7 @@ object DeploymentCaseModule : NotifierModule<DeploymentCaseConfig, DeploymentCas
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
 			DeploymentCaseNotifier = DeploymentCaseNotifier(controller,
-			DeploymentCaseConfig(uuid = applicationConfiguration.notifiers.nextUUID(), name = title))
+			DeploymentCaseConfig(uuid = applicationConfiguration.notifierMap.nextUUID(), name = title))
 
 	override fun loadController(controller: ControllerInterface, config: ModuleConfig): DeploymentCaseNotifier =
 			DeploymentCaseNotifier(controller, config as DeploymentCaseConfig)

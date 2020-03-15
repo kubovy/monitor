@@ -39,7 +39,7 @@ object SonarModule : ServiceModule<SonarConfig, SonarService> {
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
 			SonarService = SonarService(controller,
-			SonarConfig(uuid = applicationConfiguration.services.nextUUID(), name = title))
+			SonarConfig(uuid = applicationConfiguration.serviceMap.nextUUID(), name = title))
 
 	override fun loadController(controller: ControllerInterface, config: ModuleConfig): SonarService =
 			SonarService(controller, config as SonarConfig)

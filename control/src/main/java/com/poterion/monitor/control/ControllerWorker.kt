@@ -59,11 +59,11 @@ class ControllerWorker private constructor(private val services: Collection<Serv
 			services.filter { it.shouldRun(now) }
 				.parallelStreamIntermediate(Runtime.getRuntime().availableProcessors()) { service ->
 					service.refresh = false
-					serviceLastChecked[service.config.name] = System.currentTimeMillis()
+					serviceLastChecked[service.config.uuid] = System.currentTimeMillis()
 					try {
 						service.check {
 							StatusCollector.update(it,
-								(service.definition as? ServiceModule)?.staticNotificationSet != false)
+									(service.definition as? ServiceModule)?.staticNotificationSet != false)
 						}
 					} catch (t: Throwable) {
 						LOGGER.error(t.message, t)
@@ -77,8 +77,8 @@ class ControllerWorker private constructor(private val services: Collection<Serv
 	}
 
 	private fun Service<ServiceConfig>.shouldRun(now: Long) = refresh || config
-			.let { config -> config.checkInterval?.let { config.name to it } }
-			?.let { (name, checkInterval) -> (serviceLastChecked[name] ?: 0L) to checkInterval }
+			.let { config -> config.checkInterval?.let { config.uuid to it } }
+			?.let { (uuid, checkInterval) -> (serviceLastChecked[uuid] ?: 0L) to checkInterval }
 			?.let { (lastChecked, checkInterval) -> (now - lastChecked) > checkInterval }
 			?: false
 }

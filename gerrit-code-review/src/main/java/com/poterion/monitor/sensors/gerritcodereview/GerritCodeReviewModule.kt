@@ -36,7 +36,7 @@ object GerritCodeReviewModule : ServiceModule<GerritCodeReviewConfig, GerritCode
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
 			GerritCodeReviewService = GerritCodeReviewService(controller,
-			GerritCodeReviewConfig(uuid = applicationConfiguration.services.nextUUID(), name = title))
+			GerritCodeReviewConfig(uuid = applicationConfiguration.serviceMap.nextUUID(), name = title))
 
 	override fun loadController(controller: ControllerInterface, config: ModuleConfig): GerritCodeReviewService =
 			GerritCodeReviewService(controller, config as GerritCodeReviewConfig)

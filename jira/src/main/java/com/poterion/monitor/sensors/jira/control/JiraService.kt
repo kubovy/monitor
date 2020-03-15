@@ -74,14 +74,12 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Name",
-							getter = { name },
-							setter = { name = it },
+							property = { nameProperty },
 							initialValue = "",
 							isEditable = true),
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Query",
-							getter = { jql },
-							setter = { jql = it },
+							property = { jqlProperty },
 							initialValue = "",
 							isEditable = true)),
 			comparator = compareBy { it.name },

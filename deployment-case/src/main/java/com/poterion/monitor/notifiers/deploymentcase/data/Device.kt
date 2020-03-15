@@ -17,17 +17,44 @@
 package com.poterion.monitor.notifiers.deploymentcase.data
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import javafx.beans.binding.Bindings
+import javafx.beans.binding.ObjectBinding
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
+import java.util.concurrent.Callable
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-data class Device(var name: String = "",
-				  var kind: DeviceKind = DeviceKind.MCP23017,
-				  var key: String = "") {
+class Device(name: String = "",
+			 kind: DeviceKind = DeviceKind.MCP23017,
+			 key: String = "") {
+
+	var name: String
+		get() = nameProperty.get()
+		set(value) = nameProperty.set(value)
+
+	val nameProperty: StringProperty = SimpleStringProperty(name)
+		@JsonIgnore get
+
+	var kind: DeviceKind
+		get() = kindProperty.get()
+		set(value) = kindProperty.set(value)
+
+	val kindProperty: ObjectProperty<DeviceKind> = SimpleObjectProperty(kind)
+		@JsonIgnore get
+
+	var key: String
+		get() = keyProperty.get()
+		set(value) = keyProperty.set(value)
+
+	val keyProperty: StringProperty = SimpleStringProperty(key)
+		@JsonIgnore get
 
 	val type: VariableType
-		@JsonIgnore
-		get() = when (kind) {
+		@JsonIgnore get() = when (kind) {
 			DeviceKind.MCP23017 -> VariableType.BOOLEAN
 			DeviceKind.WS281x -> VariableType.COLOR_PATTERN
 			DeviceKind.BLUETOOTH -> VariableType.BOOLEAN
@@ -41,5 +68,8 @@ data class Device(var name: String = "",
 				else -> VariableType.BOOLEAN
 			}
 		}
+
+	val typeProperty: ObjectBinding<VariableType>
+		@JsonIgnore get() = Bindings.createObjectBinding<VariableType>(Callable { type }, kindProperty)
 }
 

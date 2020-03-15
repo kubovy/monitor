@@ -118,7 +118,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 
 	private fun update(collector: StatusCollector) {
 		collector.items
-				.filterNot { controller.applicationConfiguration.silenced.keys.contains(it.id) }
+				.filterNot { controller.applicationConfiguration.silencedMap.keys.contains(it.id) }
 				.map { it.serviceId }
 				.distinct()
 				.map { it to serviceMenus[it] }
@@ -128,7 +128,7 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 							?: LOGGER.error("Unknown service ${serviceId} - no menu for it")
 				}
 
-		lastStatusIcon = collector.maxStatus(controller.applicationConfiguration.silenced.keys, config.minPriority,
+		lastStatusIcon = collector.maxStatus(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
 				config.minStatus, config.services).toIcon()
 		lastStatusIcon?.inputStream?.use { systemTray?.setImage(it) }
 	}
@@ -243,12 +243,12 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 				icon?.also { icon -> icon.inputStream.use { menu.setImage(it) } }
 				sub?.forEach { subItem -> menu.add(subItem.toMenu(controller, moduleConfig)) }
 			}
-		} else if (title != null && sub == null && checked == null) { // Menu Item
+		} else if (title != null && sub == null && !isCheckable) { // Menu Item
 			MenuItem(title) { Platform.runLater { action?.invoke() } }.also { menuItem ->
 				icon?.also { icon -> icon.inputStream.use { menuItem.setImage(it) } }
 				menuItem.enabled = enabled
 			}
-		} else if (title != null && sub == null && checked != null) { // Checkbox
+		} else if (title != null && sub == null && isCheckable) { // Checkbox
 			Checkbox(title).also { checkbox ->
 				checkbox.enabled = enabled
 				checkbox.checked = checked ?: false

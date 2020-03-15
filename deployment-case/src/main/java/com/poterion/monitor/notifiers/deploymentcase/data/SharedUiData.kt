@@ -17,9 +17,11 @@
 package com.poterion.monitor.notifiers.deploymentcase.data
 
 import com.poterion.monitor.notifiers.deploymentcase.control.toDevice
-import javafx.beans.Observable
+import com.poterion.utils.kotlin.noop
 import javafx.beans.property.*
-import javafx.collections.*
+import javafx.collections.ListChangeListener
+import javafx.collections.ObservableList
+import javafx.collections.ObservableMap
 
 object SharedUiData {
 
@@ -28,92 +30,60 @@ object SharedUiData {
 	val nameProperty: StringProperty = SimpleStringProperty()
 	val isActiveProperty: BooleanProperty = SimpleBooleanProperty()
 
-	val devicesProperty: ObjectProperty<ObservableList<Device>> = SimpleObjectProperty(FXCollections.observableArrayList())
-	val devices: ObservableList<Device>
-		get() = devicesProperty.get()
+	val devices: ObservableList<Device>?
+		get() = configurationProperty.get()?.devices
 
-	val variablesProperty: ObjectProperty<ObservableList<Variable>> = SimpleObjectProperty(FXCollections.observableArrayList())
-	val variables: ObservableList<Variable>
-		get() = variablesProperty.get()
+	val variables: ObservableList<Variable>?
+		get() = configurationProperty.get()?.variables
 
-	val jobStatusProperty: ObjectProperty<ObservableMap<String, String?>> = SimpleObjectProperty(FXCollections.observableHashMap())
-	val jobStatus: ObservableMap<String, String?>
-		get() = jobStatusProperty.get()
+	val jobStatus: ObservableMap<String, String>?
+		get() = configurationProperty.get()?.jobStatus
 
-	val pipelineStatusProperty: ObjectProperty<ObservableMap<String, String?>> = SimpleObjectProperty(FXCollections.observableHashMap())
-	val pipelineStatus: ObservableMap<String, String?>
-		get() = pipelineStatusProperty.get()
+	val pipelineStatus: ObservableMap<String, String>?
+		get() = configurationProperty.get()?.pipelineStatus
 
-	val stateMachineProperty: ObjectProperty<ObservableList<State>> = SimpleObjectProperty(FXCollections.observableArrayList())
-	val stateMachine: ObservableList<State>
-		get() = stateMachineProperty.get()
+	val stateMachine: ObservableList<State>?
+		get() = configurationProperty.get()?.stateMachine
 
 	var isUpdateInProgress = false
 
 	init {
-
-		val namePropertyListener = { _: Observable, _: String, name: String -> configurationProperty.get()?.name = name }
-		val isActivePropertyListener = { _: Observable, _: Boolean, isActive: Boolean -> configurationProperty.get()?.isActive = isActive }
-		val devicesChangeListener = ListChangeListener<Device> { configurationProperty.get()?.devices = it.list }
-		val variableChangeListener = ListChangeListener<Variable> { configurationProperty.get()?.variables = it.list }
-		val jobStatusChangeListener = MapChangeListener<String, String?> {
-			configurationProperty.get()?.jobStatus = it.map.mapNotNull { (k, v) -> v?.let { k to it } }.toMap()
-		}
-		val pipelineStatusChangeListener = MapChangeListener<String, String?> {
-			configurationProperty.get()?.pipelineStatus = it.map.mapNotNull { (k, v) -> v?.let { k to it } }.toMap()
-		}
 		val stateMachineChangeListener = ListChangeListener<State> { change ->
-			configurationProperty.get()?.stateMachine = change.list
-			variables.removeIf { it.type == VariableType.STATE }
-			variables.addAll(change.list.map { Variable("state_${it.name}", VariableType.STATE, it.name) })
+			while (change.next()) when {
+				change.wasPermutated() -> noop()
+				change.wasUpdated() -> noop()
+				else -> configurationProperty.get()?.also { configuration ->
+					configuration.variables.also { variables ->
+						variables.removeIf { it.type == VariableType.STATE }
+						variables.addAll(change.list.map { Variable("state_${it.name}", VariableType.STATE, it.name) })
+					}
+				}
+			}
 		}
 
-		configurationProperty.addListener { _, _, configuration ->
+		configurationProperty.addListener { _, old, new ->
 			isUpdateInProgress = true
 
-			nameProperty.removeListener(namePropertyListener)
-			isActiveProperty.removeListener(isActivePropertyListener)
-			devices.removeListener(devicesChangeListener)
-			variables.removeListener(variableChangeListener)
-			jobStatus.removeListener(jobStatusChangeListener)
-			pipelineStatus.removeListener(pipelineStatusChangeListener)
-			stateMachine.removeListener(stateMachineChangeListener)
+			new?.devices?.setAll(((0..71) + (80..83) + (96..97) + (112..115)).map { it.toDevice(new.devices) })
 
-			nameProperty.set(configuration?.name ?: "")
-			nameProperty.addListener(namePropertyListener)
-
-			isActiveProperty.set(configuration?.isActive ?: false)
-			isActiveProperty.addListener(isActivePropertyListener)
-
-			devicesProperty.set(FXCollections.observableList(configuration?.devices?.toMutableList()
-					?: mutableListOf()))
-			devices.addListener(devicesChangeListener)
-			devices.setAll(((0..71) + (80..83) + (96..97) + (112..115)).map { it.toDevice(devices) })
-
-			variablesProperty.set(FXCollections.observableList(configuration?.variables?.toMutableList()
-					?: mutableListOf()))
-			variables.addListener(variableChangeListener)
-			if (variables.filtered { it.type == VariableType.BOOLEAN }.takeIf { it.size == 2 }?.map { it.value }
+			if (new?.variables
+							?.filter { it.type == VariableType.BOOLEAN }
+							?.takeIf { it.size == 2 }
+							?.map { it.value }
 							?.takeIf { it.containsAll(listOf("true", "false")) } == null) {
-				variables.removeIf { it.type == VariableType.BOOLEAN }
-				variables.addAll(
+				new?.variables?.removeIf { it.type == VariableType.BOOLEAN }
+				new?.variables?.addAll(
 						Variable(name = "true", type = VariableType.BOOLEAN, value = "true"),
 						Variable(name = "false", type = VariableType.BOOLEAN, value = "false"))
 			}
+			new?.variables?.removeIf { it.type == VariableType.STATE }
+			new?.variables?.addAll(new.stateMachine.map { Variable("state_${it.name}", VariableType.STATE, it.name) })
 
-			jobStatusProperty.set(FXCollections.observableMap(configuration?.jobStatus?.toMutableMap<String, String?>()
-					?: mutableMapOf()))
-			jobStatus.addListener(jobStatusChangeListener)
+			nameProperty.set(new?.name ?: "")
+			isActiveProperty.set(new?.isActive ?: false)
 
-			pipelineStatusProperty.set(FXCollections.observableMap(configuration?.pipelineStatus?.toMutableMap<String, String?>()
-					?: mutableMapOf()))
-			pipelineStatus.addListener(pipelineStatusChangeListener)
-
-			stateMachineProperty.set(FXCollections.observableList(configuration?.stateMachine?.toMutableList()
-					?: mutableListOf()))
-			stateMachine.addListener(stateMachineChangeListener)
-			variables.removeIf { it.type == VariableType.STATE }
-			variables.addAll(stateMachine.map { Variable("state_${it.name}", VariableType.STATE, it.name) })
+			old?.stateMachine?.removeListener(stateMachineChangeListener)
+			new?.stateMachine?.addListener(stateMachineChangeListener)
 
 			isUpdateInProgress = false
 		}

@@ -39,7 +39,7 @@ object NotificationsModule : NotifierModule<NotificationsConfig, NotificationsNo
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
 			NotificationsNotifier = NotificationsNotifier(controller,
-			NotificationsConfig(uuid = applicationConfiguration.notifiers.nextUUID(), name = title))
+			NotificationsConfig(uuid = applicationConfiguration.notifierMap.nextUUID(), name = title))
 
 	override fun loadController(controller: ControllerInterface, config: ModuleConfig): NotificationsNotifier =
 			NotificationsNotifier(controller, config as NotificationsConfig)

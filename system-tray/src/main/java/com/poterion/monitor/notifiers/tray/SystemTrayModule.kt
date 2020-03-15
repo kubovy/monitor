@@ -42,7 +42,7 @@ object SystemTrayModule : NotifierModule<SystemTrayConfig, SystemTrayNotifier> {
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
 			SystemTrayNotifier = SystemTrayNotifier(controller,
-			SystemTrayConfig(uuid = applicationConfiguration.notifiers.nextUUID(), name = title))
+			SystemTrayConfig(uuid = applicationConfiguration.notifierMap.nextUUID(), name = title))
 
 	override fun loadController(controller: ControllerInterface, config: ModuleConfig): SystemTrayNotifier =
 			SystemTrayNotifier(controller, config as SystemTrayConfig)

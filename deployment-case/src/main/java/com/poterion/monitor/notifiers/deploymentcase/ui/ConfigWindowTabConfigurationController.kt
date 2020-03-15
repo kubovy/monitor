@@ -244,19 +244,17 @@ class ConfigWindowTabConfigurationController : ConfigurationWindowActionListener
 					?.toVariableFromValue(SharedUiData.variables)
 		}
 
-		SharedUiData.variablesProperty.addListener { _, _, variables ->
-			items = variables
+		SharedUiData.configurationProperty.addListener { _, _, configuration ->
+			items = configuration
+					?.variables
 					?.filtered { it?.type == VariableType.COLOR_PATTERN }
 					?.sorted { o1, o2 -> compareValues(o1?.name, o2?.name) }
-		}
-
-		SharedUiData.jobStatusProperty.addListener { _, _, jobStatus ->
-			selectionModel.select(jobStatus[status]?.toVariable(SharedUiData.variables))
+			selectionModel.select(configuration?.jobStatus?.get(status)?.toVariable(SharedUiData.variables))
 		}
 
 		selectionModel.selectedItemProperty().addListener(saveConfigListener)
-		selectionModel.selectedItemProperty().addListener { observable, _, variable ->
-			((observable as? ComboBox<*>)?.userData as? String)?.also { SharedUiData.jobStatus[it] = variable?.name }
+		selectionModel.selectedItemProperty().addListener { _, _, variable ->
+			(userData as? String)?.also { SharedUiData.jobStatus?.set(it, variable?.name) }
 		}
 		jobStatusColorComboBoxes[status] = this
 	}
@@ -265,17 +263,17 @@ class ConfigWindowTabConfigurationController : ConfigurationWindowActionListener
 		userData = status
 		converter = object : StringConverter<State?>() {
 			override fun toString(state: State?) = state?.name ?: "-- Not selected --"
-			override fun fromString(string: String?) = SharedUiData.stateMachine.firstOrNull { it.name == string }
+			override fun fromString(string: String?) = SharedUiData.stateMachine?.firstOrNull { it.name == string }
 		}
 
-		SharedUiData.stateMachineProperty.addListener { _, _, states ->
-			items = states.sorted { o1, o2 -> compareValues(o1?.name, o2.name) }
-			selectionModel.select(states.find { it.name == SharedUiData.pipelineStatus[status] })
+		SharedUiData.configurationProperty.addListener { _, _, configuration ->
+			items = configuration.stateMachine.sorted(compareBy { it.name })
+			selectionModel.select(configuration.stateMachine.find { it.name == SharedUiData.pipelineStatus?.get(status) })
 		}
 
 		selectionModel.selectedItemProperty().addListener(saveConfigListener)
-		selectionModel.selectedItemProperty().addListener { observable, _, state ->
-			((observable as? ComboBox<*>)?.userData as? String)?.also { SharedUiData.pipelineStatus[it] = state?.name }
+		selectionModel.selectedItemProperty().addListener { _, _, state ->
+			(userData as? String)?.also { SharedUiData.pipelineStatus?.set(it, state?.name) }
 		}
 		pipelineStatusTargetStateComboBoxes[status] = this
 	}

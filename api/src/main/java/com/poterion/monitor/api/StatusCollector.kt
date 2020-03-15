@@ -74,7 +74,7 @@ object StatusCollector {
 	fun filter(silencedIds: Collection<String>,
 			   minPriority: Priority,
 			   minStatus: Status = Status.NONE,
-			   serviceIds: Set<String> = emptySet(),
+			   serviceIds: Collection<String> = emptySet(),
 			   includingChildren: Boolean = false) = items
 			.asSequence()
 			.filter { it.parentId == null || includingChildren }
@@ -87,14 +87,14 @@ object StatusCollector {
 	fun maxStatus(silencedIds: Collection<String>,
 				  minPriority: Priority,
 				  minStatus: Status = Status.NONE,
-				  serviceIds: Set<String> = emptySet(),
+				  serviceIds: Collection<String> = emptySet(),
 				  includingChildren: Boolean = false): Status =
 		topStatus(silencedIds, minPriority, minStatus, serviceIds, includingChildren)?.status ?: Status.NONE
 
 	fun topStatuses(silencedIds: Collection<String>,
 					minPriority: Priority,
 					minStatus: Status = Status.NONE,
-					serviceIds: Set<String> = emptySet(),
+					serviceIds: Collection<String> = emptySet(),
 					includingChildren: Boolean = false) =
 		filter(silencedIds, minPriority, minStatus, serviceIds, includingChildren)
 				.filter { it.status == maxStatus(silencedIds, minPriority, minStatus, serviceIds) }
@@ -103,7 +103,7 @@ object StatusCollector {
 	fun topStatus(silencedIds: Collection<String>,
 				  minPriority: Priority,
 				  minStatus: Status = Status.NONE,
-				  serviceIds: Set<String> = emptySet(),
+				  serviceIds: Collection<String> = emptySet(),
 				  includingChildren: Boolean = false) =
 		filter(silencedIds, minPriority, minStatus, serviceIds, includingChildren).maxBy { it.status }
 

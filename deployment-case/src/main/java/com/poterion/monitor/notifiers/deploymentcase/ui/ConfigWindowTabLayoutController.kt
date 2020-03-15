@@ -19,7 +19,8 @@ package com.poterion.monitor.notifiers.deploymentcase.ui
 import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageListener
 import com.poterion.monitor.notifiers.deploymentcase.control.DeploymentCaseNotifier
 import com.poterion.monitor.notifiers.deploymentcase.data.*
-import javafx.collections.ListChangeListener
+import javafx.beans.InvalidationListener
+import javafx.collections.ObservableList
 import javafx.event.ActionEvent
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
@@ -141,14 +142,20 @@ class ConfigWindowTabLayoutController : DeploymentCaseMessageListener {
 	@FXML private lateinit var lblData9: Label
 
 	private lateinit var notifier: DeploymentCaseNotifier
+	private val devicesInvalidationListener = InvalidationListener { observable ->
+		updateButtonNames(observable as ObservableList<Device>)
+	}
 
 	@FXML
 	fun initialize() {
 		lcd.text = ""
 		listOf(lblData0, lblData1, lblData2, lblData3, lblData4, lblData5, lblData6, lblData7, lblData8, lblData9)
 				.forEach { label -> label.text = "" }
-		SharedUiData.devicesProperty.addListener { _, _, devices -> updateButtonNames(devices) }
-		SharedUiData.devices.addListener(ListChangeListener { updateButtonNames(it.list) })
+		SharedUiData.configurationProperty.addListener { _, old, new ->
+			old?.devices?.removeListener(devicesInvalidationListener)
+			new?.devices?.addListener(devicesInvalidationListener)
+		}
+		SharedUiData.devices?.addListener(devicesInvalidationListener)
 	}
 
 	private fun updateButtonNames(devices: List<Device>) {

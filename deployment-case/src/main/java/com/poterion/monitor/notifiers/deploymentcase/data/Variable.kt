@@ -16,9 +16,39 @@
  ******************************************************************************/
 package com.poterion.monitor.notifiers.deploymentcase.data
 
+import com.fasterxml.jackson.annotation.JsonIgnore
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
+
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-data class Variable(var name: String = "",
-					var type: VariableType = VariableType.BOOLEAN,
-					var value: String = "false")
+class Variable(name: String = "",
+			   type: VariableType = VariableType.BOOLEAN,
+			   value: String = "false") {
+
+	var name: String
+		get() = nameProperty.get()
+		set(value) = nameProperty.set(value)
+
+	val nameProperty: StringProperty = SimpleStringProperty(name)
+		@JsonIgnore get
+
+	var type: VariableType
+		get() = typeProperty.get()
+		set(value) = typeProperty.set(value)
+
+	val typeProperty: ObjectProperty<VariableType> = SimpleObjectProperty(type)
+		@JsonIgnore get
+
+	var value: String
+		get() = valueProperty.get()
+		set(value) = valueProperty.set(value)
+
+	val valueProperty: StringProperty = SimpleStringProperty(value)
+		@JsonIgnore get
+
+	fun copy() = Variable(name, type, value)
+}

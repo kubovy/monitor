@@ -34,5 +34,6 @@ interface ControllerInterface {
 	fun add(controller: ModuleInstanceInterface<*>): ModuleInstanceInterface<*>?
 	fun quit()
 	fun saveConfig()
+	@Deprecated("Use new config concept")
 	fun registerForConfigUpdates(listener: (ApplicationConfiguration) -> Unit)
 }

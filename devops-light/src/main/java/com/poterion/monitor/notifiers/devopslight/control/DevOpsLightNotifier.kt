@@ -18,16 +18,15 @@ package com.poterion.monitor.notifiers.devopslight.control
 
 import com.poterion.communication.serial.MessageKind
 import com.poterion.communication.serial.communicator.BluetoothCommunicator
-import com.poterion.communication.serial.communicator.Channel
 import com.poterion.communication.serial.communicator.USBCommunicator
-import com.poterion.communication.serial.listeners.CommunicatorListener
-import com.poterion.communication.serial.payload.DeviceCapabilities
+import com.poterion.communication.serial.extensions.RgbLightCommunicatorExtension
+import com.poterion.communication.serial.payload.RgbColor
+import com.poterion.communication.serial.payload.RgbLightConfiguration
 import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
-import com.poterion.monitor.api.data.RGBColor
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.data.Status
@@ -37,10 +36,8 @@ import com.poterion.monitor.notifiers.devopslight.DevOpsLight
 import com.poterion.monitor.notifiers.devopslight.DevOpsLightIcon
 import com.poterion.monitor.notifiers.devopslight.data.DevOpsLightConfig
 import com.poterion.monitor.notifiers.devopslight.data.DevOpsLightItemConfig
-import com.poterion.monitor.notifiers.devopslight.data.LightConfig
 import com.poterion.monitor.notifiers.devopslight.ui.ConfigWindowController
 import com.poterion.utils.javafx.Icon
-import com.poterion.utils.kotlin.noop
 import javafx.application.Platform
 import javafx.geometry.Pos
 import javafx.scene.Node
@@ -58,19 +55,22 @@ import java.util.concurrent.TimeUnit
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 class DevOpsLightNotifier(override val controller: ControllerInterface, config: DevOpsLightConfig) :
-		Notifier<DevOpsLightConfig>(config),
-	CommunicatorListener {
+		Notifier<DevOpsLightConfig>(config) {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(DevOpsLightNotifier::class.java)
 	}
 
 	override val definition: Module<DevOpsLightConfig, ModuleInstanceInterface<DevOpsLightConfig>> = DevOpsLight
-	val bluetoothCommunicator: BluetoothCommunicator =
-		BluetoothCommunicator()
-	val usbCommunicator: USBCommunicator =
-		USBCommunicator()
-	private var lastState = emptyList<LightConfig>()
+	val bluetoothCommunicator = RgbLightCommunicatorExtension(BluetoothCommunicator())
+	val usbCommunicator = RgbLightCommunicatorExtension(USBCommunicator())
+	private val communictor: RgbLightCommunicatorExtension<*>?
+		get() = when {
+			usbCommunicator.isConnected -> usbCommunicator
+			bluetoothCommunicator.isConnected -> bluetoothCommunicator
+			else -> null
+		}
+	private var lastState = emptyList<RgbLightConfiguration>()
 	private val connectedIcon: Icon
 		get() = if (bluetoothCommunicator.isConnected || usbCommunicator.isConnected) DevOpsLightIcon.CONNECTED
 		else DevOpsLightIcon.DISCONNECTED
@@ -91,23 +91,23 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 				sub?.add(NavigationItem(
 						title = title ?: "Default",
 						icon = title?.let { DevOpsLightIcon.ITEM_NON_DEFAULT } ?: DevOpsLightIcon.ITEM_DEFAULT,
-						sub = itemConfig.getSubMenu().toMutableList()))
+						sub = itemConfig.getSubMenu()))
 			}
 		}
 
 	private fun DevOpsLightItemConfig.getSubMenu() = listOf(
-			NavigationItem(title = "None", icon = CommonIcon.PRIORITY_NONE) to statusNone,
-			NavigationItem(title = "Unknown", icon = CommonIcon.STATUS_UNKNOWN) to statusUnknown,
-			NavigationItem(title = "OK", icon = CommonIcon.STATUS_OK) to statusOk,
-			NavigationItem(title = "Info", icon = CommonIcon.STATUS_INFO) to statusInfo,
-			NavigationItem(title = "Notification", icon = CommonIcon.STATUS_NOTIFICATION) to statusNotification,
-			NavigationItem(title = "Connection Error", icon = CommonIcon.BROKEN_LINK) to statusConnectionError,
-			NavigationItem(title = "Service Error", icon = CommonIcon.UNAVAILABLE) to statusServiceError,
-			NavigationItem(title = "Warning", icon = CommonIcon.STATUS_WARNING) to statusWarning,
-			NavigationItem(title = "Error", icon = CommonIcon.STATUS_ERROR) to statusError,
-			NavigationItem(title = "Fatal", icon = CommonIcon.STATUS_FATAL) to statusFatal)
-			.filter { (_, lights) -> lights.isNotEmpty() }
-			.map { (item, lights) -> item.also { it.action = { changeLights(lights) } } }
+			Triple("None", CommonIcon.PRIORITY_NONE, statusNone),
+			Triple("Unknown", CommonIcon.STATUS_UNKNOWN, statusUnknown),
+			Triple("OK", CommonIcon.STATUS_OK, statusOk),
+			Triple("Info", CommonIcon.STATUS_INFO, statusInfo),
+			Triple("Notification", CommonIcon.STATUS_NOTIFICATION, statusNotification),
+			Triple("Connection Error", CommonIcon.BROKEN_LINK, statusConnectionError),
+			Triple("Service Error", CommonIcon.UNAVAILABLE, statusServiceError),
+			Triple("Warning", CommonIcon.STATUS_WARNING, statusWarning),
+			Triple("Error", CommonIcon.STATUS_ERROR, statusError),
+			Triple("Fatal", CommonIcon.STATUS_FATAL, statusFatal))
+			.filter { (_, _, lights) -> lights.isNotEmpty() }
+			.map { (t, i, l) -> NavigationItem(title = t, icon = i, action = { changeLights(l) }) }
 
 	override val configurationRows: List<Pair<Node, Node>>
 		get() = super.configurationRows + listOf(
@@ -168,7 +168,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe { collector ->
 			Platform.runLater {
 				val lights = if (config.combineMultipleServices) collector
-						.topStatuses(controller.applicationConfiguration.silenced.keys, config.minPriority,
+						.topStatuses(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
 								config.minStatus, config.services)
 						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
 						.mapNotNull { it.toLightConfig() }
@@ -176,7 +176,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 						.takeIf { it.isNotEmpty() }
 						?: config.items.firstOrNull { it.id == "" }?.statusOk
 				else collector
-						.topStatus(controller.applicationConfiguration.silenced.keys, config.minPriority,
+						.topStatus(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
 								config.minStatus, config.services)
 						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
 						?.toLightConfig()
@@ -187,8 +187,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 						?.also { changeLights(it) }
 			}
 		}
-		bluetoothCommunicator.register(this)
-		usbCommunicator.register(this)
+
 		if (config.enabled) {
 			bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
 			usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
@@ -198,36 +197,14 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 	/**
 	 * @see MessageKind.LIGHT
 	 */
-	internal fun changeLights(lightConfiguration: List<LightConfig>?) {
-		if (lightConfiguration != null) {
-			lightConfiguration
-					.takeIf { it.isNotEmpty() }
-					?.mapIndexed { index, lightConfig ->
-						listOf(0, // Num. - only one implemented
-								lightConfig.pattern.code or (if (index == 0) 0x80 else 0x00),
-								*lightConfig.color1.components(),
-								*lightConfig.color2.components(),
-								*lightConfig.color3.components(),
-								*lightConfig.color4.components(),
-								*lightConfig.color5.components(),
-								*lightConfig.color6.components(),
-								*lightConfig.color7.components(),
-								lightConfig.delay / 256, lightConfig.delay % 256,
-								lightConfig.width,
-								lightConfig.fading,
-								lightConfig.min, lightConfig.max,
-								lightConfig.timeout).map(Int::toByte).toByteArray()
-					}
-					?.forEach {
-						if (usbCommunicator.isConnected) usbCommunicator.send(MessageKind.LIGHT, it)
-						else bluetoothCommunicator.send(MessageKind.LIGHT, it)
-					}
-			configurationTabController?.changeLights(lightConfiguration)
+	internal fun changeLights(lightConfigurations: List<RgbLightConfiguration>?) {
+		if (lightConfigurations != null) {
+			lightConfigurations.forEachIndexed { index, lightConfiguration ->
+				communictor?.sendRgbLightSet(0, lightConfiguration, index == 0)
+			}
+			configurationTabController?.changeLights(lightConfigurations)
 		}
 	}
-
-	private fun RGBColor.components(): Array<Int> =
-			if (config.grbColors) arrayOf(green, red, blue) else arrayOf(red, green, blue)
 
 	override fun execute(action: NotifierAction): Unit = when (action) {
 		NotifierAction.ENABLE -> {
@@ -244,26 +221,10 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 			controller.saveConfig()
 		}
 		NotifierAction.TOGGLE -> execute(if (config.enabled) NotifierAction.DISABLE else NotifierAction.ENABLE)
-		NotifierAction.SHUTDOWN -> changeLights(listOf(LightConfig()))
+		NotifierAction.SHUTDOWN -> changeLights(listOf(RgbLightConfiguration()))
 	}
 
-	override fun onConnecting(channel: Channel) = noop()
-
-	override fun onConnect(channel: Channel) = noop()
-
-	override fun onConnectionReady(channel: Channel) = noop()
-
-	override fun onDisconnect(channel: Channel) = noop()
-
-	override fun onMessageReceived(channel: Channel, message: IntArray) = noop()
-
-	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) = noop()
-
-	override fun onDeviceCapabilitiesChanged(channel: Channel, capabilities: DeviceCapabilities) = noop()
-
-	override fun onDeviceNameChanged(channel: Channel, name: String) = noop()
-
-	private fun StatusItem?.toLightConfig(): List<LightConfig>? {
+	private fun StatusItem?.toLightConfig(): List<RgbLightConfiguration>? {
 		val lightConfig = config.items
 				.map { it.id to it }
 				.toMap()

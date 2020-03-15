@@ -32,10 +32,10 @@ import com.poterion.monitor.sensors.feed.data.SyndicationFeedConfig
 import com.poterion.monitor.sensors.feed.data.SyndicationFeedFilterConfig
 import com.poterion.utils.javafx.factory
 import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.javafx.toObservableList
 import com.poterion.utils.kotlin.toUriOrNull
 import com.rometools.rome.io.SyndFeedInput
 import com.rometools.rome.io.XmlReader
-import javafx.collections.FXCollections
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -71,40 +71,35 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Name",
-							getter = { name },
-							setter = { name = it },
+							property = { nameProperty },
 							initialValue = "",
 							isEditable = true),
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Title Filter",
 							shortName = "Title",
-							getter = { titleFilter },
-							setter = { titleFilter = it },
+							property = { titleFilterProperty },
 							initialValue = "",
 							isEditable = true),
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Summary Filter",
 							shortName = "Summary",
-							getter = { summaryFilter },
-							setter = { summaryFilter = it },
+							property = { summaryFilterProperty },
 							initialValue = "",
 							isEditable = true),
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Priority",
-							getter = { priority },
-							setter = { priority = it },
+							property = { priorityProperty },
 							initialValue = Priority.NONE,
 							isEditable = true,
 							icon = { toIcon() },
-							options = { Priority.values().toList() }),
+							options = Priority.values().toObservableList()),
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Status",
-							getter = { status },
-							setter = { status = it },
+							property = { statusProperty },
 							initialValue = Status.NONE,
 							isEditable = true,
 							icon = { toIcon() },
-							options = { Status.values().toList() })),
+							options = Status.values().toObservableList())),
 			comparator = compareBy({ -it.priority.ordinal }, { -it.status.ordinal }, { it.name }),
 			fieldSizes = arrayOf(150.0))
 
@@ -114,7 +109,7 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
-				} to ComboBox<Status>(FXCollections.observableList(Status.values().toList())).apply {
+				} to ComboBox<Status>(Status.values().toObservableList()).apply {
 					factory { item, empty ->
 						text = item?.takeUnless { empty }?.name
 						graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()

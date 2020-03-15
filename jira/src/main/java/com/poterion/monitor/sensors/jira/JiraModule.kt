@@ -39,7 +39,7 @@ object JiraModule : ServiceModule<JiraConfig, JiraService> {
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
 			JiraService = JiraService(controller,
-			JiraConfig(uuid = applicationConfiguration.services.nextUUID(), name = title))
+			JiraConfig(uuid = applicationConfiguration.serviceMap.nextUUID(), name = title))
 
 	override fun loadController(controller: ControllerInterface, config: ModuleConfig): JiraService =
 			JiraService(controller, config as JiraConfig)

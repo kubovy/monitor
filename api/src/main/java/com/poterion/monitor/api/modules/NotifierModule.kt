@@ -28,7 +28,6 @@ interface NotifierModule<out Conf : NotifierConfig, out Ctrl : Notifier<Conf>> :
 	override fun loadControllers(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
 			Collection<Ctrl> = applicationConfiguration
 			.notifiers
-			.values
 			.filterIsInstance(configClass.java)
 			.map { loadController(controller, it) }
 }

@@ -17,14 +17,62 @@
 package com.poterion.monitor.api.ui
 
 import com.poterion.utils.javafx.Icon
+import com.poterion.utils.javafx.toObservableList
+import javafx.beans.property.*
+import javafx.collections.ObservableList
 
 /**
+ * Navigation item.
+ *
+ * @param title Title
+ * @param titleProperty Title property (if specified and not `null` then `title` is ignored)
+ * @param icon Icon, `null` means no icon
+ * @param iconProperty Icon property (if specified and not `null` then `icon` is ignored)
+ * @param enabled Enabled
+ * @param checked Checked, `null` means not check-able
+ * @param checkedProperty Checked property (if specified and not `null` then `checked` is ignored)
+ * @param recreate TODO
+ * @param action Action
+ * @param sub Sub menu, `null` means no submenu. If item has not submenu but may have this should be [emptyList]
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-data class NavigationItem(val title: String? = null,
-						  val icon: Icon? = null,
-						  val enabled: Boolean = true,
-						  val checked: Boolean? = null,
-						  val recreate: (() -> List<NavigationItem>)? = null,
-						  var action: (() -> Unit)? = null,
-						  val sub: MutableList<NavigationItem>? = null)
+class NavigationItem(title: String? = null,
+					 titleProperty: StringProperty? = null,
+					 icon: Icon? = null,
+					 iconProperty: ObjectProperty<Icon?>? = null,
+					 enabled: Boolean = true,
+					 checked: Boolean? = null,
+					 checkedProperty: ObjectProperty<Boolean>? = null,
+					 val recreate: (() -> List<NavigationItem>)? = null,
+					 val action: (() -> Unit)? = null,
+					 sub: List<NavigationItem>? = null) {
+	var title: String?
+		get() = titleProperty.get()
+		set(value) = titleProperty.set(value)
+
+	val titleProperty: StringProperty = titleProperty ?: SimpleStringProperty(title)
+
+	var icon: Icon?
+		get() = iconProperty.get()
+		set(value) = iconProperty.set(value)
+
+	val iconProperty: ObjectProperty<Icon?> = iconProperty ?: SimpleObjectProperty(icon)
+
+	var enabled: Boolean
+		get() = enabledProperty.get()
+		set(value) = enabledProperty.set(value)
+
+	val enabledProperty: BooleanProperty = SimpleBooleanProperty(enabled)
+
+	val isCheckable: Boolean = checked != null || checkedProperty != null
+
+	var checked: Boolean?
+		get() = checkedProperty?.get()
+		set(value) {
+			checkedProperty?.set(value)
+		}
+
+	val checkedProperty: ObjectProperty<Boolean>? = checkedProperty ?: checked?.let { SimpleObjectProperty(it) }
+
+	val sub: ObservableList<NavigationItem>? = sub?.toObservableList()
+}

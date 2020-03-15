@@ -16,27 +16,65 @@
  ******************************************************************************/
 package com.poterion.monitor.sensors.gerritcodereview.data
 
+import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.auth.AuthConfig
-import com.poterion.monitor.data.services.ServiceConfig
+import com.poterion.monitor.data.services.AbstractServiceConfig
+import com.poterion.utils.javafx.toObservableList
+import javafx.collections.ObservableList
 import java.util.*
 
 /**
+ * Gerrit code review service module configuration.
+ *
+ * @param name Module name
+ * @param enabled Whether module is enabled (`true`) or not (`false`)
+ * @param url Service [URL][java.net.URL] (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param trustCertificate Whether to trust all certificates (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param auth Service [authentication][AuthConfig] (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param order Order of the service in which it will be evaluated
+ * @param priority Priority of the service used for [items][com.poterion.monitor.data.StatusItem] yield by it unless
+ *        otherwise additionally configured.
+ * @param checkInterval Interval in which the service will be periodically checked for new
+ *        [items][com.poterion.monitor.data.StatusItem].
+ * @param connectTimeout Connection timeout (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param readTimeout Read timeout (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param writeTimeout Write timeout (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param tableColumnWidths Saved UI table column widths (column name -> width)
+ * @param queries Query - [Priority],[Status][com.poterion.monitor.data.Status] mapping.
+ *        See [GerritCodeReviewQueryConfig]
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class GerritCodeReviewConfig(override var type: String = GerritCodeReviewConfig::class.java.simpleName,
+class GerritCodeReviewConfig(override val type: String = GerritCodeReviewConfig::class.java.simpleName,
 							 override var uuid: String = UUID.randomUUID().toString(),
-							 override var name: String = "",
-							 override var enabled: Boolean = true,
-							 override var url: String = "",
-							 override var trustCertificate: Boolean = false,
-							 override var auth: AuthConfig? = null,
-							 override var order: Int = Int.MAX_VALUE,
-							 override var priority: Priority = Priority.NONE,
-							 override var checkInterval: Long? = null,
-							 override var connectTimeout: Long? = null,
-							 override var readTimeout: Long? = null,
-							 override var writeTimeout: Long? = null,
-							 override var tableColumnWidths: MutableMap<String, Int> = mutableMapOf(),
-							 var queries: MutableCollection<GerritCodeReviewQueryConfig> = mutableListOf()):
-		ServiceConfig
+							 name: String = "",
+							 enabled: Boolean = true,
+							 url: String = "",
+							 trustCertificate: Boolean = false,
+							 auth: AuthConfig? = null,
+							 order: Int = Int.MAX_VALUE,
+							 priority: Priority = Priority.NONE,
+							 checkInterval: Long? = null,
+							 connectTimeout: Long? = null,
+							 readTimeout: Long? = null,
+							 writeTimeout: Long? = null,
+							 tableColumnWidths: Map<String, Int> = emptyMap(),
+							 queries: List<GerritCodeReviewQueryConfig> = emptyList()) :
+		AbstractServiceConfig(name, enabled, url, trustCertificate, auth, order, priority, checkInterval,
+				connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
+
+	@Suppress("unused")
+	private var _queries: Collection<GerritCodeReviewQueryConfig>
+		@JsonProperty("queries") get() = queries
+		set(value) {
+			queries.setAll(value)
+		}
+
+	/**
+	 * Query - [Priority],[Status][com.poterion.monitor.data.Status] mapping.
+	 * @see [GerritCodeReviewQueryConfig]
+	 */
+	val queries: ObservableList<GerritCodeReviewQueryConfig> = queries.toObservableList()
+		@JsonIgnore get
+}

@@ -33,6 +33,7 @@ import com.poterion.monitor.sensors.storyboard.data.StoryboardProjectConfig
 import com.poterion.monitor.sensors.storyboard.data.Task
 import com.poterion.utils.javafx.openInExternalApplication
 import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.javafx.toObservableList
 import com.poterion.utils.kotlin.toUriOrNull
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -72,18 +73,16 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Name",
-							getter = { name },
-							setter = { name = it },
+							property = { nameProperty },
 							initialValue = "",
 							isEditable = true),
 					TableSettingsPlugin.ColumnDefinition(
 							name = "Priority",
-							getter = { priority },
-							setter = { priority = it },
+							property = { priorityProperty },
 							initialValue = Priority.NONE,
 							isEditable = true,
 							icon = { toIcon() },
-							options = { Priority.values().toList() })),
+							options = Priority.values().toObservableList())),
 			comparator = compareBy({ -it.priority.ordinal }, { it.name }),
 			actions = listOf { item ->
 				item.let { URLEncoder.encode(it.name, Charsets.UTF_8.name()) }

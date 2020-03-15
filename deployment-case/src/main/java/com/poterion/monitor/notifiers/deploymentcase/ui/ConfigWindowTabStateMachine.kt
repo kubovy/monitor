@@ -16,12 +16,11 @@
  ******************************************************************************/
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.poterion.utils.kotlin.noop
-import com.poterion.utils.javafx.toImageView
 import com.poterion.monitor.notifiers.deploymentcase.*
 import com.poterion.monitor.notifiers.deploymentcase.control.*
 import com.poterion.monitor.notifiers.deploymentcase.data.*
-import javafx.collections.FXCollections
+import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.kotlin.noop
 import javafx.collections.ListChangeListener
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
@@ -63,10 +62,16 @@ class ConfigWindowTabStateMachine {
 		treeStateMachine.isShowRoot = false
 		treeStateMachine.root = TreeItem<StateMachineItem>(Placeholder())
 		val stateMachineChangeListener = ListChangeListener<State> { treeStateMachine.setStateMachine(it.list) }
-		SharedUiData.stateMachineProperty.addListener { _, oldStates, newStates ->
-			oldStates?.removeListener(stateMachineChangeListener)
-			newStates?.addListener(stateMachineChangeListener)
-			treeStateMachine.setStateMachine(newStates)
+
+		SharedUiData.configurationProperty.addListener { _, old, new ->
+			old?.stateMachine?.removeListener(stateMachineChangeListener)
+			new?.stateMachine?.addListener(stateMachineChangeListener)
+			val stateMachine = new?.stateMachine
+			if (stateMachine != null) {
+				treeStateMachine.setStateMachine(stateMachine)
+			} else {
+				treeStateMachine.root.children.clear()
+			}
 		}
 	}
 
@@ -82,7 +87,7 @@ class ConfigWindowTabStateMachine {
 					parent.children[index - 1] = selected
 					treeStateMachine.selectionModel.select(selected)
 					treeStateMachine.refresh()
-					SharedUiData.stateMachine.setAll(treeStateMachine.toStateMachine(SharedUiData.devices, SharedUiData.variables))
+					SharedUiData.stateMachine?.setAll(treeStateMachine.toStateMachine(SharedUiData.devices, SharedUiData.variables))
 					saveConfig()
 				}
 			}
@@ -94,7 +99,7 @@ class ConfigWindowTabStateMachine {
 					parent.children[index + 1] = selected
 					treeStateMachine.selectionModel.select(selected)
 					treeStateMachine.refresh()
-					SharedUiData.stateMachine.setAll(treeStateMachine.toStateMachine(SharedUiData.devices, SharedUiData.variables))
+					SharedUiData.stateMachine?.setAll(treeStateMachine.toStateMachine(SharedUiData.devices, SharedUiData.variables))
 					saveConfig()
 				}
 			}
@@ -140,7 +145,7 @@ class ConfigWindowTabStateMachine {
 							parent?.expandAll()
 						}
 					}
-					SharedUiData.stateMachine.setAll(treeStateMachine.toStateMachine(SharedUiData.devices, SharedUiData.variables))
+					SharedUiData.stateMachine?.setAll(treeStateMachine.toStateMachine(SharedUiData.devices, SharedUiData.variables))
 					saveConfig()
 				}
 			}
@@ -189,14 +194,14 @@ class ConfigWindowTabStateMachine {
 					}
 				}
 				selected?.isExpanded = true
-				SharedUiData.stateMachine.setAll(treeStateMachine.toStateMachine(SharedUiData.devices, SharedUiData.variables))
+				SharedUiData.stateMachine?.setAll(treeStateMachine.toStateMachine(SharedUiData.devices, SharedUiData.variables))
 				saveConfig()
 			}
 			KeyCode.DELETE -> {
 				treeStateMachine.selectionModel.selectedItem
 						?.takeUnless { it.value is Placeholder }
 						?.takeIf { item -> item.value.let { it !is State || it.findReferences().isEmpty() } }
-						?.takeIf { item -> SharedUiData.pipelineStatus.keys.find { it == (item.value as? State)?.name } == null }
+						?.takeIf { item -> SharedUiData.pipelineStatus?.keys?.find { it == (item.value as? State)?.name } == null }
 						?.takeIf { _ ->
 							Alert(Alert.AlertType.CONFIRMATION).apply {
 								title = "Delete confirmation"
@@ -205,7 +210,7 @@ class ConfigWindowTabStateMachine {
 						}
 						?.also { it.parent.children.remove(it) }
 						?.also {
-							SharedUiData.stateMachine.setAll(treeStateMachine.toStateMachine(SharedUiData.devices, SharedUiData.variables))
+							SharedUiData.stateMachine?.setAll(treeStateMachine.toStateMachine(SharedUiData.devices, SharedUiData.variables))
 							saveConfig()
 						}
 			}
@@ -283,7 +288,7 @@ class ConfigWindowTabStateMachine {
 					style = when {
 						treeView.selectionModel.selectedItem?.value == item -> null
 						treeView.selectionModel.selectedIndex == index -> null
-						item is State && SharedUiData.pipelineStatus.keys.find { it == item.name } != null -> "-fx-background-color: #FFCCFF"
+						item is State && SharedUiData.pipelineStatus?.keys?.find { it == item.name } != null -> "-fx-background-color: #FFCCFF"
 						item is State && item.findReferences().isEmpty() -> "-fx-background-color: #CCCCCC"
 						item is State && item.findReferences().isNotEmpty() -> "-fx-background-color: #CCCCFF"
 						item is Condition -> "-fx-background-color: #CCFFCC"
@@ -309,9 +314,9 @@ class ConfigWindowTabStateMachine {
 					item?.also { item ->
 						when (item) {
 							is Condition -> {
-								comboBox1 = ComboBox(FXCollections.observableArrayList(SharedUiData
+								comboBox1 = ComboBox(SharedUiData
 										.devices
-										.filter {
+										?.filtered {
 											// it.type == VariableType.BOOLEAN
 											it.kind == DeviceKind.MCP23017 && it.key.toInt() < 32
 
@@ -320,29 +325,27 @@ class ConfigWindowTabStateMachine {
 
 													|| it.kind == DeviceKind.VIRTUAL
 													&& VirtualKey.values().find { k -> it.key == k.key }?.condition == true
-										}))
+										})
 										.apply { selectionModel.select(item.device?.toDevice(SharedUiData.devices)) }
-								comboBox2 = ComboBox(SharedUiData.variables.filtered { it.type == VariableType.BOOLEAN })
+								comboBox2 = ComboBox(SharedUiData.variables?.filtered { it.type == VariableType.BOOLEAN })
 										.apply { selectionModel.select(item.value?.toVariable(SharedUiData.variables)) }
 								checkbox = null
 							}
 							is Action -> {
 								comboBox2 = ComboBox()
-								comboBox1 = ComboBox(FXCollections.observableArrayList(SharedUiData
+								comboBox1 = ComboBox(SharedUiData
 										.devices
-										.filter {
+										?.filtered {
 											(it.kind != DeviceKind.MCP23017 || it.key.toInt() >= 32)
-
 													&& (it.kind != DeviceKind.VIRTUAL
 													|| VirtualKey.values().find { k -> it.key == k.key }?.condition == false)
-										}))
+										})
 										.apply {
 											selectionModel.selectedItemProperty().addListener { _, oldValue, newValue ->
 												if (oldValue == null || oldValue.type != newValue?.type) {
-													comboBox2?.items?.clear()
-													comboBox2?.items?.addAll(SharedUiData
+													comboBox2?.items = SharedUiData
 															.variables
-															.filter { it.type == newValue.type })
+															?.filtered { it.type == newValue.type }
 													comboBox2?.selectionModel?.select(item.value
 															?.toVariable(SharedUiData.variables))
 												}
@@ -420,7 +423,7 @@ class ConfigWindowTabStateMachine {
 
 		setOnEditCommit { event ->
 			editingItem?.value = event?.newValue
-			SharedUiData.stateMachine.setAll(treeStateMachine.toStateMachine(SharedUiData.devices, SharedUiData.variables))
+			SharedUiData.stateMachine?.setAll(treeStateMachine.toStateMachine(SharedUiData.devices, SharedUiData.variables))
 			saveConfig()
 		}
 	}
@@ -431,6 +434,6 @@ class ConfigWindowTabStateMachine {
 				&& it.device?.toDevice(SharedUiData.devices)?.key == VirtualKey.GOTO.key
 				&& (it.value?.toVariable(SharedUiData.variables)?.value == this.name
 				|| it.value?.toVariable(SharedUiData.variables)?.value == "${treeStateMachine.selectionModel.selectedIndex}")
-				|| SharedUiData.pipelineStatus.values.contains(this.name)
+				|| SharedUiData.pipelineStatus?.values?.contains(this.name) == true
 	}
 }
