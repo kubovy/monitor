@@ -19,7 +19,6 @@ package com.poterion.monitor.notifiers.devopslight.ui
 import com.poterion.communication.serial.communicator.BluetoothCommunicator
 import com.poterion.communication.serial.communicator.Channel
 import com.poterion.communication.serial.communicator.USBCommunicator
-import com.poterion.communication.serial.extensions.RgbLightCommunicatorExtension
 import com.poterion.communication.serial.listeners.RgbLightCommunicatorListener
 import com.poterion.communication.serial.payload.RgbColor
 import com.poterion.communication.serial.payload.RgbLightConfiguration
@@ -87,6 +86,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 	@FXML private lateinit var comboBoxColor4: ColorPicker
 	@FXML private lateinit var comboBoxColor5: ColorPicker
 	@FXML private lateinit var comboBoxColor6: ColorPicker
+	@FXML private lateinit var comboBoxColor7: ColorPicker
 	@FXML private lateinit var textDelay: TextField
 	@FXML private lateinit var textWidth: TextField
 	@FXML private lateinit var labelFade: Label
@@ -108,6 +108,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 	@FXML private lateinit var columnLightColor4: TableColumn<RgbLightConfiguration, RgbColor>
 	@FXML private lateinit var columnLightColor5: TableColumn<RgbLightConfiguration, RgbColor>
 	@FXML private lateinit var columnLightColor6: TableColumn<RgbLightConfiguration, RgbColor>
+	@FXML private lateinit var columnLightColor7: TableColumn<RgbLightConfiguration, RgbColor>
 	@FXML private lateinit var columnLightDelay: TableColumn<RgbLightConfiguration, Int>
 	@FXML private lateinit var columnLightWidth: TableColumn<RgbLightConfiguration, Int>
 	@FXML private lateinit var columnLightFading: TableColumn<RgbLightConfiguration, Int>
@@ -185,6 +186,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 		comboBoxColor4.customColors.addAll(customColors)
 		comboBoxColor5.customColors.addAll(customColors)
 		comboBoxColor6.customColors.addAll(customColors)
+		comboBoxColor7.customColors.addAll(customColors)
 
 		sliderMin.valueProperty().addListener { _, _, value -> labelMinValue.text = "${value.toInt()}%" }
 		sliderMax.valueProperty().addListener { _, _, value -> labelMaxValue.text = "${value.toInt()}%" }
@@ -221,6 +223,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 		columnLightColor4.init("color4")
 		columnLightColor5.init("color5")
 		columnLightColor6.init("color6")
+		columnLightColor7.init("color7")
 
 		columnLightDelay.cell("delay") { _, value, empty -> text = value?.takeUnless { empty }?.let { "${it} ms" } }
 		columnLightWidth.cell("width") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
@@ -501,6 +504,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 		comboBoxColor4.isDisable = treeItem?.value?.lightConfigs == null
 		comboBoxColor5.isDisable = treeItem?.value?.lightConfigs == null
 		comboBoxColor6.isDisable = treeItem?.value?.lightConfigs == null
+		comboBoxColor7.isDisable = treeItem?.value?.lightConfigs == null
 		textDelay.isDisable = treeItem?.value?.lightConfigs == null
 		textWidth.isDisable = treeItem?.value?.lightConfigs == null
 		textFade.isDisable = treeItem?.value?.lightConfigs == null
@@ -525,6 +529,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 			comboBoxColor4.value = lightConfig?.color4?.toColor() ?: Color.WHITE
 			comboBoxColor5.value = lightConfig?.color5?.toColor() ?: Color.WHITE
 			comboBoxColor6.value = lightConfig?.color6?.toColor() ?: Color.WHITE
+			comboBoxColor7.value = lightConfig?.color7?.toColor() ?: Color.BLACK
 			textDelay.text = "${lightConfig?.delay ?: 50}"
 			textWidth.text = "${lightConfig?.width ?: 3}"
 			textFade.text = "${lightConfig?.fading ?: 0}"
@@ -561,7 +566,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 		val color4 = comboBoxColor4.value?.toRGBColor()
 		val color5 = comboBoxColor5.value?.toRGBColor()
 		val color6 = comboBoxColor6.value?.toRGBColor()
-		val color7 = RgbColor()
+		val color7 = comboBoxColor7.value?.toRGBColor()
 		val delay = textDelay.text?.toIntOrNull() ?: 1000
 		val width = textWidth.text?.toIntOrNull() ?: 3
 		val fade = textFade.text?.toIntOrNull() ?: 0
@@ -575,7 +580,8 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 				&& color3 != null
 				&& color4 != null
 				&& color5 != null
-				&& color6 != null)
+				&& color6 != null
+				&& color7 != null)
 			RgbLightConfiguration(pattern, color1, color2, color3, color4, color5, color6, color7, delay, width, fade,
 					min, max, timeout)
 		else null
