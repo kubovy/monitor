@@ -243,11 +243,11 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 			alignment = Pos.CENTER_RIGHT
 		}
 		columnLightMinimum.cell("minimum") { _, value, empty ->
-			text = value?.takeUnless { empty }?.toString()?.ensureSuffix("%")
+			text = value?.takeUnless { empty }?.times(100.0)?.div(255.0)?.roundToInt()?.toString()?.ensureSuffix("%")
 			alignment = Pos.CENTER_RIGHT
 		}
 		columnLightMaximum.cell("maximum") { _, value, empty ->
-			text = value?.takeUnless { empty }?.toString()?.ensureSuffix("%")
+			text = value?.takeUnless { empty }?.times(100.0)?.div(255.0)?.roundToInt()?.toString()?.ensureSuffix("%")
 			alignment = Pos.CENTER_RIGHT
 		}
 		columnLightTimeout.cell("timeout") { _, value, empty ->
