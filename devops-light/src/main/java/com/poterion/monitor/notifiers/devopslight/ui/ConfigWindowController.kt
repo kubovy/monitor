@@ -19,8 +19,7 @@ package com.poterion.monitor.notifiers.devopslight.ui
 import com.poterion.communication.serial.communicator.BluetoothCommunicator
 import com.poterion.communication.serial.communicator.Channel
 import com.poterion.communication.serial.communicator.USBCommunicator
-import com.poterion.communication.serial.listeners.CommunicatorListener
-import com.poterion.communication.serial.payload.DeviceCapabilities
+import com.poterion.communication.serial.listeners.RgbLightCommunicatorListener
 import com.poterion.communication.serial.payload.RgbColor
 import com.poterion.communication.serial.payload.RgbLightConfiguration
 import com.poterion.communication.serial.payload.RgbLightPattern
@@ -36,11 +35,13 @@ import com.poterion.monitor.notifiers.devopslight.data.DevOpsLightItemConfig
 import com.poterion.monitor.notifiers.devopslight.data.StateConfig
 import com.poterion.monitor.notifiers.devopslight.deepCopy
 import com.poterion.utils.javafx.*
+import com.poterion.utils.kotlin.ensureSuffix
 import com.poterion.utils.kotlin.noop
 import javafx.application.Platform
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.geometry.Insets
+import javafx.geometry.Pos
 import javafx.scene.Parent
 import javafx.scene.control.*
 import javafx.scene.control.Alert.AlertType
@@ -53,6 +54,7 @@ import javafx.scene.layout.BackgroundFill
 import javafx.scene.layout.CornerRadii
 import javafx.scene.layout.Pane
 import javafx.scene.paint.Color
+import javafx.scene.text.TextAlignment
 import javafx.util.StringConverter
 import kotlin.math.roundToInt
 
@@ -60,7 +62,7 @@ import kotlin.math.roundToInt
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class ConfigWindowController : CommunicatorListener {
+class ConfigWindowController : RgbLightCommunicatorListener {
 	companion object {
 		internal fun getRoot(config: DevOpsLightConfig, controller: DevOpsLightNotifier): Pair<Parent, ConfigWindowController> =
 				FXMLLoader(ConfigWindowController::class.java.getResource("config-window.fxml"))
@@ -87,6 +89,7 @@ class ConfigWindowController : CommunicatorListener {
 	@FXML private lateinit var comboBoxColor4: ColorPicker
 	@FXML private lateinit var comboBoxColor5: ColorPicker
 	@FXML private lateinit var comboBoxColor6: ColorPicker
+	@FXML private lateinit var comboBoxColor7: ColorPicker
 	@FXML private lateinit var textDelay: TextField
 	@FXML private lateinit var textWidth: TextField
 	@FXML private lateinit var labelFade: Label
@@ -101,13 +104,14 @@ class ConfigWindowController : CommunicatorListener {
 	@FXML private lateinit var buttonClearLight: Button
 
 	@FXML private lateinit var tableLightConfigs: TableView<RgbLightConfiguration>
-	@FXML private lateinit var columnLightPattern: TableColumn<RgbLightConfiguration, String>
+	@FXML private lateinit var columnLightPattern: TableColumn<RgbLightConfiguration, RgbLightPattern>
 	@FXML private lateinit var columnLightColor1: TableColumn<RgbLightConfiguration, RgbColor>
 	@FXML private lateinit var columnLightColor2: TableColumn<RgbLightConfiguration, RgbColor>
 	@FXML private lateinit var columnLightColor3: TableColumn<RgbLightConfiguration, RgbColor>
 	@FXML private lateinit var columnLightColor4: TableColumn<RgbLightConfiguration, RgbColor>
 	@FXML private lateinit var columnLightColor5: TableColumn<RgbLightConfiguration, RgbColor>
 	@FXML private lateinit var columnLightColor6: TableColumn<RgbLightConfiguration, RgbColor>
+	@FXML private lateinit var columnLightColor7: TableColumn<RgbLightConfiguration, RgbColor>
 	@FXML private lateinit var columnLightDelay: TableColumn<RgbLightConfiguration, Int>
 	@FXML private lateinit var columnLightWidth: TableColumn<RgbLightConfiguration, Int>
 	@FXML private lateinit var columnLightFading: TableColumn<RgbLightConfiguration, Int>
@@ -139,6 +143,19 @@ class ConfigWindowController : CommunicatorListener {
 			return item
 		}
 
+	private val configComparator: Comparator<DevOpsLightItemConfig> = Comparator { c1, c2 ->
+		val n1 = notifier.controller.applicationConfiguration.serviceMap[c1.id]?.name ?: "Default"
+		val n2 = notifier.controller.applicationConfiguration.serviceMap[c2.id]?.name ?: "Default"
+
+		when {
+			n1 == "Default" && n2 != "Default" -> 1
+			n1 != "Default" && n2 == "Default" -> -1
+			else -> compareValues(n1, n2)
+		}
+	}
+
+	private val ServiceConfig.icon: Icon?
+		get() = notifier.controller.modules.find { it.configClass == this::class }?.icon
 
 	@FXML
 	fun initialize() {
@@ -172,6 +189,7 @@ class ConfigWindowController : CommunicatorListener {
 		comboBoxColor4.customColors.addAll(customColors)
 		comboBoxColor5.customColors.addAll(customColors)
 		comboBoxColor6.customColors.addAll(customColors)
+		comboBoxColor7.customColors.addAll(customColors)
 
 		sliderMin.valueProperty().addListener { _, _, value -> labelMinValue.text = "${value.toInt()}%" }
 		sliderMax.valueProperty().addListener { _, _, value -> labelMaxValue.text = "${value.toInt()}%" }
@@ -200,7 +218,9 @@ class ConfigWindowController : CommunicatorListener {
 			selectionModel.selectedItemProperty().addListener { _, _, newValue -> selectLightConfig(newValue) }
 		}
 
-		columnLightPattern.cell("pattern")
+		columnLightPattern.cell("pattern") { _, value, empty ->
+			text = value?.takeUnless { empty }?.title
+		}
 
 		columnLightColor1.init("color1")
 		columnLightColor2.init("color2")
@@ -208,30 +228,35 @@ class ConfigWindowController : CommunicatorListener {
 		columnLightColor4.init("color4")
 		columnLightColor5.init("color5")
 		columnLightColor6.init("color6")
+		columnLightColor7.init("color7")
 
-		columnLightDelay.cell("delay") { _, value, empty -> text = value?.takeUnless { empty }?.let { "${it} ms" } }
-		columnLightWidth.cell("width") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
-		columnLightFading.cell("fading") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
-		columnLightMinimum.cell("min") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
-		columnLightMaximum.cell("max") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
-		columnLightTimeout.cell("timeout") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
+		columnLightDelay.cell("delay") { _, value, empty ->
+			text = value?.takeUnless { empty }?.let { "${it} ms" }
+			alignment = Pos.CENTER_RIGHT
+		}
+		columnLightWidth.cell("width") { _, value, empty ->
+			text = value?.takeUnless { empty }?.toString()
+			alignment = Pos.CENTER_RIGHT
+		}
+		columnLightFading.cell("fading") { _, value, empty ->
+			text = value?.takeUnless { empty }?.toString()
+			alignment = Pos.CENTER_RIGHT
+		}
+		columnLightMinimum.cell("minimum") { _, value, empty ->
+			text = value?.takeUnless { empty }?.toString()?.ensureSuffix("%")
+			alignment = Pos.CENTER_RIGHT
+		}
+		columnLightMaximum.cell("maximum") { _, value, empty ->
+			text = value?.takeUnless { empty }?.toString()?.ensureSuffix("%")
+			alignment = Pos.CENTER_RIGHT
+		}
+		columnLightTimeout.cell("timeout") { _, value, empty ->
+			text = value?.takeUnless { empty }?.toString()
+			alignment = Pos.CENTER_RIGHT
+		}
 		treeConfigs.selectionModel.clearSelection()
 		selectStateConfig(null)
 		selectLightConfig(null)
-	}
-
-	private val ServiceConfig.icon: Icon?
-		get() = notifier.controller.modules.find { it.configClass == this::class }?.icon
-
-	private val configComparator: Comparator<DevOpsLightItemConfig> = Comparator { c1, c2 ->
-		val n1 = notifier.controller.applicationConfiguration.serviceMap[c1.id]?.name ?: "Default"
-		val n2 = notifier.controller.applicationConfiguration.serviceMap[c2.id]?.name ?: "Default"
-
-		when {
-			n1 == "Default" && n2 != "Default" -> 1
-			n1 != "Default" && n2 == "Default" -> -1
-			else -> compareValues(n1, n2)
-		}
 	}
 
 	private fun load() {
@@ -474,8 +499,6 @@ class ConfigWindowController : CommunicatorListener {
 		}
 	}
 
-	override fun onConnectionReady(channel: Channel) = noop()
-
 	override fun onDisconnect(channel: Channel) = Platform.runLater {
 		btnConnect.text = "Connect [F5]"
 		when (channel) {
@@ -484,15 +507,10 @@ class ConfigWindowController : CommunicatorListener {
 		}
 	}
 
-	override fun onMessageReceived(channel: Channel, message: IntArray) = noop()
+	override fun onRgbLightCountChanged(channel: Channel, count: Int) = noop()
 
-	override fun onMessagePrepare(channel: Channel) = noop()
-
-	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) = noop()
-
-	override fun onDeviceCapabilitiesChanged(channel: Channel, capabilities: DeviceCapabilities) = noop()
-
-	override fun onDeviceNameChanged(channel: Channel, name: String) = noop()
+	override fun onRgbLightConfiguration(channel: Channel, num: Int, count: Int, index: Int,
+										 configuration: RgbLightConfiguration) = noop()
 
 	internal fun changeLights(lightConfiguration: List<RgbLightConfiguration>?) {
 		currentLightConfiguration = lightConfiguration ?: emptyList()
@@ -509,6 +527,7 @@ class ConfigWindowController : CommunicatorListener {
 		comboBoxColor4.isDisable = treeItem?.value?.lightConfigs == null
 		comboBoxColor5.isDisable = treeItem?.value?.lightConfigs == null
 		comboBoxColor6.isDisable = treeItem?.value?.lightConfigs == null
+		comboBoxColor7.isDisable = treeItem?.value?.lightConfigs == null
 		textDelay.isDisable = treeItem?.value?.lightConfigs == null
 		textWidth.isDisable = treeItem?.value?.lightConfigs == null
 		textFade.isDisable = treeItem?.value?.lightConfigs == null
@@ -533,11 +552,13 @@ class ConfigWindowController : CommunicatorListener {
 			comboBoxColor4.value = lightConfig?.color4?.toColor() ?: Color.WHITE
 			comboBoxColor5.value = lightConfig?.color5?.toColor() ?: Color.WHITE
 			comboBoxColor6.value = lightConfig?.color6?.toColor() ?: Color.WHITE
+			comboBoxColor7.value = lightConfig?.color7?.toColor() ?: Color.BLACK
 			textDelay.text = "${lightConfig?.delay ?: 50}"
 			textWidth.text = "${lightConfig?.width ?: 3}"
 			textFade.text = "${lightConfig?.fading ?: 0}"
-			sliderMin.value = lightConfig?.minimum?.toDouble() ?: 0.0
-			sliderMax.value = lightConfig?.maximum?.toDouble() ?: 100.0
+			sliderMin.value = lightConfig?.minimum?.toDouble()?.times(100.0)?.div(255.0) ?: 0.0
+			sliderMax.value = lightConfig?.maximum?.toDouble()?.times(100.0)?.div(255.0) ?: 100.0
+			textTimeout.text = "${lightConfig?.timeout ?: 10}"
 			setLightConfigButtonsEnabled(lightConfig != null)
 		}
 	}
@@ -569,12 +590,12 @@ class ConfigWindowController : CommunicatorListener {
 		val color4 = comboBoxColor4.value?.toRGBColor()
 		val color5 = comboBoxColor5.value?.toRGBColor()
 		val color6 = comboBoxColor6.value?.toRGBColor()
-		val color7 = RgbColor()
+		val color7 = comboBoxColor7.value?.toRGBColor()
 		val delay = textDelay.text?.toIntOrNull() ?: 1000
 		val width = textWidth.text?.toIntOrNull() ?: 3
 		val fade = textFade.text?.toIntOrNull() ?: 0
-		val min = sliderMin.value.roundToInt()
-		val max = sliderMax.value.roundToInt()
+		val min = sliderMin.value.times(255.0).div(100).roundToInt()
+		val max = sliderMax.value.times(255.0).div(100).roundToInt()
 		val timeout = textTimeout.text.toIntOrNull() ?: 10
 
 		return if (pattern != null
@@ -583,7 +604,8 @@ class ConfigWindowController : CommunicatorListener {
 				&& color3 != null
 				&& color4 != null
 				&& color5 != null
-				&& color6 != null)
+				&& color6 != null
+				&& color7 != null)
 			RgbLightConfiguration(pattern, color1, color2, color3, color4, color5, color6, color7, delay, width, fade,
 					min, max, timeout)
 		else null
@@ -611,8 +633,12 @@ class ConfigWindowController : CommunicatorListener {
 							statusFatal = children[9].lightConfigs ?: emptyList())
 				})
 		notifier.controller.saveConfig()
-		notifier.bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
-		notifier.usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
+		if (notifier.bluetoothCommunicator.isConnected) {
+			notifier.bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
+		}
+		if (notifier.usbCommunicator.isConnected) {
+			notifier.usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
+		}
 	}
 
 	private fun TableColumn<RgbLightConfiguration, RgbColor>.init(propertyName: String) = cell(propertyName) { _, value, empty ->

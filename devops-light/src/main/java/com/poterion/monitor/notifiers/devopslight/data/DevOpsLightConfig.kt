@@ -58,6 +58,7 @@ class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.jav
 						tableColumnWidths: Map<String, Int> = emptyMap(),
 						deviceAddress: String = "",
 						usbPort: String = "",
+						onDemandConnection: Boolean = false,
 						grbColors: Boolean = false,
 						combineMultipleServices: Boolean = true,
 						split: Double = 0.2,
@@ -76,6 +77,13 @@ class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.jav
 		set(value) = usbPortProperty.set(value)
 
 	val usbPortProperty: StringProperty = SimpleStringProperty(usbPort)
+		@JsonIgnore get
+
+	var onDemandConnection: Boolean
+		get() = onDemandConnectionProperty.get()
+		set(value) = onDemandConnectionProperty.set(value)
+
+	val onDemandConnectionProperty: BooleanProperty = SimpleBooleanProperty(onDemandConnection)
 		@JsonIgnore get
 
 	var grbColors: Boolean
