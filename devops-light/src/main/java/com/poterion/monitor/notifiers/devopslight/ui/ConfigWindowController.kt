@@ -35,11 +35,13 @@ import com.poterion.monitor.notifiers.devopslight.data.DevOpsLightItemConfig
 import com.poterion.monitor.notifiers.devopslight.data.StateConfig
 import com.poterion.monitor.notifiers.devopslight.deepCopy
 import com.poterion.utils.javafx.*
+import com.poterion.utils.kotlin.ensureSuffix
 import com.poterion.utils.kotlin.noop
 import javafx.application.Platform
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.geometry.Insets
+import javafx.geometry.Pos
 import javafx.scene.Parent
 import javafx.scene.control.*
 import javafx.scene.control.Alert.AlertType
@@ -52,6 +54,7 @@ import javafx.scene.layout.BackgroundFill
 import javafx.scene.layout.CornerRadii
 import javafx.scene.layout.Pane
 import javafx.scene.paint.Color
+import javafx.scene.text.TextAlignment
 import javafx.util.StringConverter
 import kotlin.math.roundToInt
 
@@ -101,7 +104,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 	@FXML private lateinit var buttonClearLight: Button
 
 	@FXML private lateinit var tableLightConfigs: TableView<RgbLightConfiguration>
-	@FXML private lateinit var columnLightPattern: TableColumn<RgbLightConfiguration, String>
+	@FXML private lateinit var columnLightPattern: TableColumn<RgbLightConfiguration, RgbLightPattern>
 	@FXML private lateinit var columnLightColor1: TableColumn<RgbLightConfiguration, RgbColor>
 	@FXML private lateinit var columnLightColor2: TableColumn<RgbLightConfiguration, RgbColor>
 	@FXML private lateinit var columnLightColor3: TableColumn<RgbLightConfiguration, RgbColor>
@@ -215,7 +218,9 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 			selectionModel.selectedItemProperty().addListener { _, _, newValue -> selectLightConfig(newValue) }
 		}
 
-		columnLightPattern.cell("pattern")
+		columnLightPattern.cell("pattern") { _, value, empty ->
+			text = value?.takeUnless { empty }?.title
+		}
 
 		columnLightColor1.init("color1")
 		columnLightColor2.init("color2")
@@ -225,12 +230,30 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 		columnLightColor6.init("color6")
 		columnLightColor7.init("color7")
 
-		columnLightDelay.cell("delay") { _, value, empty -> text = value?.takeUnless { empty }?.let { "${it} ms" } }
-		columnLightWidth.cell("width") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
-		columnLightFading.cell("fading") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
-		columnLightMinimum.cell("min") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
-		columnLightMaximum.cell("max") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
-		columnLightTimeout.cell("timeout") { _, value, empty -> text = value?.takeUnless { empty }?.toString() }
+		columnLightDelay.cell("delay") { _, value, empty ->
+			text = value?.takeUnless { empty }?.let { "${it} ms" }
+			alignment = Pos.CENTER_RIGHT
+		}
+		columnLightWidth.cell("width") { _, value, empty ->
+			text = value?.takeUnless { empty }?.toString()
+			alignment = Pos.CENTER_RIGHT
+		}
+		columnLightFading.cell("fading") { _, value, empty ->
+			text = value?.takeUnless { empty }?.toString()
+			alignment = Pos.CENTER_RIGHT
+		}
+		columnLightMinimum.cell("minimum") { _, value, empty ->
+			text = value?.takeUnless { empty }?.toString()?.ensureSuffix("%")
+			alignment = Pos.CENTER_RIGHT
+		}
+		columnLightMaximum.cell("maximum") { _, value, empty ->
+			text = value?.takeUnless { empty }?.toString()?.ensureSuffix("%")
+			alignment = Pos.CENTER_RIGHT
+		}
+		columnLightTimeout.cell("timeout") { _, value, empty ->
+			text = value?.takeUnless { empty }?.toString()
+			alignment = Pos.CENTER_RIGHT
+		}
 		treeConfigs.selectionModel.clearSelection()
 		selectStateConfig(null)
 		selectLightConfig(null)
@@ -533,8 +556,9 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 			textDelay.text = "${lightConfig?.delay ?: 50}"
 			textWidth.text = "${lightConfig?.width ?: 3}"
 			textFade.text = "${lightConfig?.fading ?: 0}"
-			sliderMin.value = lightConfig?.minimum?.toDouble() ?: 0.0
-			sliderMax.value = lightConfig?.maximum?.toDouble() ?: 100.0
+			sliderMin.value = lightConfig?.minimum?.toDouble()?.times(100.0)?.div(255.0) ?: 0.0
+			sliderMax.value = lightConfig?.maximum?.toDouble()?.times(100.0)?.div(255.0) ?: 100.0
+			textTimeout.text = "${lightConfig?.timeout ?: 10}"
 			setLightConfigButtonsEnabled(lightConfig != null)
 		}
 	}
@@ -570,8 +594,8 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 		val delay = textDelay.text?.toIntOrNull() ?: 1000
 		val width = textWidth.text?.toIntOrNull() ?: 3
 		val fade = textFade.text?.toIntOrNull() ?: 0
-		val min = sliderMin.value.roundToInt()
-		val max = sliderMax.value.roundToInt()
+		val min = sliderMin.value.times(255.0).div(100).roundToInt()
+		val max = sliderMax.value.times(255.0).div(100).roundToInt()
 		val timeout = textTimeout.text.toIntOrNull() ?: 10
 
 		return if (pattern != null
