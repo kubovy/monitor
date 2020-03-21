@@ -20,11 +20,12 @@ import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.services.ServiceConfig
+import com.poterion.monitor.data.services.ServiceSubConfig
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-interface ServiceModule<out Conf : ServiceConfig, out Ctrl : Service<Conf>> : Module<Conf, Ctrl> {
+interface ServiceModule<out Conf : ServiceConfig<out ServiceSubConfig>, out Ctrl : Service<Conf>> : Module<Conf, Ctrl> {
 	/**
 	 * Weather the notification set is static.
 	 *

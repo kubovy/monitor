@@ -66,7 +66,7 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 			controller = controller,
 			config = config,
 			createItem = { SyndicationFeedFilterConfig() },
-			items = config.filters,
+			items = config.subConfig,
 			displayName = { name },
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition(
@@ -114,11 +114,8 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 						text = item?.takeUnless { empty }?.name
 						graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
 					}
-					selectionModel.select(config.status)
-					selectionModel.selectedItemProperty().addListener { _, _, value ->
-						config.status = value
-						controller.saveConfig()
-					}
+					valueProperty().bindBidirectional(config.statusProperty)
+					selectionModel.selectedItemProperty().addListener { _, _, _ -> controller.saveConfig() }
 				},
 				queryTableSettingsPlugin.rowNewItem)
 
@@ -139,11 +136,11 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 							if (proxy != null) it.openConnection(proxy) else it.openConnection()
 						} catch (e: Exception) {
 							LOGGER.error(e.message, e)
-							errorStatus = getErrorStatus(Status.CONNECTION_ERROR, e.message ?: "Connection error")
+							errorStatus = getErrorStatus("Connection error", Status.CONNECTION_ERROR, e.message)
 							null
 						}
 					}
-					?.also { connection ->
+					?.let { connection ->
 						try {
 							config.auth?.toHeaderString()?.also { connection.setRequestProperty("Authorization", it) }
 
@@ -155,9 +152,11 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 
 							config.connectTimeout?.toInt()?.also { connection.connectTimeout = it }
 							config.readTimeout?.toInt()?.also { connection.readTimeout = it }
+							connection
 						} catch (e: Exception) {
 							LOGGER.error(e.message, e)
-							errorStatus = getErrorStatus(Status.CONNECTION_ERROR, e.message ?: "Header error")
+							errorStatus = getErrorStatus("Header error", Status.CONNECTION_ERROR, e.message)
+							null
 						}
 					}
 					?.let {
@@ -166,7 +165,7 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 							SyndFeedInput().build(XmlReader(it))
 						} catch (e: Exception) {
 							LOGGER.error(e.message, e)
-							errorStatus = getErrorStatus(Status.SERVICE_ERROR, e.message ?: "Parsing error")
+							errorStatus = getErrorStatus("Parsing error", Status.SERVICE_ERROR, e.message)
 							null
 						}
 					}
@@ -174,23 +173,25 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 			if (feed != null) {
 				lastFound.clear()
 				for (entry in feed.entries) {
-					val (priority, status) = config.filters
+					val (title, priority, status) = config.subConfig
 							.asSequence()
 							.filter { it.titleFilter.toRegex().containsMatchIn(entry.title) }
 							.filter { it.summaryFilter.toRegex().containsMatchIn(entry.description.value) }
 							.firstOrNull()
-							?.let { it.priority to it.status }
-							?: (config.priority to config.status)
+							?.let { Triple(it.configTitle, it.priority, it.status) }
+							?: Triple(null, config.priority, config.status)
 
 					val statusItem = StatusItem(
 							id = "${config.uuid}|${entry.title}",
 							serviceId = config.uuid,
+							configIds = listOfNotNull(title).toMutableList(),
 							priority = priority,
 							status = status,
 							title = "[${feed.title ?: config.name}] ${entry.title}",
 							group = null,
-							detail = entry.description?.value ?: entry.contents?.mapNotNull { it.value }?.firstOrNull()
-							?: "",
+							detail = entry.description?.value
+									?: entry.contents?.mapNotNull { it.value }?.firstOrNull()
+									?: "",
 							labels = (entry.categories.map { it.name to "" } +
 									entry.authors.map { a -> "Author" to "${a.name}${a.email?.let { " (${it})" }}" } +
 									entry.contributors.map { a -> "Contributor" to "${a.name}${a.email?.let { " (${it})" }}" })
@@ -199,16 +200,18 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 							startedAt = entry.updatedDate?.toInstant() ?: entry.publishedDate?.toInstant())
 					lastFound.add(statusItem)
 				}
+				lastErrorProperty.set(errorStatus?.let { it.detail ?: it.title })
 				updater(lastFound + listOfNotNull(errorStatus))
 			}
 		}
 	}
 
-	private fun getErrorStatus(status: Status, error: String) = StatusItem(
+	private fun getErrorStatus(error: String, status: Status, detail: String?) = StatusItem(
 			id = "${config.uuid}-error",
 			serviceId = config.uuid,
 			priority = config.priority,
 			status = status,
 			title = "[${config.name}] ${error}",
+			detail = detail,
 			isRepeatable = false)
 }

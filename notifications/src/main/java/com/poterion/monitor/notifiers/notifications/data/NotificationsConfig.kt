@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.notifiers.AbstractNotifierConfig
+import com.poterion.monitor.data.notifiers.NotifierServiceReference
 import com.poterion.utils.javafx.toObservableMap
 import com.poterion.utils.kotlin.setAll
 import javafx.beans.property.ObjectProperty
@@ -53,7 +54,7 @@ class NotificationsConfig(override var type: String = NotificationsConfig::class
 						  enabled: Boolean = false,
 						  minPriority: Priority = Priority.LOW,
 						  minStatus: Status = Status.NONE,
-						  services: List<String> = emptyList(),
+						  services: List<NotifierServiceReference> = emptyList(),
 						  tableColumnWidths: Map<String, Int> = emptyMap(),
 						  repeatAfter: Long? = null,
 						  durations: Map<String, Long?> = emptyMap(),

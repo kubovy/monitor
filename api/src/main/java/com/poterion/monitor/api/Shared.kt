@@ -17,6 +17,7 @@
 package com.poterion.monitor.api
 
 import java.io.File
+import java.util.*
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
@@ -34,4 +35,11 @@ object Shared {
 	/** Cache file. */
 	var cacheFile: File = File("cache.yaml")
 		get() = if (field.isAbsolute) field else configDirectory.resolve(field).absoluteFile
+
+	/** Properties */
+	val properties = Properties()
+
+	init {
+		Shared.javaClass.getResourceAsStream("/application.properties").use { properties.load(it) }
+	}
 }

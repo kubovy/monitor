@@ -91,6 +91,19 @@ compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
 
+task writePropertyFile(group: 'build') {
+    doLast {
+        def var = new Properties()
+        File file = file("src/main/resources/application.properties")
+
+        if (file.exists()) var.load(file.newDataInputStream())
+        var.setProperty("version", "${version}")
+        var.store(file.newWriter(), null)
+    }
+}
+
+tasks.assemble.dependsOn(writePropertyFile)
+
 task assembleFatJar(type: Jar, group: 'build', dependsOn: [assemble, extractOpenJDK]) {
     manifest {
         attributes 'Implementation-Title': 'Poterion Monitor',

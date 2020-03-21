@@ -17,12 +17,16 @@
 package com.poterion.monitor.notifiers.devopslight.data
 
 import com.poterion.communication.serial.payload.RgbLightConfiguration
-import com.poterion.utils.javafx.Icon
+import com.poterion.monitor.data.Status
+import javafx.collections.FXCollections
+import javafx.collections.ObservableList
 
 /**
+ * State configuration
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-data class StateConfig(var title: String,
-					   val icon: Icon? = null,
-					   var lightConfigs: List<RgbLightConfiguration>? = null,
-					   var serviceId: String = "")
+data class StateConfig(val title: String,
+					   val status: Status? = null,
+					   val lightConfigs: ObservableList<RgbLightConfiguration> = FXCollections.observableArrayList(),
+					   val serviceId: String? = null,
+					   val subConfigId: String? = null)

@@ -61,11 +61,11 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 	}
 
 	override val definition: Module<AlertManagerConfig, ModuleInstanceInterface<AlertManagerConfig>> =
-		AlertManagerModule
+			AlertManagerModule
 	private val service
 		get() = retrofit?.create(AlertManagerRestService::class.java)
 
-	private var lastFound = listOf<Triple<String, AlertManagerLabelConfig, AlertManagerResponse>>()
+	private var lastFound = listOf<Triple<String, AlertManagerResponse, Collection<AlertManagerLabelConfig>>>()
 
 	private val labelTableSettingsPlugin = TableSettingsPlugin(
 			tableName = "labelTable",
@@ -73,7 +73,7 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 			controller = controller,
 			config = config,
 			createItem = { AlertManagerLabelConfig() },
-			items = config.labels,
+			items = config.subConfig,
 			displayName = { name },
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition(
@@ -122,8 +122,8 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to TextField(config.nameRefs.joinToString(",")).apply {
-					focusedProperty().addListener { _, _, hasFocus ->
-						if (!hasFocus) {
+					focusedProperty().addListener { _, _, focused ->
+						if (!focused) {
 							config.nameRefs.setAll(text.replace("[\\n\\r\\t]".toRegex(), "").toSet(","))
 							controller.saveConfig()
 						}
@@ -135,8 +135,8 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to TextField(config.descriptionRefs.joinToString(",")).apply {
-					focusedProperty().addListener { _, _, hasFocus ->
-						if (!hasFocus) {
+					focusedProperty().addListener { _, _, focused ->
+						if (!focused) {
 							config.descriptionRefs.setAll(text.replace("[\\n\\r\\t]".toRegex(), "").toSet(","))
 							controller.saveConfig()
 						}
@@ -150,7 +150,7 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 				} to TextField(config.receivers.joinToString(",")).apply {
 					promptText = "All receivers"
 					textProperty().addListener { _, _, v -> config.receivers.setAll(v.toSet(",")) }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+					focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 				},
 				Pane() to Label("Comma separated list of receivers to take into account."),
 				Label("Labels").apply {
@@ -160,8 +160,8 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 				} to TextArea(config.labelFilter.joinToString(",")).apply {
 					promptText = "All labels and annotations"
 					prefHeight = 60.0
-					focusedProperty().addListener { _, _, hasFocus ->
-						if (!hasFocus) {
+					focusedProperty().addListener { _, _, focused ->
+						if (!focused) {
 							config.labelFilter.setAll(text.replace("[\\n\\r\\t]".toRegex(), "").toSet(","))
 							controller.saveConfig()
 						}
@@ -174,79 +174,85 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 		get() = super.configurationAddition + listOf(labelTableSettingsPlugin.vbox)
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
-		if (config.enabled && config.url.isNotEmpty()) try {
+		var error: String? = null
+		if (config.enabled && config.url.isNotBlank()) try {
 			val call = service?.check()
-			try {
-				val response = call?.execute()
-				LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+			val response = call?.execute()
+			LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+					" ${response?.code()} ${response?.message()}")
+			if (response?.isSuccessful == true) {
+				val configPairs = config.subConfig.map { "${it.name}:${it.value}" to it }.toMap()
+				val alerts = response.body()
+						?.filter { it.status?.silencedBy?.isEmpty() != false }
+						?.filter { it.status?.inhibitedBy?.isEmpty() != false }
+						?.filter { a ->
+							config.receivers.isEmpty() || a.receivers.map { it.name }.any {
+								config.receivers.contains(it)
+							}
+						}
+						?.map { item -> item to item.labels.map { "${it.key}:${it.value}" } }
+						?.map { (item, labels) -> item to labels.mapNotNull { configPairs[it] } }
+						?.mapNotNull { (item, configs) -> configs.takeIf { it.isNotEmpty() }?.let { item to it } }
+						//?.sortedWith(compareBy({ (item, configs) -> configs.status.ordinal }, { (p, _) -> p.priority.ordinal }))
+						?.associateBy { (i, _) ->
+							config.nameRefs.mapNotNull { i.annotations[it] ?: i.labels[it] }.firstOrNull() ?: ""
+						}
+						?.map { (name, pair) -> Triple(name, pair.first, pair.second) }
+						?.also { lastFound = it }
+						?.map { (name, items, configs) -> createStatusItem(name, items, configs) }
+						?.takeIf { it.isNotEmpty() }
+						?: listOf(StatusItem(
+								id = "${config.uuid}-no-alerts",
+								serviceId = config.uuid,
+								priority = config.priority,
+								status = Status.OK,
+								title = "No alerts",
+								isRepeatable = false))
+				updater(alerts)
+			} else {
+				LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
 						" ${response?.code()} ${response?.message()}")
-				if (response?.isSuccessful == true) {
-					val configPairs = config.labels.map { "${it.name}:${it.value}" to it }.toMap()
-					val alerts = response.body()
-							?.filter { it.status?.silencedBy?.isEmpty() != false }
-							?.filter { it.status?.inhibitedBy?.isEmpty() != false }
-							?.filter { a ->
-								config.receivers.isEmpty() || a.receivers.map { it.name }.any {
-									config.receivers.contains(it)
-								}
-							}
-							?.flatMap { item -> item.labels.map { "${it.key}:${it.value}" to item } }
-							?.filter { (pair, _) -> configPairs[pair] != null }
-							?.map { (pair, item) -> configPairs.getValue(pair) to item }
-							?.sortedWith(compareBy({ (c, _) -> c.status.ordinal }, { (p, _) -> p.priority.ordinal }))
-							?.associateBy { (_, i) ->
-								config.nameRefs.mapNotNull {
-									i.annotations[it] ?: i.labels[it]
-								}.firstOrNull() ?: ""
-							}
-							?.map { (name, p) -> Triple(name, p.first, p.second) }
-							?.also { lastFound = it }
-							?.map { (n, c, i) -> createStatusItem(n, c, i) }
-							?.takeIf { it.isNotEmpty() }
-							?: listOf(StatusItem(
-									id = "${config.uuid}-no-alerts",
-									serviceId = config.uuid,
-									priority = config.priority,
-									status = Status.OK,
-									title = "No alerts",
-									isRepeatable = false))
-					updater(alerts)
-				} else {
-					updater(getStatusItems("Service error", Status.SERVICE_ERROR))
-				}
-			} catch (e: Exception) {
-				call?.request()
-						?.also { LOGGER.warn("${it.method()} ${it.url()}: ${e.message}", e) }
-						?: LOGGER.warn(e.message)
-				updater(getStatusItems("Connection error", Status.CONNECTION_ERROR))
+				error = response?.let { "Code: ${it.code()} ${it.message() ?: ""}" } ?: "Service error"
+				updater(getStatusItems("Service error", Status.SERVICE_ERROR,
+						response?.let { "Code: ${it.code()} ${it.message() ?: ""}" }))
 			}
 		} catch (e: IOException) {
-			LOGGER.error(e.message, e)
-			updater(getStatusItems("Connection error", Status.CONNECTION_ERROR))
+			LOGGER.error(e.message)
+			error = e.message ?: "Connection error"
+			updater(getStatusItems("Connection error", Status.CONNECTION_ERROR, e.message))
 		}
+		lastErrorProperty.set(error)
 	}
 
 	private fun getStatusItems(defaultTitle: String,
-							   rewriteStatus: Status? = null): Collection<StatusItem> = lastFound
-			.map { (n, c, i) -> createStatusItem(n, c, i, rewriteStatus) }
+							   rewriteStatus: Status,
+							   detail: String?): Collection<StatusItem> = lastFound
+			.map { (name, item, configs) -> createStatusItem(name, item, configs, rewriteStatus) }
 			.takeIf { it.isNotEmpty() }
 			?: listOf(StatusItem(
-					id = "${config.uuid}-${rewriteStatus?.name ?: Status.OK.name}",
+					id = "${config.uuid}-${rewriteStatus.name}",
 					serviceId = config.uuid,
 					priority = config.priority,
-					status = rewriteStatus ?: Status.OK,
+					status = rewriteStatus,
 					title = defaultTitle,
+					detail = detail,
 					isRepeatable = false))
 
 	private fun createStatusItem(title: String,
-								 labelConfig: AlertManagerLabelConfig,
 								 response: AlertManagerResponse,
+								 labelConfigs: Collection<AlertManagerLabelConfig>,
 								 status: Status? = null) = StatusItem(
 			id = "${config.uuid}-${response.fingerprint}",
 			serviceId = config.uuid,
-			priority = labelConfig.priority,
-			status = status ?: labelConfig.status,
+			configIds = labelConfigs.map { it.configTitle }.toMutableList(),
+			priority = labelConfigs.maxBy { it.priority }?.priority ?: config.priority,
+			status = status ?: labelConfigs.maxBy { it.status }?.status ?: Status.UNKNOWN,
 			title = title,
+			detail = config.descriptionRefs.mapNotNull { response.annotations[it] ?: response.labels[it] }.firstOrNull()
+					?: "Annotations:"
+					+ response.annotations.map { (k, v) -> "\t${k}: ${v}" }.joinToString("\n", "\n", "\n")
+					+ "Labels:"
+					+ response.labels.map { (k, v) -> "\t${k}: ${v}" }.joinToString("\n", "\n"),
 			labels = (response.labels + response.annotations)
 					.filterNot { (k, _) -> config.nameRefs.contains(k) }
 					.filterNot { (k, _) -> config.descriptionRefs.contains(k) }

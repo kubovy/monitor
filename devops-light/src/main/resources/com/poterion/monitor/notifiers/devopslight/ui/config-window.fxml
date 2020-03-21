@@ -20,110 +20,136 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
-
-<SplitPane fx:id="splitPane" dividerPositions="0.2" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" onKeyPressed="#onKeyPressed" prefHeight="845.0" prefWidth="1220.0" xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.poterion.monitor.notifiers.devopslight.ui.ConfigWindowController">
+<SplitPane fx:id="splitPane" dividerPositions="0.2" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+           onKeyPressed="#onKeyPressed" prefHeight="845.0" prefWidth="1220.0" xmlns="http://javafx.com/javafx/11.0.1"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.poterion.monitor.notifiers.devopslight.ui.ConfigWindowController">
     <items>
         <VBox>
             <children>
-                <TreeView fx:id="treeConfigs" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" onKeyPressed="#onKeyPressedInTree" VBox.vgrow="ALWAYS" />
+                <TreeView fx:id="treeConfigs" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                          onKeyPressed="#onKeyPressedInTree" VBox.vgrow="ALWAYS"/>
                 <HBox alignment="CENTER_RIGHT" VBox.vgrow="NEVER">
                     <children>
-                        <ComboBox fx:id="comboConfigName" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS" />
-                        <Button fx:id="buttonAddConfig" minWidth="50.0" mnemonicParsing="false" onAction="#onAddConfig" text="Add" />
-                        <Button fx:id="buttonDeleteConfig" accessibleHelp="DEL" disable="true" minWidth="60.0" mnemonicParsing="false" onAction="#onDeleteSelectedConfig" text="Delete" HBox.hgrow="ALWAYS" />
+                        <ComboBox fx:id="comboServiceConfig" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS"/>
+                        <ComboBox fx:id="comboServiceSubConfig" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="buttonAddConfig" minWidth="50.0" mnemonicParsing="false" onAction="#onAddConfig"
+                                text="Add"/>
+                        <Button fx:id="buttonDeleteConfig" accessibleHelp="DEL" disable="true" minWidth="60.0"
+                                mnemonicParsing="false" onAction="#onDeleteSelectedConfig" text="Delete"
+                                HBox.hgrow="ALWAYS"/>
                     </children>
                     <padding>
-                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
                     </padding>
                 </HBox>
             </children>
         </VBox>
         <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" spacing="5.0">
             <children>
-                <TextField fx:id="textServiceName" />
-                <Separator prefWidth="200.0" />
                 <GridPane hgap="5.0" vgap="5.0">
                     <columnConstraints>
-                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" />
-                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" />
-                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" />
-                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" />
-                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" />
-                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" />
+                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0"/>
+                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0"/>
+                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0"/>
+                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0"/>
+                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0"/>
+                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0"/>
                     </columnConstraints>
                     <rowConstraints>
-                        <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                        <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
-                        <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                        <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints maxHeight="-Infinity" minHeight="-Infinity" vgrow="SOMETIMES"/>
+                        <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
+                        <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
                     </rowConstraints>
                     <children>
-                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Row 1 color" GridPane.rowIndex="1">
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Row 1 color"
+                               GridPane.rowIndex="3">
                             <GridPane.margin>
-                                <Insets />
+                                <Insets/>
                             </GridPane.margin>
-                     <padding>
-                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-                     </padding>
+                            <padding>
+                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+                            </padding>
                         </Label>
-                        <ColorPicker fx:id="comboBoxColor1" maxWidth="1.7976931348623157E308" GridPane.rowIndex="2" />
-                        <Label text="Pattern">
+                        <ColorPicker fx:id="comboBoxColor1" maxWidth="1.7976931348623157E308" GridPane.rowIndex="4"/>
+                        <Label text="Pattern" GridPane.rowIndex="2">
                             <GridPane.margin>
-                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
                             </GridPane.margin>
                         </Label>
-                        <ComboBox fx:id="comboBoxPattern" maxWidth="1.7976931348623157E308" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.hgrow="ALWAYS" />
-                        <ColorPicker fx:id="comboBoxColor2" maxWidth="1.7976931348623157E308" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-                        <ColorPicker fx:id="comboBoxColor3" maxWidth="1.7976931348623157E308" GridPane.columnIndex="2" GridPane.rowIndex="2" />
-                        <ColorPicker fx:id="comboBoxColor4" maxWidth="1.7976931348623157E308" GridPane.columnIndex="3" GridPane.rowIndex="2" />
-                        <ColorPicker fx:id="comboBoxColor5" maxWidth="1.7976931348623157E308" GridPane.columnIndex="4" GridPane.rowIndex="2" />
-                        <ColorPicker fx:id="comboBoxColor6" maxWidth="1.7976931348623157E308" GridPane.columnIndex="5" GridPane.rowIndex="2" />
-                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Row 2 color" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                        <ComboBox fx:id="comboBoxPattern" maxWidth="1.7976931348623157E308" GridPane.columnIndex="1"
+                                  GridPane.columnSpan="2" GridPane.hgrow="ALWAYS" GridPane.rowIndex="2"/>
+                        <ColorPicker fx:id="comboBoxColor2" maxWidth="1.7976931348623157E308" GridPane.columnIndex="1"
+                                     GridPane.rowIndex="4"/>
+                        <ColorPicker fx:id="comboBoxColor3" maxWidth="1.7976931348623157E308" GridPane.columnIndex="2"
+                                     GridPane.rowIndex="4"/>
+                        <ColorPicker fx:id="comboBoxColor4" maxWidth="1.7976931348623157E308" GridPane.columnIndex="3"
+                                     GridPane.rowIndex="4"/>
+                        <ColorPicker fx:id="comboBoxColor5" maxWidth="1.7976931348623157E308" GridPane.columnIndex="4"
+                                     GridPane.rowIndex="4"/>
+                        <ColorPicker fx:id="comboBoxColor6" maxWidth="1.7976931348623157E308" GridPane.columnIndex="5"
+                                     GridPane.rowIndex="4"/>
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Row 2 color"
+                               GridPane.columnIndex="1" GridPane.rowIndex="3">
                             <GridPane.margin>
-                                <Insets />
+                                <Insets/>
                             </GridPane.margin>
-                     <padding>
-                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-                     </padding>
+                            <padding>
+                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+                            </padding>
                         </Label>
-                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Row 3 color" GridPane.columnIndex="2" GridPane.rowIndex="1">
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Row 3 color"
+                               GridPane.columnIndex="2" GridPane.rowIndex="3">
                             <GridPane.margin>
-                                <Insets />
+                                <Insets/>
                             </GridPane.margin>
-                     <padding>
-                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-                     </padding>
+                            <padding>
+                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+                            </padding>
                         </Label>
-                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Row 4 color" GridPane.columnIndex="3" GridPane.rowIndex="1">
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Row 4 color"
+                               GridPane.columnIndex="3" GridPane.rowIndex="3">
                             <GridPane.margin>
-                                <Insets />
+                                <Insets/>
                             </GridPane.margin>
-                     <padding>
-                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-                     </padding>
+                            <padding>
+                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+                            </padding>
                         </Label>
-                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Top color 1" GridPane.columnIndex="4" GridPane.rowIndex="1">
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Top color 1"
+                               GridPane.columnIndex="4" GridPane.rowIndex="3">
                             <GridPane.margin>
-                                <Insets />
+                                <Insets/>
                             </GridPane.margin>
-                     <padding>
-                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-                     </padding>
+                            <padding>
+                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+                            </padding>
                         </Label>
-                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Top color 2" GridPane.columnIndex="5" GridPane.rowIndex="1">
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Top color 2"
+                               GridPane.columnIndex="5" GridPane.rowIndex="3">
                             <GridPane.margin>
-                                <Insets />
+                                <Insets/>
                             </GridPane.margin>
-                     <padding>
-                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-                     </padding>
+                            <padding>
+                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+                            </padding>
                         </Label>
-                  <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Background color" GridPane.columnIndex="4">
-                     <padding>
-                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-                     </padding>
-                  </Label>
-                  <ColorPicker fx:id="comboBoxColor7" maxWidth="1.7976931348623157E308" GridPane.columnIndex="5" />
-                  <ChoiceBox fx:id="choiceRainbow" maxHeight="-Infinity" maxWidth="1.7976931348623157E308" GridPane.columnIndex="3" />
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                               text="Background color" GridPane.columnIndex="4" GridPane.rowIndex="2">
+                            <padding>
+                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+                            </padding>
+                        </Label>
+                        <ColorPicker fx:id="comboBoxColor7" maxWidth="1.7976931348623157E308" GridPane.columnIndex="5"
+                                     GridPane.rowIndex="2"/>
+                        <ChoiceBox fx:id="choiceRainbow" maxHeight="-Infinity" maxWidth="1.7976931348623157E308"
+                                   GridPane.columnIndex="3" GridPane.rowIndex="2"/>
+                        <Separator prefWidth="200.0" GridPane.columnSpan="2147483647" GridPane.rowIndex="1"/>
+                        <TextField fx:id="textServiceName" disable="true" editable="false" GridPane.columnSpan="4"/>
+                        <ComboBox fx:id="comboboxStatus" maxWidth="1.7976931348623157E308" minWidth="-Infinity"
+                                  GridPane.columnIndex="4" GridPane.columnSpan="2147483647"/>
                     </children>
                 </GridPane>
                 <GridPane hgap="5.0" vgap="5.0">
@@ -166,36 +192,49 @@
                         </HBox>
                         <HBox GridPane.columnIndex="4">
                             <children>
-                                <Label maxHeight="1.7976931348623157E308" text="Maximum" />
-                                <Label fx:id="labelMaxValue" alignment="CENTER_RIGHT" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="100%" HBox.hgrow="ALWAYS" />
+                                <Label maxHeight="1.7976931348623157E308" text="Maximum"/>
+                                <Label fx:id="labelMaxValue" alignment="CENTER_RIGHT" maxHeight="1.7976931348623157E308"
+                                       maxWidth="1.7976931348623157E308" text="100%" HBox.hgrow="ALWAYS"/>
                             </children>
                             <padding>
-                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
                             </padding>
                         </HBox>
                         <Label text="Timeout" GridPane.columnIndex="5">
                             <GridPane.margin>
-                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
                             </GridPane.margin>
                         </Label>
-                        <HBox alignment="CENTER_LEFT" maxHeight="1.7976931348623157E308" GridPane.rowIndex="1" GridPane.valignment="BOTTOM">
+                        <HBox alignment="CENTER_LEFT" maxHeight="1.7976931348623157E308" GridPane.rowIndex="1"
+                              GridPane.valignment="BOTTOM">
                             <children>
-                                <TextField fx:id="textDelay" maxWidth="100.0" HBox.hgrow="ALWAYS" />
-                                <Label maxWidth="-Infinity" minWidth="-Infinity" prefWidth="20.0" text="ms" />
+                                <TextField fx:id="textDelay" alignment="CENTER_RIGHT" maxWidth="100.0"
+                                           HBox.hgrow="ALWAYS"/>
+                                <Label maxWidth="-Infinity" minWidth="-Infinity" prefWidth="20.0" text="ms"/>
                             </children>
                         </HBox>
-                        <TextField fx:id="textWidth" maxWidth="100.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                        <TextField fx:id="textFade" maxWidth="100.0" GridPane.columnIndex="2" GridPane.rowIndex="1" />
-                        <Slider fx:id="sliderMin" majorTickUnit="10.0" minorTickCount="1" showTickMarks="true" snapToTicks="true" GridPane.columnIndex="3" GridPane.rowIndex="1" />
-                        <Slider fx:id="sliderMax" majorTickUnit="10.0" minorTickCount="1" showTickMarks="true" snapToTicks="true" value="100.0" GridPane.columnIndex="4" GridPane.rowIndex="1" />
-                        <TextField fx:id="textTimeout" maxWidth="100.0" GridPane.columnIndex="5" GridPane.rowIndex="1" />
+                        <TextField fx:id="textWidth" alignment="CENTER_RIGHT" maxWidth="100.0" GridPane.columnIndex="1"
+                                   GridPane.rowIndex="1"/>
+                        <TextField fx:id="textFade" alignment="CENTER_RIGHT" maxWidth="100.0" GridPane.columnIndex="2"
+                                   GridPane.rowIndex="1"/>
+                        <Slider fx:id="sliderMin" majorTickUnit="10.0" max="255.0" minorTickCount="1"
+                                showTickMarks="true" GridPane.columnIndex="3" GridPane.rowIndex="1"/>
+                        <Slider fx:id="sliderMax" majorTickUnit="10.0" max="255.0" minorTickCount="1"
+                                showTickMarks="true" value="255.0" GridPane.columnIndex="4" GridPane.rowIndex="1"/>
+                        <TextField fx:id="textTimeout" alignment="CENTER_RIGHT" maxWidth="100.0"
+                                   GridPane.columnIndex="5" GridPane.rowIndex="1"/>
                     </children>
                 </GridPane>
                 <HBox alignment="CENTER_RIGHT" spacing="5.0">
                     <children>
-                        <Button fx:id="buttonTestLight" mnemonicParsing="false" onAction="#onTestLight" text="Test [F3]" />
-                        <Button fx:id="buttonSaveLight" defaultButton="true" mnemonicParsing="false" onAction="#onSaveLight" text="Save [Ctrl+S]" />
-                        <Button fx:id="buttonClearLight" cancelButton="true" mnemonicParsing="false" onAction="#onClearLight" text="Clear [ESC]" />
+                        <Button fx:id="buttonTestLight" mnemonicParsing="false" onAction="#onTestLight"
+                                text="Test [F3]"/>
+                        <Button fx:id="buttonClearLight" cancelButton="true" mnemonicParsing="false"
+                                onAction="#onClearLight" text="Clear [ESC]"/>
+                        <Button fx:id="buttonSaveLight" defaultButton="true" mnemonicParsing="false"
+                                onAction="#onSaveLight" text="Save [Ctrl+S]"/>
+                        <Button fx:id="buttonDeleteLight" mnemonicParsing="false" onAction="#onDeleteLight"
+                                text="Delete [DEL]"/>
                     </children>
                     <padding>
                         <Insets bottom="5.0" top="5.0" />
@@ -232,7 +271,6 @@
                         <Button fx:id="buttonTurnOffLight" mnemonicParsing="false" onAction="#onTurnOffLight" text="Turn Off [F12]" />
                         <Button fx:id="buttonMoveUpLight" mnemonicParsing="false" onAction="#onMoveUpLight" text="Up [Ctrl+Up]" />
                         <Button fx:id="buttonMoveDownLight" mnemonicParsing="false" onAction="#onMoveDownLight" text="Down [Ctrl+Down]" />
-                        <Button fx:id="buttonDeleteLight" mnemonicParsing="false" onAction="#onDeleteLight" text="Delete [DEL]" />
                         <Button fx:id="btnConnect" mnemonicParsing="false" onAction="#onReconnect" text="Connect [F5]" />
                     </children>
                     <padding>

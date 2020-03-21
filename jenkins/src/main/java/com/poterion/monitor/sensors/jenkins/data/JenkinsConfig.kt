@@ -64,18 +64,18 @@ class JenkinsConfig(override val type: String = JenkinsConfig::class.java.simple
 					tableColumnWidths: Map<String, Int> = emptyMap(),
 					jobs: List<JenkinsJobConfig> = emptyList(),
 					filter: String? = null) :
-		AbstractServiceConfig(name, enabled, url, trustCertificate, auth, order, priority, checkInterval,
-				connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
+		AbstractServiceConfig<JenkinsJobConfig>(name, enabled, url, trustCertificate, auth, order, priority,
+				checkInterval, connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
 
 	@Suppress("unused")
 	private var _jobs: List<JenkinsJobConfig>
-		@JsonProperty("jobs") get() = jobs
+		@JsonProperty("jobs") get() = subConfig
 		set(value) {
-			jobs.setAll(value)
+			subConfig.setAll(value)
 		}
 
 	/** Jenkins job / [Priority] mapping. */
-	val jobs: ObservableList<JenkinsJobConfig> = jobs.toObservableList()
+	override val subConfig: ObservableList<JenkinsJobConfig> = jobs.toObservableList()
 		@JsonIgnore get
 
 	/**

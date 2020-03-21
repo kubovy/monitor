@@ -19,6 +19,7 @@ package com.poterion.monitor.sensors.gerritcodereview.data
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
+import com.poterion.monitor.data.services.ServiceSubConfig
 import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
@@ -36,7 +37,7 @@ import javafx.beans.property.StringProperty
 class GerritCodeReviewQueryConfig(name: String = "",
 								  query: String = "",
 								  priority: Priority = Priority.NONE,
-								  status: Status = Status.NONE) {
+								  status: Status = Status.NONE) : ServiceSubConfig {
 
 	/**
 	 * Name of the configuration item.
@@ -97,4 +98,7 @@ class GerritCodeReviewQueryConfig(name: String = "",
 	 */
 	val statusProperty: ObjectProperty<Status> = SimpleObjectProperty(status)
 		@JsonIgnore get
+
+	override val configTitle: String
+		get() = name
 }

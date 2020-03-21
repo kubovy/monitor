@@ -51,7 +51,7 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 	override val definition: Module<JenkinsConfig, ModuleInstanceInterface<JenkinsConfig>> = JenkinsModule
 	private val service
 		get() = retrofit?.create(JenkinsRestService::class.java)
-	private val jobs = config.jobs.map { it.name to it }.toMap()
+	private val jobs = config.subConfig.map { it.name to it }.toMap()
 	private var lastFoundJobNames: Collection<String> = jobs.keys
 
 	private val jobTableSettingsPlugin = TableSettingsPlugin(
@@ -60,7 +60,7 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 			controller = controller,
 			config = config,
 			createItem = { JenkinsJobConfig() },
-			items = config.jobs,
+			items = config.subConfig,
 			displayName = { name },
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition(
@@ -93,90 +93,61 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to TextField(config.filter).apply {
-					textProperty().addListener { _, _, filter -> config.filter = filter }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+					textProperty().bindBidirectional(config.filterProperty)
+					focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 				}, jobTableSettingsPlugin.rowNewItem)
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOf(jobTableSettingsPlugin.vbox)
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
-		try {
+		var error: String? = null
+		if (config.enabled && config.url.isNotBlank()) try {
 			val call = service?.check()
-			try {
-				val response = call?.execute()
-				LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
-						" ${response?.code()} ${response?.message()}")
-				if (response?.isSuccessful == true) {
-					val foundJobs = response.body()
+			val response = call?.execute()
+			LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+					" ${response?.code()} ${response?.message()}")
+			if (response?.isSuccessful == true) {
+				val foundJobs = response.body()
 						?.jobs
 						?.filter { job -> config.filter?.let { job.name.matches(it.toRegex()) } ?: true }
 
-					lastFoundJobNames = foundJobs?.map { it.name } ?: jobs.keys
+				lastFoundJobNames = foundJobs?.map { it.name } ?: jobs.keys
 
-					foundJobs
+				foundJobs
 						?.map {
 							StatusItem(
-								id = "${config.uuid}-${it.name}",
-								serviceId = config.uuid,
-								priority = it.priority,
-								status = it.severity,
-								title = it.name,
-								link = it.url,
-								isRepeatable = false)
+									id = "${config.uuid}-${it.name}",
+									serviceId = config.uuid,
+									configIds = listOfNotNull(jobs[it.name]?.configTitle).toMutableList(),
+									priority = jobs[it.name]?.priority ?: config.priority,
+									status = it.severity,
+									title = it.name,
+									link = it.url,
+									isRepeatable = false)
 						}
 						?.also(updater)
-				} else {
-					lastFoundJobNames
+			} else {
+				LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
+						" ${response?.code()} ${response?.message()}")
+				error = response?.let { "Code: ${it.code()} ${it.message() ?: "Service error"}" } ?: "Service error"
+				lastFoundJobNames
 						.mapNotNull { jobs[it] }
-						.map {
-							StatusItem(
-								id = "${config.uuid}-${it.name}",
-								serviceId = config.uuid,
-								priority = it.priority,
-								status = Status.SERVICE_ERROR,
-								title = it.name,
-								link = config.url,
-								isRepeatable = false)
+						.map { jobConfig ->
+							jobConfig.toStatusItem(Status.SERVICE_ERROR,
+									response?.let { "Code: ${it.code()} ${it.message()}" })
 						}
 						.also(updater)
-				}
-			} catch (e: Exception) {
-				call?.request()?.also { LOGGER.warn("${it.method()} ${it.url()}: ${e.message}", e) }
-					?: LOGGER.warn(e.message, e)
-				lastFoundJobNames
-					.mapNotNull { jobs[it] }
-					.map {
-						StatusItem(
-							id = "${config.uuid}-${it.name}",
-							serviceId = config.uuid,
-							priority = it.priority,
-							status = Status.CONNECTION_ERROR,
-							title = it.name,
-							link = config.url,
-							isRepeatable = false)
-					}
-					.also(updater)
 			}
 		} catch (e: IOException) {
-			LOGGER.error(e.message, e)
+			LOGGER.error(e.message)
+			error = e.message ?: "Connection error"
 			lastFoundJobNames
 					.mapNotNull { jobs[it] }
-					.map {
-						StatusItem(
-								id = "${config.uuid}-${it.name}",
-								serviceId = config.uuid,
-								priority = it.priority,
-								status = Status.CONNECTION_ERROR,
-								title = it.name,
-								link = config.url,
-								isRepeatable = false)
-					}
+					.map { it.toStatusItem(Status.CONNECTION_ERROR, e.message) }
 					.also(updater)
 		}
+		lastErrorProperty.set(error)
 	}
-
-	private val JenkinsJobResponse.priority
-		get() = jobs[name]?.priority ?: config.priority
 
 	private val JenkinsJobResponse.severity
 		get() = (color?.toLowerCase() ?: "").let {
@@ -191,4 +162,15 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 				else -> Status.UNKNOWN
 			}
 		}
+
+	private fun JenkinsJobConfig.toStatusItem(status: Status, detail: String?) = StatusItem(
+			id = "${config.uuid}-${name}",
+			serviceId = config.uuid,
+			configIds = mutableListOf(configTitle),
+			priority = priority,
+			status = status,
+			title = name,
+			detail = detail,
+			link = config.url,
+			isRepeatable = false)
 }

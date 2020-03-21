@@ -18,7 +18,13 @@ package com.poterion.monitor.sensors.sonar.data
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.Priority
-import javafx.beans.property.*
+import com.poterion.monitor.data.services.ServiceSubConfig
+import javafx.beans.property.IntegerProperty
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.SimpleIntegerProperty
+import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
 
 /**
  * Sonar project ID / [Priority] mapping configuration item.
@@ -30,7 +36,7 @@ import javafx.beans.property.*
  */
 class SonarProjectConfig(id: Int = 0,
 						 name: String = "",
-						 priority: Priority = Priority.NONE) {
+						 priority: Priority = Priority.NONE) : ServiceSubConfig {
 	/**
 	 * Project ID.
 	 * @see idProperty
@@ -75,4 +81,7 @@ class SonarProjectConfig(id: Int = 0,
 	 */
 	val priorityProperty: ObjectProperty<Priority> = SimpleObjectProperty(priority)
 		@JsonIgnore get
+
+	override val configTitle: String
+		get() = "${name}[${id}]"
 }

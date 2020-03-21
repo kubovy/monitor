@@ -26,6 +26,7 @@ import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.api.objectMapper
+import com.poterion.monitor.api.save
 import com.poterion.monitor.data.ModuleDeserializer
 import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.notifiers.NotifierAction
@@ -33,6 +34,7 @@ import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.notifiers.NotifierDeserializer
 import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.data.services.ServiceDeserializer
+import com.poterion.monitor.data.services.ServiceSubConfig
 import io.reactivex.subjects.PublishSubject
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
@@ -56,11 +58,16 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 	}
 
 	override val modules = mutableListOf<Module<*, *>>()
-	override val services: ObservableList<Service<ServiceConfig>> = FXCollections.observableArrayList()
+
+	// TODO Make read-only and react on applicationConfiguration.services/notifiers changes
+	override val services: ObservableList<Service<ServiceConfig<out ServiceSubConfig>>> = FXCollections
+			.observableArrayList()
 	override val notifiers: ObservableList<Notifier<NotifierConfig>> = FXCollections.observableArrayList()
 
 	override var applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration()
-	private val configuration: PublishSubject<Boolean> = PublishSubject.create<Boolean>()
+		private set
+	private val configuration: PublishSubject<Boolean> = PublishSubject.create()
+
 	@Deprecated("Use properties in config")
 	private val configListeners = mutableListOf<(ApplicationConfiguration) -> Unit>()
 
@@ -69,7 +76,11 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 		modules.forEach { registerModule(it) }
 		if (Shared.configFile.exists()) try {
 			applicationConfiguration = objectMapper.readValue(Shared.configFile, ApplicationConfiguration::class.java)
-			(applicationConfiguration.serviceMap as MutableMap<String, ServiceConfig?>)
+			applicationConfiguration.version = Shared.properties
+					.getProperty("version", "0")
+					.takeUnless { it.contains("SNAPSHOT") }
+					?: "0"
+			(applicationConfiguration.serviceMap as MutableMap<String, ServiceConfig<out ServiceSubConfig>?>)
 					.filterValues { it == null }
 					.keys
 					.forEach { applicationConfiguration.serviceMap.remove(it) }
@@ -101,7 +112,7 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 			LOGGER.info("Loading ${module.title} module...")
 			module.loadControllers(this, applicationConfiguration).forEach { ctrl ->
 				when (ctrl) {
-					is Service<*> -> services.add(ctrl as Service<ServiceConfig>)
+					is Service<*> -> services.add(ctrl as Service<ServiceConfig<out ServiceSubConfig>>)
 					is Notifier<*> -> notifiers.add(ctrl as Notifier<NotifierConfig>)
 				}
 			}
@@ -132,26 +143,8 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 		}
 
 		configuration.sample(1, TimeUnit.SECONDS, true).subscribe {
-			val backupFile = File(Shared.configFile.absolutePath + "-" + LocalDateTime.now().toString())
-			try {
-				configListeners.forEach { it.invoke(applicationConfiguration) }
-				val tempFile = File(Shared.configFile.absolutePath + ".tmp")
-				var success = tempFile.parentFile.exists() || tempFile.parentFile.mkdirs()
-				objectMapper.writeValue(tempFile, applicationConfiguration)
-				success = success
-						&& (!backupFile.exists() || backupFile.delete())
-						&& (Shared.configFile.parentFile.exists() || Shared.configFile.parentFile.mkdirs())
-						&& (!Shared.configFile.exists() || Shared.configFile.renameTo(backupFile))
-						&& tempFile.renameTo(Shared.configFile.absoluteFile)
-				if (success) backupFile.delete()
-				else LOGGER.error("Failed saving configuration to ${Shared.configFile.absolutePath} (backup ${backupFile})")
-			} catch (e: Exception) {
-				LOGGER.error(e.message, e)
-			} finally {
-				if (!Shared.configFile.exists() && backupFile.exists() && !backupFile.renameTo(Shared.configFile)) {
-					LOGGER.error("Restoring ${backupFile} failed!")
-				}
-			}
+			configListeners.forEach { it.invoke(applicationConfiguration) }
+			applicationConfiguration.save()
 		}
 	}
 
@@ -163,7 +156,7 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 		when (controller) {
 			is Service<*> -> {
 				applicationConfiguration.serviceMap[controller.config.uuid] = controller.config
-				services.add(controller as Service<ServiceConfig>)
+				services.add(controller as Service<ServiceConfig<out ServiceSubConfig>>)
 			}
 			is Notifier<*> -> {
 				applicationConfiguration.notifierMap[controller.config.uuid] = controller.config

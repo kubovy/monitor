@@ -16,12 +16,47 @@
  ******************************************************************************/
 package com.poterion.monitor.data
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.auth.AuthConfig
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class HttpProxy(var address: String? = null,
-				var port: Int? = null,
-				var noProxy: String? = null,
-				var auth: AuthConfig? = null)
+class HttpProxy(address: String? = null,
+				port: Int? = null,
+				noProxy: String? = null,
+				auth: AuthConfig? = null) {
+
+	var address: String?
+		get() = addressProperty.get()
+		set(value) = addressProperty.set(value)
+
+	val addressProperty: StringProperty = SimpleStringProperty(address)
+		@JsonIgnore get
+
+	var port: Int?
+		get() = portProperty.get()
+		set(value) = portProperty.set(value)
+
+	val portProperty: ObjectProperty<Int?> = SimpleObjectProperty(port)
+		@JsonIgnore get
+
+	var noProxy: String?
+		get() = noProxyProperty.get()
+		set(value) = noProxyProperty.set(value)
+
+	val noProxyProperty: StringProperty = SimpleStringProperty(noProxy)
+		@JsonIgnore get
+
+	var auth: AuthConfig?
+		get() = authProperty.get()
+		set(value) = authProperty.set(value)
+
+	val authProperty: ObjectProperty<AuthConfig?> = SimpleObjectProperty(auth)
+		@JsonIgnore get
+
+}

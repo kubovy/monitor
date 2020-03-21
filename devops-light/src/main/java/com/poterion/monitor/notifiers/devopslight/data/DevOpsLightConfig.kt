@@ -24,8 +24,14 @@ import com.poterion.communication.serial.toRGBColor
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.notifiers.AbstractNotifierConfig
+import com.poterion.monitor.data.notifiers.NotifierServiceReference
 import com.poterion.utils.javafx.toObservableList
-import javafx.beans.property.*
+import javafx.beans.property.BooleanProperty
+import javafx.beans.property.DoubleProperty
+import javafx.beans.property.SimpleBooleanProperty
+import javafx.beans.property.SimpleDoubleProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
 import javafx.collections.ObservableList
 import java.util.*
 
@@ -45,28 +51,28 @@ import java.util.*
  * @param tableColumnWidths Saved UI table column widths (column name -> width)
  * @param deviceAddress
  * @param usbPort
- * @param grbColors
  * @param combineMultipleServices
  * @param split
  * @param items
  * @author Jan Kubovy [jan@kubovy.eu]
  */
+@Suppress("MemberVisibilityCanBePrivate")
 class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.java.simpleName,
 						override var uuid: String = UUID.randomUUID().toString(),
 						name: String = "",
 						enabled: Boolean = false,
 						minPriority: Priority = Priority.LOW,
 						minStatus: Status = Status.NONE,
-						services: List<String> = emptyList(),
+						services: List<NotifierServiceReference> = emptyList(),
 						tableColumnWidths: Map<String, Int> = emptyMap(),
 						deviceAddress: String = "",
 						usbPort: String = "",
 						onDemandConnection: Boolean = false,
-						grbColors: Boolean = false,
 						combineMultipleServices: Boolean = true,
 						split: Double = 0.2,
 						items: List<DevOpsLightItemConfig> = emptyList(),
-						customColors: List<RgbColor> = emptyList()) :
+						customColors: List<RgbColor> = emptyList(),
+						expanded: List<String> = emptyList()) :
 		AbstractNotifierConfig(name, enabled, minPriority, minStatus, services, tableColumnWidths) {
 
 	var deviceAddress: String
@@ -88,13 +94,6 @@ class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.jav
 		set(value) = onDemandConnectionProperty.set(value)
 
 	val onDemandConnectionProperty: BooleanProperty = SimpleBooleanProperty(onDemandConnection)
-		@JsonIgnore get
-
-	var grbColors: Boolean
-		get() = grbColorsProperty.get()
-		set(value) = grbColorsProperty.set(value)
-
-	val grbColorsProperty: BooleanProperty = SimpleBooleanProperty(grbColors)
 		@JsonIgnore get
 
 	var combineMultipleServices: Boolean
@@ -129,5 +128,15 @@ class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.jav
 		}
 
 	val customColors: ObservableList<RgbColor> = customColors.toObservableList()
+		@JsonIgnore get
+
+	@Suppress("unused")
+	private var _expanded: List<String>
+		@JsonProperty("expanded") get() = expanded
+		set(value) {
+			expanded.setAll(value)
+		}
+
+	val expanded: ObservableList<String> = expanded.toObservableList()
 		@JsonIgnore get
 }

@@ -72,5 +72,5 @@ interface NotifierConfig : ModuleConfig {
 	 * An empty list means that all [services][com.poterion.monitor.api.controllers.Service] are contributing with their
 	 * [status items][com.poterion.monitor.data.StatusItem] to this notifier.
 	 */
-	val services: ObservableList<String>
+	val services: ObservableList<NotifierServiceReference>
 }

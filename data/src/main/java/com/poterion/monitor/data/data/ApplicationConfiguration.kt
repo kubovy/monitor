@@ -22,10 +22,18 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.services.ServiceConfig
+import com.poterion.monitor.data.services.ServiceSubConfig
 import com.poterion.utils.javafx.ReadOnlyObservableList
 import com.poterion.utils.javafx.toObservableMap
 import com.poterion.utils.kotlin.setAll
-import javafx.beans.property.*
+import javafx.beans.property.BooleanProperty
+import javafx.beans.property.DoubleProperty
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.SimpleBooleanProperty
+import javafx.beans.property.SimpleDoubleProperty
+import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
 import javafx.collections.FXCollections
 import javafx.collections.MapChangeListener
 import javafx.collections.ObservableList
@@ -36,8 +44,10 @@ import javafx.collections.ObservableMap
  *
  * @author Jan Kubovy [jan@kubovy.eu]
  */
+@Suppress("unused", "MemberVisibilityCanBePrivate")
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)
-class ApplicationConfiguration(btDiscovery: Boolean = false,
+class ApplicationConfiguration(var version: String = "",
+							   btDiscovery: Boolean = false,
 							   showOnStartup: Boolean = true,
 							   startMinimized: Boolean = false,
 							   windowWidth: Double = 1200.0,
@@ -46,7 +56,7 @@ class ApplicationConfiguration(btDiscovery: Boolean = false,
 							   selectedTab: String? = null,
 							   previousTab: String? = null,
 							   proxy: HttpProxy? = null,
-							   services: Map<String, ServiceConfig> = emptyMap(),
+							   services: Map<String, ServiceConfig<out ServiceSubConfig>> = emptyMap(),
 							   notifiers: Map<String, NotifierConfig> = emptyMap(),
 							   silenced: Map<String, SilencedStatusItem> = emptyMap()) {
 
@@ -110,20 +120,21 @@ class ApplicationConfiguration(btDiscovery: Boolean = false,
 		get() = proxyProperty.get()
 		set(value) = proxyProperty.set(value)
 
-	val proxyProperty: ObjectProperty<HttpProxy> = SimpleObjectProperty(proxy)
+	val proxyProperty: ObjectProperty<HttpProxy?> = SimpleObjectProperty(proxy)
 		@JsonIgnore get
 
 	@Suppress("unused")
-	private var _services: Map<String, ServiceConfig>
+	private var _services: Map<String, ServiceConfig<out ServiceSubConfig>>
 		@JsonProperty("services") get() = serviceMap
 		set(value) = serviceMap.setAll(value)
 
-	val serviceMap: ObservableMap<String, ServiceConfig> = services.toObservableMap()
+	val serviceMap: ObservableMap<String, ServiceConfig<out ServiceSubConfig>> = services.toObservableMap()
 		@JsonIgnore get
 
-	private val _serviceList: ObservableList<ServiceConfig> = FXCollections.observableArrayList(services.values)
+	private val _serviceList: ObservableList<ServiceConfig<out ServiceSubConfig>> = FXCollections
+			.observableArrayList(services.values)
 
-	val services: ReadOnlyObservableList<ServiceConfig> = ReadOnlyObservableList(_serviceList)
+	val services: ReadOnlyObservableList<ServiceConfig<out ServiceSubConfig>> = ReadOnlyObservableList(_serviceList)
 		@JsonIgnore get
 
 	@Suppress("unused")
@@ -155,17 +166,15 @@ class ApplicationConfiguration(btDiscovery: Boolean = false,
 
 	init {
 		serviceMap.addListener(MapChangeListener { change ->
-			if (change.wasRemoved()) {
-				_serviceList.removeIf { it.uuid == change.key }
-			}
+			if (change.wasRemoved()) _serviceList.removeIf { it?.uuid == change.key }
 			if (change.wasAdded()) _serviceList.add(change.valueAdded)
 		})
 		notifierMap.addListener(MapChangeListener { change ->
-			if (change.wasRemoved()) _notifierList.removeIf { it.uuid == change.key }
+			if (change.wasRemoved()) _notifierList.removeIf { it?.uuid == change.key }
 			if (change.wasAdded()) _notifierList.add(change.valueAdded)
 		})
 		silencedMap.addListener(MapChangeListener { change ->
-			if (change.wasRemoved()) _silencedList.removeIf { it.item.id == change.key }
+			if (change.wasRemoved()) _silencedList.removeIf { it?.item?.id == change.key }
 			if (change.wasAdded()) _silencedList.add(change.valueAdded)
 		})
 	}

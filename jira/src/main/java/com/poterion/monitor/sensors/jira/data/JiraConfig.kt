@@ -87,8 +87,8 @@ class JiraConfig(override var type: String = JiraConfig::class.java.simpleName,
 						 "Canceled" to Status.OK,
 						 "Closed" to Status.NONE),
 				 queries: List<JiraQueryConfig> = emptyList()) :
-		AbstractServiceConfig(name, enabled, url, trustCertificate, auth, order, priority, checkInterval,
-				connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
+		AbstractServiceConfig<JiraQueryConfig>(name, enabled, url, trustCertificate, auth, order, priority,
+				checkInterval, connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
 
 	@Suppress("unused")
 	private var _priorityMapping: Map<String, Priority>
@@ -110,15 +110,15 @@ class JiraConfig(override var type: String = JiraConfig::class.java.simpleName,
 
 	@Suppress("unused")
 	private var _queries: List<JiraQueryConfig>
-		@JsonProperty("queries") get() = queries
+		@JsonProperty("queries") get() = subConfig
 		set(value) {
-			queries.setAll(value)
+			subConfig.setAll(value)
 		}
 
 	/**
 	 * Set of JQL queries.
 	 * @see JiraQueryConfig
 	 */
-	val queries: ObservableList<JiraQueryConfig> = queries.toObservableList()
+	override val subConfig: ObservableList<JiraQueryConfig> = queries.toObservableList()
 		@JsonIgnore get
 }

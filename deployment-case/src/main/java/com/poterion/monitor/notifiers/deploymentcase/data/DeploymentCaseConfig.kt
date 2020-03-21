@@ -21,8 +21,14 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.notifiers.AbstractNotifierConfig
+import com.poterion.monitor.data.notifiers.NotifierServiceReference
 import com.poterion.utils.javafx.toObservableList
-import javafx.beans.property.*
+import javafx.beans.property.BooleanProperty
+import javafx.beans.property.DoubleProperty
+import javafx.beans.property.SimpleBooleanProperty
+import javafx.beans.property.SimpleDoubleProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
 import javafx.collections.ObservableList
 import java.util.*
 
@@ -49,13 +55,14 @@ import java.util.*
  * @param configurations
  * @author Jan Kubovy [jan@kubovy.eu]
  */
+@Suppress("MemberVisibilityCanBePrivate")
 class DeploymentCaseConfig(override var type: String = DeploymentCaseConfig::class.java.simpleName,
 						   override var uuid: String = UUID.randomUUID().toString(),
 						   name: String = "",
 						   enabled: Boolean = false,
 						   minPriority: Priority = Priority.LOW,
 						   minStatus: Status = Status.NONE,
-						   services: List<String> = emptyList(),
+						   services: List<NotifierServiceReference> = emptyList(),
 						   tableColumnWidths: Map<String, Int> = emptyMap(),
 						   debug: Boolean = false,
 						   deviceAddress: String = "",

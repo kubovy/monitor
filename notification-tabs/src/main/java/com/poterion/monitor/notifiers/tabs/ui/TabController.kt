@@ -18,23 +18,42 @@ package com.poterion.monitor.notifiers.tabs.ui
 
 import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.controllers.ControllerInterface
-import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.utils.toIcon
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.data.SilencedStatusItem
+import com.poterion.monitor.data.services.ServiceSubConfig
 import com.poterion.monitor.notifiers.tabs.NotificationTabsIcon
 import com.poterion.monitor.notifiers.tabs.control.NotificationTabsNotifier
 import com.poterion.monitor.notifiers.tabs.data.NotificationTabsConfig
-import com.poterion.utils.javafx.*
+import com.poterion.utils.javafx.cell
+import com.poterion.utils.javafx.factory
+import com.poterion.utils.javafx.monitorExpansion
+import com.poterion.utils.javafx.openInExternalApplication
+import com.poterion.utils.javafx.setOnItemClick
+import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.containsExactly
 import com.poterion.utils.kotlin.noop
 import com.poterion.utils.kotlin.toUriOrNull
+import javafx.application.Platform
+import javafx.beans.value.ChangeListener
+import javafx.beans.value.ObservableValue
+import javafx.collections.ListChangeListener
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
-import javafx.scene.control.*
+import javafx.scene.control.Button
+import javafx.scene.control.CheckBox
+import javafx.scene.control.ComboBox
+import javafx.scene.control.ContextMenu
+import javafx.scene.control.Label
+import javafx.scene.control.MenuItem
+import javafx.scene.control.SelectionMode
+import javafx.scene.control.Tooltip
+import javafx.scene.control.TreeItem
+import javafx.scene.control.TreeTableColumn
+import javafx.scene.control.TreeTableView
 import javafx.scene.input.KeyCode
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Region
@@ -58,15 +77,17 @@ class TabController {
 						}
 	}
 
-	@FXML private lateinit var comboboxService: ComboBox<Service<*>?>
+	@FXML private lateinit var comboboxService: ComboBox<String?>
+	@FXML private lateinit var comboboxConfiguration: ComboBox<String?>
 	@FXML private lateinit var comboboxStatus: ComboBox<Status>
 	@FXML private lateinit var comboboxPriority: ComboBox<Priority>
 	@FXML private lateinit var checkboxShowWatched: CheckBox
 	@FXML private lateinit var checkboxShowSilenced: CheckBox
-	@FXML private lateinit var btnRefresh: Button
+	@FXML private lateinit var buttonRefresh: Button
 	@FXML private lateinit var treeTableAlerts: TreeTableView<StatusItem>
 	@FXML private lateinit var columnAlertsTitle: TreeTableColumn<StatusItem, String>
 	@FXML private lateinit var columnAlertsService: TreeTableColumn<StatusItem, String>
+	@FXML private lateinit var columnAlertsConfig: TreeTableColumn<StatusItem, List<String>>
 	@FXML private lateinit var columnAlertsPriority: TreeTableColumn<StatusItem, Priority>
 	@FXML private lateinit var columnAlertsLabels: TreeTableColumn<StatusItem, Map<String, String>>
 	@FXML private lateinit var columnAlertsStarted: TreeTableColumn<StatusItem, Instant>
@@ -96,6 +117,7 @@ class TabController {
 							&& config.selectedStatus?.ordinal?.let { it <= item.status.ordinal } != false
 							&& config.selectedPriority?.ordinal?.let { it <= item.priority.ordinal } != false
 							&& config.selectedServiceId?.let { it == item.serviceId } != false
+							&& config.selectedConfiguration?.let { item.configIds.contains(it) } != false
 				}
 				.map { if (it.isSilenced) it.copy(priority = Priority.NONE) else it }
 				.toList()
@@ -120,10 +142,18 @@ class TabController {
 			{ controller.applicationConfiguration.serviceMap[it.value.serviceId]?.name ?: "" },
 			{ it.value.title })
 
+	private val serviceSubConfigChangeListener = ListChangeListener<ServiceSubConfig> { change ->
+		while (change.next()) if (change.wasRemoved()) change.removed.forEach { removed ->
+			if (config.selectedConfiguration == removed.configTitle) {
+				config.selectedConfiguration = null
+			}
+			comboboxConfiguration.items.removeIf { it == removed.configTitle }
+		}
+	}
+
 	@FXML
 	fun initialize() {
-		btnRefresh.graphic = CommonIcon.REFRESH.toImageView()
-		btnRefresh.text = ""
+		buttonRefresh.graphic = CommonIcon.REFRESH.toImageView()
 		treeTableAlerts.root = TreeItem(StatusItem("", "ROOT", Priority.NONE, Status.NONE, ""))
 		treeTableAlerts.isShowRoot = false
 		treeTableAlerts.selectionModel.selectionMode = SelectionMode.MULTIPLE
@@ -152,74 +182,72 @@ class TabController {
 
 	private fun start() {
 		comboboxService.factory { item, empty ->
-			graphic = item?.takeUnless { empty }?.definition?.icon?.toImageView()
-			text = item?.takeUnless { empty }?.config?.name ?: "All services".takeUnless { empty }
+			val service = item?.takeUnless { empty }?.let { uuid -> controller.services.find { it.config.uuid == uuid } }
+			graphic = service?.definition?.icon?.toImageView()
+			text = service?.config?.name ?: "All services".takeUnless { empty }
 		}
-		comboboxService.selectionModel.selectedItemProperty().addListener { _, _, value ->
-			if (config.selectedServiceId != value?.config?.uuid) {
-				config.selectedServiceId = value?.config?.uuid
-				refreshTable()
-				controller.saveConfig()
-			}
+		comboboxService.valueProperty().bindBidirectional(config.selectedServiceIdProperty)
+		comboboxService.selectionModel.selectedItemProperty().addListener { _, _, _ ->
+			config.selectedConfiguration = null
+			refreshUI()
+			refreshTable()
+			controller.saveConfig()
+		}
+
+		comboboxConfiguration.factory { item, empty ->
+			text = (item?.takeUnless { it.isEmpty() } ?: "All configurations").takeUnless { empty }
+		}
+		comboboxConfiguration.valueProperty().bindBidirectional(config.selectedConfigurationProperty)
+		comboboxConfiguration.selectionModel.selectedItemProperty().addListener { _, _, _ ->
+			refreshTable()
+			controller.saveConfig()
 		}
 
 		comboboxStatus.factory { item, empty ->
 			graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
 			text = item?.takeUnless { empty }?.name
 		}
-		comboboxStatus.selectionModel.selectedItemProperty().addListener { _, _, value ->
-			if (config.selectedStatus != value) {
-				config.selectedStatus = value
-				refreshTable()
-				controller.saveConfig()
-			}
+		comboboxStatus.valueProperty().bindBidirectional(config.selectedStatusProperty)
+		comboboxStatus.selectionModel.selectedItemProperty().addListener { _, _, _ ->
+			refreshTable()
+			controller.saveConfig()
 		}
 
 		comboboxPriority.factory { item, empty ->
 			graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
 			text = item?.takeUnless { empty }?.name
 		}
-		comboboxPriority.selectionModel.selectedItemProperty().addListener { _, _, value ->
-			if (config.selectedPriority != value) {
-				config.selectedPriority = value
-				refreshTable()
-				controller.saveConfig()
-			}
-		}
-
-		checkboxShowWatched.selectedProperty().addListener { _, _, value ->
-			if (config.showWatched != value) {
-				config.showWatched = value
-				refreshTable()
-				controller.saveConfig()
-			}
-		}
-
-		checkboxShowSilenced.selectedProperty().addListener { _, _, value ->
-			if (config.showSilenced != value) {
-				config.showSilenced = value
-				refreshTable()
-				controller.saveConfig()
-			}
-		}
-
-		columnAlertsTitle.prefWidth = config.alertTitleWidth
-		columnAlertsTitle.widthProperty().addListener { _, _, value ->
-			config.alertTitleWidth = value.toDouble()
+		comboboxPriority.valueProperty().bindBidirectional(config.selectedPriorityProperty)
+		comboboxPriority.selectionModel.selectedItemProperty().addListener { _, _, _ ->
+			refreshTable()
 			controller.saveConfig()
 		}
 
-		columnAlertsService.prefWidth = config.alertServiceWidth
+		checkboxShowWatched.selectedProperty().bindBidirectional(config.showWatchedProperty)
+		checkboxShowWatched.selectedProperty().addListener { _, _, _ ->
+			refreshTable()
+			controller.saveConfig()
+		}
+
+		checkboxShowSilenced.selectedProperty().bindBidirectional(config.showSilencedProperty)
+		checkboxShowSilenced.selectedProperty().addListener { _, _, _ ->
+			refreshTable()
+			controller.saveConfig()
+		}
+
+		columnAlertsTitle.prefWidthProperty().bindBidirectional(config.alertTitleWidthProperty)
+		columnAlertsTitle.widthProperty().addListener { _, _, _ -> controller.saveConfig() }
+
+		columnAlertsService.prefWidthProperty().bindBidirectional(config.alertServiceWidthProperty)
 		columnAlertsService.widthProperty().addListener { _, _, value ->
-			config.alertServiceWidth = value.toDouble()
 			controller.saveConfig()
 		}
 
-		columnAlertsLabels.prefWidth = config.alertLabelsWidth
-		columnAlertsLabels.widthProperty().addListener { _, _, value ->
-			config.alertLabelsWidth = value.toDouble()
-			controller.saveConfig()
-		}
+		columnAlertsConfig.prefWidthProperty().bindBidirectional(config.alertConfigWidthProperty)
+		columnAlertsConfig.widthProperty().addListener { _, _, _ -> controller.saveConfig() }
+
+		columnAlertsLabels.prefWidthProperty().bindBidirectional(config.alertLabelsWidthProperty)
+		columnAlertsLabels.widthProperty().addListener { _, _, _ -> controller.saveConfig() }
 
 		columnAlertsTitle.cell("title") { item, value, empty ->
 			text = value?.takeUnless { empty }
@@ -235,10 +263,24 @@ class TabController {
 		}
 
 		columnAlertsService.cell("serviceId") { item, _, empty ->
-			item?.takeUnless { empty }
-					?.let { controller.applicationConfiguration.serviceMap[it.serviceId] }
-					?.nameProperty
-					?.also { textProperty().bind(it) }
+			val service = item.takeUnless { empty }?.let { controller.applicationConfiguration.serviceMap[it.serviceId] }
+			if (service != null) {
+				textProperty().bind(service.nameProperty)
+			} else {
+				if (textProperty().isBound) textProperty().unbind()
+				text = null
+			}
+			style = when {
+				config.watchedItems.contains(item?.id) -> "-fx-font-weight: bold; -fx-text-fill: #600;"
+				index == 0 -> "-fx-font-weight: bold;"
+				item?.priority == Priority.NONE -> "-fx-text-fill: #999; -fx-font-style: italic;"
+				else -> null
+			}
+			contextMenu = item?.takeUnless { empty }?.contextMenu()
+		}
+
+		columnAlertsConfig.cell("configIds") { item, value, empty ->
+			text = value?.takeUnless { empty }?.joinToString(", ")
 			style = when {
 				config.watchedItems.contains(item?.id) -> "-fx-font-weight: bold; -fx-text-fill: #600;"
 				index == 0 -> "-fx-font-weight: bold;"
@@ -303,54 +345,81 @@ class TabController {
 			}
 			contextMenu = item?.takeUnless { empty }?.contextMenu()
 		}
+
+		controller.applicationConfiguration.services.forEach { it.subConfig.addListener(serviceSubConfigChangeListener) }
+		controller.applicationConfiguration.services.addListener(ListChangeListener { change ->
+			while (change.next()) when {
+				change.wasAdded() -> change.addedSubList.forEach { service ->
+					service.subConfig.addListener(serviceSubConfigChangeListener)
+				}
+				change.wasRemoved() -> change.removed.forEach { service ->
+					service.subConfig.removeListener(serviceSubConfigChangeListener)
+					if (config.selectedServiceId == service.uuid) {
+						comboboxService.selectionModel.select(null)
+						config.selectedServiceId = null
+						config.selectedConfiguration = null
+					}
+					comboboxService.items.removeIf { it == service?.uuid }
+				}
+			}
+		})
+
 		refreshUI()
 		refreshTable()
 	}
 
 	private fun refreshUI() {
-		val selectedServiceId = config.selectedServiceId
-		val services = listOf(null) + notifier.selectedServices
-		if (!comboboxService.items.containsExactly(services) { it?.config }) {
-			comboboxService.items.setAll(listOf(null) + notifier.selectedServices)
-		}
-		notifier.selectedServices
-				.find { it.config.uuid == selectedServiceId }
-				.also { service ->
-					if (comboboxService.selectionModel?.selectedItem?.config?.uuid != service?.config?.uuid) {
-						if (service == null) comboboxService.selectionModel.clearSelection()
-						else comboboxService.selectionModel.select(service)
-					}
-				}
+		val servicesIds = listOf(null) + config.services.map { it.uuid }
+		if (!comboboxService.items.containsExactly(servicesIds)) comboboxService.items.setAll(servicesIds)
 
-		val selectedStatus = config.selectedStatus ?: config.minStatus
+		val configs = listOf(null) + (comboboxService.selectionModel.selectedItem
+				?.let { controller.applicationConfiguration.serviceMap[it] }
+				?.subConfig
+				?.map { it.configTitle }
+				?.distinct()
+				?.sorted()
+				?: emptyList())
+		if (!comboboxConfiguration.items.containsExactly(configs)) comboboxConfiguration.items.setAll(configs)
+		config.selectedConfiguration = config.selectedConfiguration?.takeIf { configs.contains(it) }
+				?: configs.firstOrNull()
+
 		val statuses = Status.values().filter { it.ordinal >= config.minStatus.ordinal }
-		if (!comboboxStatus.items.containsExactly(statuses)) {
-			comboboxStatus.items.setAll(statuses)
-		}
-		if (comboboxStatus.selectionModel.selectedItem != selectedStatus) {
-			comboboxStatus.selectionModel.select(selectedStatus)
-		}
+		if (!comboboxStatus.items.containsExactly(statuses)) comboboxStatus.items.setAll(statuses)
+		config.selectedStatus = config.selectedStatus?.takeIf { statuses.contains(it) }
+				?: config.minStatus.takeIf { statuses.contains(it) }
+						?: statuses.firstOrNull()
 
-		val selectedPriority = config.selectedPriority ?: config.minPriority
 		val priorities = Priority.values().filter { it.ordinal >= config.minPriority.ordinal }
-		if (!comboboxPriority.items.containsExactly(priorities)) {
-			comboboxPriority.items.setAll(priorities)
-		}
-		if (comboboxPriority.selectionModel.selectedItem != selectedPriority) {
-			comboboxPriority.selectionModel.select(selectedPriority)
-		}
-
-		if (checkboxShowWatched.isSelected != config.showWatched) {
-			checkboxShowWatched.isSelected = config.showWatched
-		}
-		if (checkboxShowSilenced.isSelected != config.showSilenced) {
-			checkboxShowSilenced.isSelected = config.showSilenced
-		}
+		if (!comboboxPriority.items.containsExactly(priorities)) comboboxPriority.items.setAll(priorities)
+		config.selectedPriority = config.selectedPriority?.takeIf { priorities.contains(it) }
+				?: config.minPriority.takeIf { priorities.contains(it) }
+						?: priorities.firstOrNull()
 	}
 
 	@FXML
 	fun onRefresh() {
-		notifier.selectedServices.forEach { it.refresh = true }
+		val services = notifier.selectedServices.filter { it.config.enabled }
+		if (services.isNotEmpty()) {
+			buttonRefresh.text = "Refreshing ..."
+			buttonRefresh.isDisable = true
+			var count = 0
+			services.forEach { service ->
+				count++
+				service.refreshProperty.addListener(object : ChangeListener<Boolean> {
+					override fun changed(observable: ObservableValue<out Boolean>, previous: Boolean, value: Boolean) {
+						if (!value) {
+							count--
+							observable.removeListener(this)
+						}
+						if (count <= 0) Platform.runLater {
+							buttonRefresh.isDisable = false
+							buttonRefresh.text = "Refresh"
+						}
+					}
+				})
+				service.refresh = true
+			}
+		}
 	}
 
 	fun update(statusItems: Collection<StatusItem>) {
@@ -433,15 +502,21 @@ class TabController {
 					?.also { it.setOnAction { toggleSilence(true) } }).toTypedArray())
 
 	private fun StatusItem.toggleWatch(refresh: Boolean = true, save: Boolean = true) {
-		config.watchedItems.also { if (isWatched) it.remove(id) else it.add(id) }
+		val ids = treeTableAlerts.selectionModel.selectedItems?.mapNotNull { it?.value?.id }
+		if (ids != null) config.watchedItems.also { items ->
+			if (isWatched) items.removeAll(ids) else items.addAll(ids.filterNot { items.contains(it) })
+		}
 		if (refresh) refreshTable()
 		if (save) controller.saveConfig()
 	}
 
 	private fun StatusItem.toggleSilence(untilChanged: Boolean, refresh: Boolean = true, save: Boolean = true) {
-		controller.applicationConfiguration.silencedMap.also {
-			if (isSilenced) it.remove(id)
-			else it[id] = SilencedStatusItem(item = this, lastChange = startedAt, untilChanged = untilChanged)
+		val ids = treeTableAlerts.selectionModel.selectedItems?.mapNotNull { it?.value?.id }
+		if (ids != null) controller.applicationConfiguration.silencedMap.also { map ->
+			ids.forEach { id ->
+				if (isSilenced) map.remove(id)
+				else map[id] = SilencedStatusItem(item = this, lastChange = startedAt, untilChanged = untilChanged)
+			}
 		}
 		if (refresh) refreshTable()
 		if (save) controller.saveConfig()

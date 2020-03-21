@@ -68,7 +68,7 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 			controller = controller,
 			config = config,
 			createItem = { StoryboardProjectConfig() },
-			items = config.projects,
+			items = config.subConfig,
 			displayName = { name },
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition(
@@ -102,17 +102,17 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		lastFound.keys
-				.filterNot { key -> config.projects.map { it.name }.contains(key) }
+				.filterNot { key -> config.subConfig.map { it.name }.contains(key) }
 				.forEach { lastFound.remove(it) }
-		if (config.enabled && config.url.isNotEmpty()) {
-			for (project in config.projects) try {
+		if (config.enabled && config.url.isNotBlank()) {
+			var error: String? = null
+			for (project in config.subConfig) try {
 				val alerts = mutableListOf<StatusItem>()
 				val call = service?.projects(project.name)
 				val response = call?.execute()
 				LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
 						" ${response?.code()} ${response?.message()}")
 
-				var error: String? = null
 				if (response?.isSuccessful == true) {
 					val projectId = response.body()?.find { it.name == project.name }?.id
 					if (projectId != null) {
@@ -133,34 +133,48 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 						} else error = "Failed retrieving ${project.name} stories"
 					}
 					lastFound[project.name] = alerts
-				} else error = "Failed retrieving ${project.name} project ID"
+				} else {
+					LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
+							" ${response?.code()} ${response?.message()}")
+					error = response
+							?.let {
+								"Code: ${response.code()} ${response.message() ?: "Failed retrieving ${project.name}"}"
+							}
+							?: "Failed retrieving ${project.name}"
+				}
 
-				if (error != null) addErrorStatus(project, "Service error: ${error}", Status.SERVICE_ERROR)
+				if (error != null) addErrorStatus(project, "Service error", Status.SERVICE_ERROR, error)
 			} catch (e: IOException) {
-				LOGGER.error(e.message, e)
-				addErrorStatus(project, "Connection error", Status.CONNECTION_ERROR)
+				LOGGER.error(e.message)
+				error = e.message ?: "Connection error"
+				addErrorStatus(project, "Connection error", Status.CONNECTION_ERROR, e.message)
 			}
+			lastErrorProperty.set(error)
 			updater(lastFound.values.flatten())
 		}
 	}
 
 	private fun addErrorStatus(project: StoryboardProjectConfig,
 							   error: String,
-							   status: Status) {
+							   status: Status,
+							   detail: String?) {
 		val id = "${config.uuid}-${project.name}-error"
 		val cache = lastFound.getOrPut(project.name, { mutableListOf() })
 		cache.add(StatusItem(
 				id = id,
 				serviceId = config.uuid,
+				configIds = mutableListOf(project.configTitle),
 				priority = project.priority,
 				status = status,
 				title = "[${project.name}] ${error}",
+				detail = detail,
 				isRepeatable = false))
 	}
 
 	private fun Story.toStatusItem(project: StoryboardProjectConfig) = StatusItem(
 			id = "${config.uuid}-${project.name}-${this.id}",
 			serviceId = config.uuid,
+			configIds = mutableListOf(project.configTitle),
 			priority = when (this.status) {
 				"invalid" -> Priority.NONE
 				else -> project.priority
@@ -216,6 +230,7 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 	private fun Task.toStatusItem(project: StoryboardProjectConfig, story: Story) = StatusItem(
 			id = "${config.uuid}-${project.name}-${story.id}-${this.id}",
 			serviceId = config.uuid,
+			configIds = mutableListOf(project.configTitle),
 			parentId = "${config.uuid}-${project.name}-${story.id}",
 			parentRequired = true,
 			priority = when (this.status) {

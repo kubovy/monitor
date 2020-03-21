@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.notifiers.AbstractNotifierConfig
+import com.poterion.monitor.data.notifiers.NotifierServiceReference
 import javafx.beans.property.BooleanProperty
 import javafx.beans.property.SimpleBooleanProperty
 import java.util.*
@@ -47,7 +48,7 @@ class SystemTrayConfig(override var type: String = SystemTrayConfig::class.java.
 					   enabled: Boolean = false,
 					   minPriority: Priority = Priority.LOW,
 					   minStatus: Status = Status.NONE,
-					   services: List<String> = emptyList(),
+					   services: List<NotifierServiceReference> = emptyList(),
 					   tableColumnWidths: Map<String, Int> = emptyMap(),
 					   refresh: Boolean = false) :
 		AbstractNotifierConfig(name, enabled, minPriority, minStatus, services, tableColumnWidths) {

@@ -112,14 +112,9 @@ class HttpServiceModule(private val appConfig: ApplicationConfiguration, private
 												.build()
 										else -> chain.request()
 									}
-									try {
-										val response = chain.proceed(request)
-										LOGGER.debug("${request.method()} ${request.url()}...")
-										response
-									} catch (t: Throwable) {
-										LOGGER.error("${request.method()} ${request.url()}: ${t.message}", t)
-										chain.proceed(chain.request())
-									}
+									val response = chain.proceed(request)
+									LOGGER.debug("${request.method()} ${request.url()}...")
+									response
 								}
 								.build())
 						.addConverterFactory(ScalarsConverterFactory.create())

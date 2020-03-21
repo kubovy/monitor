@@ -21,21 +21,20 @@ import com.fasterxml.jackson.databind.DeserializationContext
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer
-import com.poterion.monitor.data.notifiers.NotifierConfig
 import kotlin.reflect.KClass
 
 
-object ServiceDeserializer : StdDeserializer<ServiceConfig>(ServiceConfig::class.java) {
-	private val registry = mutableMapOf<String, KClass<out ServiceConfig>>()
+object ServiceDeserializer : StdDeserializer<ServiceConfig<out ServiceSubConfig>>(ServiceConfig::class.java) {
+	private val registry = mutableMapOf<String, KClass<out ServiceConfig<out ServiceSubConfig>>>()
 
-	fun register(notifierClass: KClass<out ServiceConfig>) {
+	fun register(notifierClass: KClass<out ServiceConfig<out ServiceSubConfig>>) {
 		registry[notifierClass.simpleName!!] = notifierClass
 	}
 
-	override fun deserialize(jsonParser: JsonParser, ctxt: DeserializationContext): ServiceConfig? {
+	override fun deserialize(jsonParser: JsonParser, ctxt: DeserializationContext): ServiceConfig<out ServiceSubConfig>? {
 		val mapper = jsonParser.codec as ObjectMapper
 		val root = mapper.readTree(jsonParser) as JsonNode
-		var serviceConfig: KClass<out ServiceConfig>? = null
+		var serviceConfig: KClass<out ServiceConfig<out ServiceSubConfig>>? = null
 		val elementsIterator = root.fields()
 		while (elementsIterator.hasNext()) {
 			val element = elementsIterator.next()

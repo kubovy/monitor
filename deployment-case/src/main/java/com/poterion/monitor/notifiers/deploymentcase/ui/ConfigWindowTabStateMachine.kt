@@ -16,9 +16,30 @@
  ******************************************************************************/
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.poterion.monitor.notifiers.deploymentcase.*
-import com.poterion.monitor.notifiers.deploymentcase.control.*
-import com.poterion.monitor.notifiers.deploymentcase.data.*
+import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
+import com.poterion.monitor.notifiers.deploymentcase.control.findInStateMachine
+import com.poterion.monitor.notifiers.deploymentcase.control.setStateMachine
+import com.poterion.monitor.notifiers.deploymentcase.control.toData
+import com.poterion.monitor.notifiers.deploymentcase.control.toDevice
+import com.poterion.monitor.notifiers.deploymentcase.control.toStateMachine
+import com.poterion.monitor.notifiers.deploymentcase.data.Action
+import com.poterion.monitor.notifiers.deploymentcase.data.BluetoothKey
+import com.poterion.monitor.notifiers.deploymentcase.data.Condition
+import com.poterion.monitor.notifiers.deploymentcase.data.Device
+import com.poterion.monitor.notifiers.deploymentcase.data.DeviceKind
+import com.poterion.monitor.notifiers.deploymentcase.data.Evaluation
+import com.poterion.monitor.notifiers.deploymentcase.data.Placeholder
+import com.poterion.monitor.notifiers.deploymentcase.data.SharedUiData
+import com.poterion.monitor.notifiers.deploymentcase.data.State
+import com.poterion.monitor.notifiers.deploymentcase.data.StateMachineItem
+import com.poterion.monitor.notifiers.deploymentcase.data.Variable
+import com.poterion.monitor.notifiers.deploymentcase.data.VariableType
+import com.poterion.monitor.notifiers.deploymentcase.data.VirtualKey
+import com.poterion.monitor.notifiers.deploymentcase.getDisplayName
+import com.poterion.monitor.notifiers.deploymentcase.getDisplayNameValue
+import com.poterion.monitor.notifiers.deploymentcase.toDevice
+import com.poterion.monitor.notifiers.deploymentcase.toVariable
+import com.poterion.monitor.notifiers.deploymentcase.toVariableFromValue
 import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.noop
 import javafx.collections.ListChangeListener
@@ -26,7 +47,16 @@ import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.geometry.Pos
 import javafx.scene.Parent
-import javafx.scene.control.*
+import javafx.scene.control.Alert
+import javafx.scene.control.Button
+import javafx.scene.control.ButtonType
+import javafx.scene.control.CheckBox
+import javafx.scene.control.ComboBox
+import javafx.scene.control.Label
+import javafx.scene.control.TextField
+import javafx.scene.control.TreeCell
+import javafx.scene.control.TreeItem
+import javafx.scene.control.TreeView
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
 import javafx.scene.layout.HBox
@@ -302,9 +332,7 @@ class ConfigWindowTabStateMachine {
 				private fun createTextField(state: State): TextField? {
 					textField = TextField(state.name)
 					textField?.minWidth = width - graphicTextGap * 2
-					textField?.focusedProperty()?.addListener { _, _, newValue ->
-						if (!newValue) commitEdit(save())
-					}
+					textField?.focusedProperty()?.addListener { _, _, focused -> if (!focused) commitEdit(save()) }
 					textField?.setOnAction { commitEdit(save()) }
 					textField?.selectedText
 					return textField
@@ -368,8 +396,8 @@ class ConfigWindowTabStateMachine {
 						override fun fromString(string: String?) = string?.toVariableFromValue(SharedUiData.variables)
 					}
 
-					comboBox1?.focusedProperty()?.addListener { _, _, newValue -> if (!newValue) save() }
-					comboBox2?.focusedProperty()?.addListener { _, _, newValue -> if (!newValue) save() }
+					comboBox1?.focusedProperty()?.addListener { _, _, focused -> if (!focused) save() }
+					comboBox2?.focusedProperty()?.addListener { _, _, focused -> if (!focused) save() }
 					checkbox?.selectedProperty()?.addListener { _, _, _ -> save() }
 
 					val submitButton = Button("Submit").apply {

@@ -65,8 +65,8 @@ class SyndicationFeedConfig(override var type: String = SyndicationFeedConfig::c
 							tableColumnWidths: Map<String, Int> = emptyMap(),
 							status: Status = Status.NONE,
 							filters: List<SyndicationFeedFilterConfig> = emptyList()) :
-		AbstractServiceConfig(name, enabled, url, trustCertificate, auth, order, priority, checkInterval,
-				connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
+		AbstractServiceConfig<SyndicationFeedFilterConfig>(name, enabled, url, trustCertificate, auth, order, priority,
+				checkInterval, connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
 
 	/**
 	 * Default [Status] if no `filter` applies.
@@ -77,7 +77,7 @@ class SyndicationFeedConfig(override var type: String = SyndicationFeedConfig::c
 		set(value) = statusProperty.set(value)
 
 	/**
-	 * Defalt [Status] property.
+	 * Default [Status] property.
 	 * @see status
 	 */
 	val statusProperty: ObjectProperty<Status> = SimpleObjectProperty(status)
@@ -85,15 +85,15 @@ class SyndicationFeedConfig(override var type: String = SyndicationFeedConfig::c
 
 	@Suppress("unused")
 	private var _filters: List<SyndicationFeedFilterConfig>
-		@JsonProperty("filters") get() = filters
+		@JsonProperty("filters") get() = subConfig
 		set(value) {
-			filters.setAll(value)
+			subConfig.setAll(value)
 		}
 
 	/**
 	 * Title/description - [Priority]/[Status] mapping
 	 * @see SyndicationFeedFilterConfig
 	 */
-	val filters: ObservableList<SyndicationFeedFilterConfig> = filters.toObservableList()
+	override val subConfig: ObservableList<SyndicationFeedFilterConfig> = filters.toObservableList()
 		@JsonIgnore get
 }

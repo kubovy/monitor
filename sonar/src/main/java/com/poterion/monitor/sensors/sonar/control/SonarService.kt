@@ -30,6 +30,7 @@ import com.poterion.monitor.sensors.sonar.data.SonarConfig
 import com.poterion.monitor.sensors.sonar.data.SonarProjectConfig
 import com.poterion.monitor.sensors.sonar.data.SonarProjectResponse
 import com.poterion.utils.javafx.toObservableList
+import com.poterion.utils.kotlin.setAll
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -50,8 +51,7 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 	override val definition: Module<SonarConfig, ModuleInstanceInterface<SonarConfig>> = SonarModule
 	private val service
 		get() = retrofit?.create(SonarRestService::class.java)
-	private val projects = config.projects.map { it.name to it }.toMap()
-	private var lastFoundProjectNames: Collection<String> = projects.keys
+	private var lastFoundProjectIds: MutableList<Int> = mutableListOf()
 
 	private val projectTableSettingsPlugin = TableSettingsPlugin(
 			tableName = "projectTable",
@@ -60,7 +60,7 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 			controller = controller,
 			config = config,
 			createItem = { SonarProjectConfig() },
-			items = config.projects,
+			items = config.subConfig,
 			displayName = { name },
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition<SonarProjectConfig, Number>(
@@ -98,90 +98,62 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to TextField(config.filter).apply {
-					textProperty().addListener { _, _, filter -> config.filter = filter }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+					textProperty().bindBidirectional(config.filterProperty)
+					focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 				},
 				projectTableSettingsPlugin.rowNewItem)
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOf(projectTableSettingsPlugin.vbox)
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
-		try {
+		var error: String? = null
+		if (config.enabled && config.url.isNotBlank()) try {
 			val call = service?.check()
-			try {
-				val response = call?.execute()
-				LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
-						" ${response?.code()} ${response?.message()}")
-				if (response?.isSuccessful == true) {
-					val foundProjects = response.body()
-							?.filter { project -> config.filter?.let { project.name.matches(it.toRegex()) } != false }
+			val response = call?.execute()
+			LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+					" ${response?.code()} ${response?.message()}")
+			if (response?.isSuccessful == true) {
+				val foundProjects = response.body()
+						?.filter { project -> config.filter?.let { project.name.matches(it.toRegex()) } != false }
 
-					lastFoundProjectNames = foundProjects?.map { it.name } ?: projects.keys
+				lastFoundProjectIds.setAll(foundProjects?.map { it.id } ?: config.subConfig.map { it.id })
 
-					foundProjects
-						?.map {
+				foundProjects
+						?.mapNotNull { entity -> config.subConfig.find { it.id == entity.id }?.let { entity to it } }
+						?.map { (entity, projectConfig) ->
 							StatusItem(
-								id = "${config.uuid}-${it.id}",
-								serviceId = config.uuid,
-								priority = it.priority,
-								status = it.severity,
-								title = it.name,
-								link = "${config.url}dashboard/index/${it.id}",
-								isRepeatable = false)
+									id = "${config.uuid}-${entity.id}",
+									serviceId = config.uuid,
+									configIds = mutableListOf(projectConfig.configTitle),
+									priority = projectConfig.priority,
+									status = entity.severity,
+									title = entity.name,
+									link = "${config.url}dashboard/index/${entity.id}",
+									isRepeatable = false)
 						}
 						?.also(updater)
-				} else {
-					lastFoundProjectNames
-						.mapNotNull { projects[it] }
-						.map {
-							StatusItem(
-								id = "${config.uuid}-${it.id}",
-								serviceId = config.uuid,
-								priority = it.priority,
-								status = Status.SERVICE_ERROR,
-								title = it.name,
-								link = config.url,
-								isRepeatable = false)
+			} else {
+				LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
+						" ${response?.code()} ${response?.message()}")
+				error = response?.let { "Code: ${it.code()} ${it.message() ?: ""}" } ?: "Service error"
+				lastFoundProjectIds
+						.mapNotNull { id -> config.subConfig.find { it.id == id } }
+						.map { projectConfig ->
+							projectConfig.toStatusItem(Status.SERVICE_ERROR,
+									response?.let { "Code: ${it.code()} ${it.message() ?: ""}" })
 						}
 						.also(updater)
-				}
-			} catch (e: IOException) {
-				call?.request()?.also { LOGGER.warn("${it.method()} ${it.url()}: ${e.message}", e) }
-					?: LOGGER.warn(e.message, e)
-				lastFoundProjectNames
-					.mapNotNull { projects[it] }
-					.map {
-						StatusItem(
-							id = "${config.uuid}-${it.id}",
-							serviceId = config.uuid,
-							priority = it.priority,
-							status = Status.CONNECTION_ERROR,
-							title = it.name,
-							link = config.url,
-							isRepeatable = false)
-					}
-					.also(updater)
 			}
 		} catch (e: IOException) {
-			LOGGER.error(e.message, e)
-			lastFoundProjectNames
-					.mapNotNull { projects[it] }
-					.map {
-						StatusItem(
-								id = "${config.uuid}-${it.id}",
-								serviceId = config.uuid,
-								priority = it.priority,
-								status = Status.CONNECTION_ERROR,
-								title = it.name,
-								link = config.url,
-								isRepeatable = false)
-					}
+			LOGGER.error(e.message)
+			error = e.message ?: "Connection error"
+			lastFoundProjectIds
+					.mapNotNull { id -> config.subConfig.find { it.id == id } }
+					.map { projectConfig -> projectConfig.toStatusItem(Status.CONNECTION_ERROR, e.message) }
 					.also(updater)
 		}
+		lastErrorProperty.set(error)
 	}
-
-	private val SonarProjectResponse.priority
-		get() = projects[name]?.priority ?: config.priority
 
 	private val SonarProjectResponse.severity
 		get() = (msr.firstOrNull { it.key == "alert_status" }?.data?.toUpperCase() ?: "UNKNOWN").let {
@@ -192,4 +164,15 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 				else -> Status.UNKNOWN
 			}
 		}
+
+	private fun SonarProjectConfig.toStatusItem(status: Status, detail: String?) = StatusItem(
+			id = "${config.uuid}-${id}",
+			serviceId = config.uuid,
+			configIds = mutableListOf(configTitle),
+			priority = priority,
+			status = status,
+			title = name,
+			detail = detail,
+			link = config.url,
+			isRepeatable = false)
 }

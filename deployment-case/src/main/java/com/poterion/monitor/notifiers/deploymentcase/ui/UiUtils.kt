@@ -76,7 +76,7 @@ fun <Entry> TableColumn<Entry, String>.initEditableText(propertyName: String,
 			private fun createTextField(): TextField? {
 				textField = TextField(item)
 				textField?.minWidth = width - graphicTextGap * 2
-				textField?.focusedProperty()?.addListener { _, _, newValue -> if (!newValue) commitEdit(save()) }
+				textField?.focusedProperty()?.addListener { _, _, focused -> if (!focused) commitEdit(save()) }
 				textField?.setOnAction { commitEdit(save()) }
 				return textField
 			}

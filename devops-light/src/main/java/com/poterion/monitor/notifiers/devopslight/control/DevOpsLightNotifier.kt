@@ -46,8 +46,10 @@ import javafx.collections.FXCollections
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
-import javafx.scene.control.*
-import javafx.scene.layout.HBox
+import javafx.scene.control.CheckBox
+import javafx.scene.control.ChoiceBox
+import javafx.scene.control.Label
+import javafx.scene.control.TextField
 import javafx.util.StringConverter
 import jssc.SerialPortList
 import org.slf4j.Logger
@@ -102,7 +104,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 			sub?.add(NavigationItem(title = null))
 
 			config.items.sortedBy { it.id }.forEach { itemConfig ->
-				val title = itemConfig.id.takeIf { it.isNotEmpty() }
+				val title = itemConfig.id?.takeIf { it.isNotEmpty() } // To support old config
 				sub?.add(NavigationItem(
 						title = title ?: "Default",
 						icon = title?.let { DevOpsLightIcon.ITEM_NON_DEFAULT } ?: DevOpsLightIcon.ITEM_DEFAULT,
@@ -131,18 +133,19 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to TextField(config.deviceAddress).apply {
-					textProperty().addListener { _, _, address -> config.deviceAddress = address }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+					maxWidth = 150.0
+					promptText = "00:00:00:00:00:00"
+					textProperty().bindBidirectional(config.deviceAddressProperty)
+					focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 				},
 				Label("USB Port").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to ChoiceBox(usbPortList.sorted()).apply {
-					selectionModel.select(config.usbPort)
 					converter = object : StringConverter<String>() {
 						override fun toString(port: String?): String? = usbPortConnectedMap.getOrDefault(port, false)
-								?.let { connected -> "${port}${if (!connected) " (disconnected)" else ""}" }
+								.let { connected -> "${port}${if (!connected) " (disconnected)" else ""}" }
 
 						override fun fromString(string: String?): String? = string
 								?.let { "(.*)( \\(disconnected\\))?".toRegex() }
@@ -151,42 +154,18 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 								?.takeIf { it.isNotEmpty() }
 								?.get(0)
 					}
-					selectionModel.selectedItemProperty().addListener { _, _, usbPort ->
-						config.usbPort = usbPort
-						controller.saveConfig()
-					}
+					valueProperty().bindBidirectional(config.usbPortProperty)
+					selectionModel.selectedItemProperty().addListener { _, _, _ -> controller.saveConfig() }
 				},
 				Label("On demand connection").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to CheckBox().apply {
+					maxHeight = Double.MAX_VALUE
 					selectedProperty().bindBidirectional(config.onDemandConnectionProperty)
 					selectedProperty().addListener { _, _, _ -> controller.saveConfig() }
-				},
-				Label("Color Ordering").apply {
-					maxWidth = Double.MAX_VALUE
-					maxHeight = Double.MAX_VALUE
-					alignment = Pos.CENTER_RIGHT
-				} to HBox(
-						*ToggleGroup().let { group ->
-							listOf(
-									RadioButton("RGB").apply {
-										maxHeight = Double.MAX_VALUE
-										toggleGroup = group
-										isSelected = !config.grbColors
-									},
-									RadioButton("GRB").apply {
-										maxHeight = Double.MAX_VALUE
-										toggleGroup = group
-										isSelected = config.grbColors
-										selectedProperty().addListener { _, _, selected ->
-											config.grbColors = selected
-											controller.saveConfig()
-										}
-									})
-						}.toTypedArray()
-				))
+				})
 
 	private var _configurationTab: Pair<Parent, ConfigWindowController>? = null
 		get() {
@@ -208,7 +187,9 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 						.topStatuses(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
 								config.minStatus, config.services)
 						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
-						.mapNotNull { it.toLightConfig() }
+						.mapNotNull { item -> item.toLightConfig(item.status)?.let { it to item.status } }
+						.distinctBy { (config, _) -> config.id to config.subId }
+						.map { (config, status) -> config.toLights(status) }
 						.flatten()
 						.takeIf { it.isNotEmpty() }
 						?: config.items.firstOrNull { it.id == "" }?.statusOk
@@ -216,7 +197,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 						.topStatus(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
 								config.minStatus, config.services)
 						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
-						?.toLightConfig()
+						?.let { it.toLightConfig(it.status)?.toLights(it.status) }
 						?: config.items.firstOrNull { it.id == "" }?.statusOk
 
 				lights?.also { lastState = it }
@@ -293,24 +274,24 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 		usbPortList.removeAll(removedPorts + listOf("CHANGE"))
 	}
 
-	private fun StatusItem?.toLightConfig(): List<RgbLightConfiguration>? {
-		val lightConfig = config.items
-				.map { it.id to it }
-				.toMap()
-				.let { it[this?.serviceId ?: ""] ?: it[""] }
+	private fun StatusItem.toLightConfig(status: Status): DevOpsLightItemConfig? = config.items
+			.find { it.id == serviceId && configIds.contains(it.subId) }?.takeIf { it.toLights(status).isNotEmpty() }
+			?: config.items.find { it.id == serviceId && it.subId == null }?.takeIf { it.toLights(status).isNotEmpty() }
+			?: config.items.find { it.id == "" }?.takeIf { it.toLights(status).isNotEmpty() }
 
-		return when (this?.status) {
-			Status.NONE, Status.OFF -> lightConfig?.statusNone
-			Status.UNKNOWN -> lightConfig?.statusUnknown
-			Status.OK -> lightConfig?.statusOk
-			Status.INFO -> lightConfig?.statusInfo
-			Status.NOTIFICATION -> lightConfig?.statusNotification
-			Status.CONNECTION_ERROR -> lightConfig?.statusConnectionError
-			Status.SERVICE_ERROR -> lightConfig?.statusServiceError
-			Status.WARNING -> lightConfig?.statusWarning
-			Status.ERROR -> lightConfig?.statusError
-			Status.FATAL -> lightConfig?.statusFatal
-			else -> lightConfig?.statusNone
+	private fun DevOpsLightItemConfig.toLights(status: Status): List<RgbLightConfiguration> {
+		return when (status) {
+			Status.NONE, Status.OFF -> statusNone
+			Status.UNKNOWN -> statusUnknown
+			Status.OK -> statusOk
+			Status.INFO -> statusInfo
+			Status.NOTIFICATION -> statusNotification
+			Status.CONNECTION_ERROR -> statusConnectionError
+			Status.SERVICE_ERROR -> statusServiceError
+			Status.WARNING -> statusWarning
+			Status.ERROR -> statusError
+			Status.FATAL -> statusFatal
+			else -> statusNone
 		}
 	}
 }

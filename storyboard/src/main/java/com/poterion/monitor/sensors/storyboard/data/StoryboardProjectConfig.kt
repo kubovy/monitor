@@ -18,6 +18,7 @@ package com.poterion.monitor.sensors.storyboard.data
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.Priority
+import com.poterion.monitor.data.services.ServiceSubConfig
 import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
@@ -31,7 +32,7 @@ import javafx.beans.property.StringProperty
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 class StoryboardProjectConfig(name: String = "",
-							  priority: Priority = Priority.NONE) {
+							  priority: Priority = Priority.NONE) : ServiceSubConfig {
 	/**
 	 * Project name.
 	 * @see nameProperty
@@ -61,4 +62,7 @@ class StoryboardProjectConfig(name: String = "",
 	 */
 	val priorityProperty: ObjectProperty<Priority> = SimpleObjectProperty(priority)
 		@JsonIgnore get
+
+	override val configTitle: String
+		get() = name
 }

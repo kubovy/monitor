@@ -18,13 +18,21 @@ package com.poterion.monitor.api.controllers
 
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.api.ui.TableSettingsPlugin
+import com.poterion.monitor.api.utils.toIcon
+import com.poterion.monitor.data.Priority
+import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.data.notifiers.NotifierConfig
+import com.poterion.monitor.data.notifiers.NotifierServiceReference
 import com.poterion.monitor.data.services.ServiceConfig
+import com.poterion.monitor.data.services.ServiceSubConfig
 import com.poterion.utils.javafx.Icon
+import com.poterion.utils.javafx.bindFiltered
 import com.poterion.utils.javafx.mapped
+import com.poterion.utils.javafx.toObservableList
 import com.poterion.utils.kotlin.noop
 import javafx.collections.FXCollections
+import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -48,7 +56,7 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 								})
 				))
 
-	private val String.getService: ServiceConfig?
+	private val String.getService: ServiceConfig<out ServiceSubConfig>?
 		get() = controller.applicationConfiguration.serviceMap[this]
 
 	private val String.getServiceIcon: Icon?
@@ -56,50 +64,64 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 				.let { conf -> controller.modules.find { module -> module.configClass == conf?.let { it::class } } }
 				?.icon
 
-	var selectedServices: ObservableList<Service<ServiceConfig>> = FXCollections.emptyObservableList()
+	var selectedServices: ObservableList<Service<ServiceConfig<out ServiceSubConfig>>> = FXCollections
+			.emptyObservableList()
 		get() {
-			if (field == FXCollections.emptyObservableList<Service<ServiceConfig>>()) {
-				field = controller.services
-						.filtered { config.services.isEmpty() || config.services.contains(it.config.uuid) }
+			if (field == FXCollections.emptyObservableList<Service<ServiceConfig<out ServiceSubConfig>>>()) {
+				field = controller
+						.services
+						.bindFiltered(config.services) { service ->
+							config.services.isEmpty() || config.services.any { it.uuid == service.config.uuid }
+						}
 			}
 			return field
 		}
 		private set
 
-	private var serviceTableSettingsPlugin: TableSettingsPlugin<String>? = null
+	private var serviceTableSettingsPlugin: TableSettingsPlugin<NotifierServiceReference>? = null
 		get() {
 			if (field == null) field = TableSettingsPlugin(
 					tableName = "serviceTable",
 					buttonText = "Add service",
 					controller = controller,
 					config = config,
-					createItem = { "" },
+					createItem = { NotifierServiceReference() },
 					items = config.services,
-					displayName = { getService?.name ?: "" },
+					displayName = { uuid?.let { controller.applicationConfiguration.serviceMap[it] }?.name ?: "" },
 					columnDefinitions = listOf(
 							TableSettingsPlugin.ColumnDefinition(
 									name = "Service Name",
-									getter = { this },
-									title = { getService?.name ?: "" },
+									property = { uuidProperty },
+									title = { controller.applicationConfiguration.serviceMap[this]?.name ?: "" },
 									icon = { getServiceIcon },
-									initialValue = "",
+									initialValue = null,
 									options = controller
 											.applicationConfiguration
 											.services
-											.filtered { x -> selectedServices.map { it.config.uuid }.contains(x.uuid) }
 											.sorted(compareBy { it.name })
 											.mapped { it?.uuid }
-//									options = {
-//										controller
-//												.applicationConfiguration
-//												.services
-//												.filterKeys { id -> !config.services.contains(id) }
-//												.values
-//												.sortedBy { it.name }
-//												.map { it.uuid }
-//									}
-							)),
-					comparator = compareBy { it.getService?.name },
+											.bindFiltered(config.services) { uuid ->
+												config.services.isEmpty() || !config.services.any { it.uuid == uuid }
+											}
+							),
+							TableSettingsPlugin.ColumnDefinition(
+									name = "Minimum Priority",
+									property = { minPriorityProperty },
+									initialValue = Priority.NONE,
+									isEditable = true,
+									icon = { toIcon() },
+									options = Priority.values().toObservableList()),
+							TableSettingsPlugin.ColumnDefinition(
+									name = "Minimum Status",
+									property = { minStatusProperty },
+									initialValue = Status.NONE,
+									isEditable = true,
+									icon = { toIcon() },
+									options = Status.values().toObservableList())),
+					comparator = compareBy { controller.applicationConfiguration.serviceMap[it.uuid]?.name ?: "" },
+					newItemValidator = { reference ->
+						!config.services.map { it.uuid }.contains(reference.uuid) && reference.uuid != null
+					},
 					onSave = this::onServicesChanged)
 			return field
 		}
@@ -109,6 +131,14 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOfNotNull(serviceTableSettingsPlugin?.vbox)
+
+	override fun initialize() {
+		super.initialize()
+		controller.applicationConfiguration.services.addListener(ListChangeListener { change ->
+			while (change.next()) if (change.wasRemoved()) config.services
+					.removeAll { service -> change.removed.map { it.uuid }.contains(service.uuid) }
+		})
+	}
 
 	open fun onServicesChanged() = noop()
 
