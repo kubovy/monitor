@@ -267,6 +267,7 @@ class ConfigurationController {
 				}
 
 				contextMenu = when (item?.takeUnless { empty }?.title?.value) {
+					"Application" -> null
 					"Services" -> controller
 							.validModules { it.services }
 							.mapNotNull { it as? ServiceModule<*, *> }
@@ -436,19 +437,18 @@ class ConfigurationController {
 		imageViewLogo.image = treeItem?.value?.icon?.toImage(64, 64)
 		when (treeItem?.value?.title?.value) {
 			"Services" -> {
-				addRow(row++,
-						CheckBox().apply {
-							//maxHeight = Double.MAX_VALUE
-							alignment = Pos.CENTER_RIGHT
-							isSelected = controller.applicationConfiguration.btDiscovery
-							selectedProperty().addListener { _, _, value ->
-								controller.applicationConfiguration.btDiscovery = value
-								controller.saveConfig()
-							}
-							GridPane.setHalignment(this, HPos.RIGHT)
-						},
-						Label("Bluetooth discovery").apply { maxWidth = Double.MAX_VALUE })
 				row = initializeProxy(row, controller.applicationConfiguration.proxyProperty)
+				addRow(row++,
+						Label("Bluetooth discovery:").apply {
+							maxWidth = Double.MAX_VALUE
+							maxHeight = Double.MAX_VALUE
+							alignment = Pos.CENTER_RIGHT
+						},
+						CheckBox().apply {
+							maxHeight = Double.MAX_VALUE
+							selectedProperty().bindBidirectional(controller.applicationConfiguration.btDiscoveryProperty)
+							selectedProperty().addListener { _, _, _ -> controller.saveConfig() }
+						})
 				row = controller.applicationConfiguration.services.initializeModuleReferences(row, "Services:")
 			}
 			"Notifiers" -> {
@@ -578,7 +578,8 @@ class ConfigurationController {
 				HBox(
 						TextField().apply {
 							maxWidth = 100.0
-							promptText = "Manual update only fi left empty"
+							promptText = "Manual only"
+							alignment = Pos.CENTER_RIGHT
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							textProperty().bindBidirectional(config.checkIntervalProperty, LongStringConverter())
 							focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
@@ -633,6 +634,7 @@ class ConfigurationController {
 						TextField().apply {
 							maxWidth = 100.0
 							promptText = "10000"
+							alignment = Pos.CENTER_RIGHT
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							textProperty().bindBidirectional(config.connectTimeoutProperty, LongStringConverter())
 							focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
@@ -652,6 +654,7 @@ class ConfigurationController {
 						TextField().apply {
 							maxWidth = 100.0
 							promptText = "10000"
+							alignment = Pos.CENTER_RIGHT
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							textProperty().bindBidirectional(config.readTimeoutProperty, LongStringConverter())
 							focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
@@ -671,6 +674,7 @@ class ConfigurationController {
 						TextField().apply {
 							maxWidth = 100.0
 							promptText = "10000"
+							alignment = Pos.CENTER_RIGHT
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
 							textProperty().bindBidirectional(config.writeTimeoutProperty, LongStringConverter())
 							focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
