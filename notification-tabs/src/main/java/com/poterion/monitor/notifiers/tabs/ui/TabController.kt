@@ -469,15 +469,21 @@ class TabController {
 					?.also { it.setOnAction { toggleSilence(true) } }).toTypedArray())
 
 	private fun StatusItem.toggleWatch(refresh: Boolean = true, save: Boolean = true) {
-		config.watchedItems.also { if (isWatched) it.remove(id) else it.add(id) }
+		val ids = treeTableAlerts.selectionModel.selectedItems?.mapNotNull { it?.value?.id }
+		if (ids != null) config.watchedItems.also { items ->
+			if (isWatched) items.removeAll(ids) else items.addAll(ids.filterNot { items.contains(it) })
+		}
 		if (refresh) refreshTable()
 		if (save) controller.saveConfig()
 	}
 
 	private fun StatusItem.toggleSilence(untilChanged: Boolean, refresh: Boolean = true, save: Boolean = true) {
-		controller.applicationConfiguration.silencedMap.also {
-			if (isSilenced) it.remove(id)
-			else it[id] = SilencedStatusItem(item = this, lastChange = startedAt, untilChanged = untilChanged)
+		val ids = treeTableAlerts.selectionModel.selectedItems?.mapNotNull { it?.value?.id }
+		if (ids != null) controller.applicationConfiguration.silencedMap.also { map ->
+			ids.forEach { id ->
+				if (isSilenced) map.remove(id)
+				else map[id] = SilencedStatusItem(item = this, lastChange = startedAt, untilChanged = untilChanged)
+			}
 		}
 		if (refresh) refreshTable()
 		if (save) controller.saveConfig()
