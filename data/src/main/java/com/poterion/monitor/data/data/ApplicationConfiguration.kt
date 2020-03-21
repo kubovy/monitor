@@ -25,7 +25,14 @@ import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.utils.javafx.ReadOnlyObservableList
 import com.poterion.utils.javafx.toObservableMap
 import com.poterion.utils.kotlin.setAll
-import javafx.beans.property.*
+import javafx.beans.property.BooleanProperty
+import javafx.beans.property.DoubleProperty
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.SimpleBooleanProperty
+import javafx.beans.property.SimpleDoubleProperty
+import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
 import javafx.collections.FXCollections
 import javafx.collections.MapChangeListener
 import javafx.collections.ObservableList
@@ -110,7 +117,7 @@ class ApplicationConfiguration(btDiscovery: Boolean = false,
 		get() = proxyProperty.get()
 		set(value) = proxyProperty.set(value)
 
-	val proxyProperty: ObjectProperty<HttpProxy> = SimpleObjectProperty(proxy)
+	val proxyProperty: ObjectProperty<HttpProxy?> = SimpleObjectProperty(proxy)
 		@JsonIgnore get
 
 	@Suppress("unused")

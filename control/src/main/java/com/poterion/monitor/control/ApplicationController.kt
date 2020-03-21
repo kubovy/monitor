@@ -56,11 +56,14 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 	}
 
 	override val modules = mutableListOf<Module<*, *>>()
+
+	// TODO Make read-only and react on applicationConfiguration.services/notifiers changes
 	override val services: ObservableList<Service<ServiceConfig>> = FXCollections.observableArrayList()
 	override val notifiers: ObservableList<Notifier<NotifierConfig>> = FXCollections.observableArrayList()
 
 	override var applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration()
-	private val configuration: PublishSubject<Boolean> = PublishSubject.create<Boolean>()
+	private val configuration: PublishSubject<Boolean> = PublishSubject.create()
+
 	@Deprecated("Use properties in config")
 	private val configListeners = mutableListOf<(ApplicationConfiguration) -> Unit>()
 

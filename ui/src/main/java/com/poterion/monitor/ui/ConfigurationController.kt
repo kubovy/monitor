@@ -26,14 +26,24 @@ import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.api.objectMapper
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.monitor.data.*
+import com.poterion.monitor.data.HttpProxy
+import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.Priority
+import com.poterion.monitor.data.Status
+import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.monitor.data.auth.BasicAuthConfig
 import com.poterion.monitor.data.auth.TokenAuthConfig
 import com.poterion.monitor.data.data.SilencedStatusItem
-import com.poterion.utils.javafx.*
+import com.poterion.utils.javafx.cell
+import com.poterion.utils.javafx.confirmDialog
+import com.poterion.utils.javafx.factory
+import com.poterion.utils.javafx.openInExternalApplication
+import com.poterion.utils.javafx.toImage
+import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.javafx.toObservableList
 import com.poterion.utils.kotlin.noop
+import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
@@ -46,10 +56,35 @@ import javafx.geometry.VPos
 import javafx.scene.Cursor
 import javafx.scene.Parent
 import javafx.scene.Scene
-import javafx.scene.control.*
+import javafx.scene.control.Button
+import javafx.scene.control.CheckBox
+import javafx.scene.control.ComboBox
+import javafx.scene.control.ContextMenu
+import javafx.scene.control.Control
+import javafx.scene.control.Label
+import javafx.scene.control.MenuItem
+import javafx.scene.control.PasswordField
+import javafx.scene.control.RadioButton
+import javafx.scene.control.SelectionMode
+import javafx.scene.control.SplitPane
+import javafx.scene.control.Tab
+import javafx.scene.control.TabPane
+import javafx.scene.control.TableColumn
+import javafx.scene.control.TableView
+import javafx.scene.control.TextField
+import javafx.scene.control.ToggleGroup
+import javafx.scene.control.TreeItem
+import javafx.scene.control.TreeView
 import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
-import javafx.scene.layout.*
+import javafx.scene.layout.GridPane
+import javafx.scene.layout.HBox
+import javafx.scene.layout.Pane
+import javafx.scene.layout.Region
+import javafx.scene.layout.RowConstraints
+import javafx.scene.layout.VBox
+import javafx.util.converter.IntegerStringConverter
+import javafx.util.converter.LongStringConverter
 import java.net.URI
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -92,20 +127,13 @@ class ConfigurationController {
 		}
 	}
 
-	@FXML
-	private lateinit var tabPaneMain: TabPane
-	@FXML
-	private lateinit var tabCommon: Tab
-	@FXML
-	private lateinit var splitPane: SplitPane
-	@FXML
-	private lateinit var tree: TreeView<ModuleItem>
-	@FXML
-	private lateinit var imageViewLogo: ImageView
-	@FXML
-	private lateinit var vboxContent: VBox
-	@FXML
-	private lateinit var gridPane: GridPane
+	@FXML private lateinit var tabPaneMain: TabPane
+	@FXML private lateinit var tabCommon: Tab
+	@FXML private lateinit var splitPane: SplitPane
+	@FXML private lateinit var tree: TreeView<ModuleItem>
+	@FXML private lateinit var imageViewLogo: ImageView
+	@FXML private lateinit var vboxContent: VBox
+	@FXML private lateinit var gridPane: GridPane
 
 	private lateinit var controller: ControllerInterface
 
@@ -145,20 +173,21 @@ class ConfigurationController {
 		maxWidth = Double.MAX_VALUE
 		cell("serviceId") { item, _, empty ->
 			val service = item
-					?.takeUnless { empty }
-					?.item
-					?.let { controller.applicationConfiguration.serviceMap[it.serviceId] }
-			graphic = controller
 					.takeUnless { empty }
-					?.modules
-					?.find { module -> module.configClass == service?.let { it::class } }
-					?.icon
-					?.toImageView()
-			item?.takeUnless { empty }
 					?.item
 					?.let { controller.applicationConfiguration.serviceMap[it.serviceId] }
-					?.nameProperty
-					?.also { textProperty().bind(it) }
+			if (service != null) {
+				graphic = controller
+						.modules
+						.find { module -> module.configClass == service.let { it::class } }
+						?.icon
+						?.toImageView()
+				textProperty().bind(service.nameProperty)
+			} else {
+				if (textProperty().isBound) textProperty().unbind()
+				text = null
+				graphic = null
+			}
 		}
 	}
 
@@ -231,7 +260,6 @@ class ConfigurationController {
 				graphic = item?.takeUnless { empty }?.let { it.icon ?: it.module?.definition?.icon }?.toImageView()
 
 				if (item != null && !empty) {
-					item.module?.config?.name?.also { item.title.set(it) }
 					textProperty().bind(item.title)
 				} else {
 					if (textProperty().isBound) textProperty().unbind()
@@ -274,7 +302,7 @@ class ConfigurationController {
 				}
 			}
 
-			selectionModel.selectedItemProperty().addListener { _, _, newValue -> select(newValue) }
+			selectionModel.selectedItemProperty().addListener { _, _, new -> select(new) }
 		}
 		tabCommon.graphic = CommonIcon.SETTINGS.toImageView()
 		select(null)
@@ -285,10 +313,8 @@ class ConfigurationController {
 
 	private fun load() {
 		splitPane.setDividerPosition(0, controller.applicationConfiguration.commonSplit)
-		splitPane.dividers.first().positionProperty().addListener { _, _, value ->
-			controller.applicationConfiguration.commonSplit = value.toDouble()
-			controller.saveConfig()
-		}
+		splitPane.dividers.first().positionProperty().bindBidirectional(controller.applicationConfiguration.commonSplitProperty)
+		splitPane.dividers.first().positionProperty().addListener { _, _, _ -> controller.saveConfig() }
 
 		tree.root = TreeItem<ModuleItem>().apply {
 			children.addAll(
@@ -312,20 +338,22 @@ class ConfigurationController {
 	}
 
 	private fun ObservableList<TreeItem<ModuleItem>>.addItem(module: ModuleInstanceInterface<*>) {
-		val item = TreeItem(ModuleItem(module = module))
+		val item = TreeItem(ModuleItem(module = module).apply {
+			title.bind(module.config.nameProperty)
+		})
 		add(item)
 		FXCollections.sort<TreeItem<ModuleItem>>(this, treeComparator)
 
 		module.configurationTab
-				?.let { Tab(module.config.name, it) }
+				?.let { Tab("", it) }
 				?.also { tab ->
 					tab.userData = module
 					tab.graphicProperty().bind(module.configurationTabIcon)
 					tab.textProperty().bind(item.value.title)
 					tabPaneMain.tabs.add(tab)
+					FXCollections.sort<Tab>(tabPaneMain.tabs, tabPaneMainComparator)
 				}
 		controller.saveConfig()
-		FXCollections.sort<Tab>(tabPaneMain.tabs, tabPaneMainComparator)
 	}
 
 	private fun TreeItem<ModuleItem>.remove() {
@@ -375,11 +403,8 @@ class ConfigurationController {
 				},
 				CheckBox().apply {
 					maxHeight = Double.MAX_VALUE
-					isSelected = controller.applicationConfiguration.showOnStartup
-					selectedProperty().addListener { _, _, value ->
-						controller.applicationConfiguration.showOnStartup = value
-						controller.saveConfig()
-					}
+					selectedProperty().bindBidirectional(controller.applicationConfiguration.showOnStartupProperty)
+					selectedProperty().addListener { _, _, _ -> controller.saveConfig() }
 				})
 		addRow(row++,
 				Label("Start minimized").apply {
@@ -389,11 +414,8 @@ class ConfigurationController {
 				},
 				CheckBox().apply {
 					maxHeight = Double.MAX_VALUE
-					isSelected = controller.applicationConfiguration.startMinimized
-					selectedProperty().addListener { _, _, value ->
-						controller.applicationConfiguration.startMinimized = value
-						controller.saveConfig()
-					}
+					selectedProperty().bindBidirectional(controller.applicationConfiguration.startMinimizedProperty)
+					selectedProperty().addListener { _, _, _ -> controller.saveConfig() }
 				})
 		addRow(row++,
 				Label("Silenced status items:").apply {
@@ -426,8 +448,7 @@ class ConfigurationController {
 							GridPane.setHalignment(this, HPos.RIGHT)
 						},
 						Label("Bluetooth discovery").apply { maxWidth = Double.MAX_VALUE })
-				row = initializeProxy(row, { controller.applicationConfiguration.proxy },
-						{ controller.applicationConfiguration.proxy = it })
+				row = initializeProxy(row, controller.applicationConfiguration.proxyProperty)
 				row = controller.applicationConfiguration.services.initializeModuleReferences(row, "Services:")
 			}
 			"Notifiers" -> {
@@ -453,11 +474,8 @@ class ConfigurationController {
 					CheckBox().apply {
 						//maxHeight = Double.MAX_VALUE
 						alignment = Pos.CENTER_RIGHT
-						isSelected = module.enabled
-						selectedProperty().addListener { _, _, value ->
-							module.enabled = value
-							controller.saveConfig()
-						}
+						selectedProperty().bindBidirectional(module.enabledProperty)
+						selectedProperty().addListener { _, _, _ -> controller.saveConfig() }
 						GridPane.setHalignment(this, HPos.RIGHT)
 					},
 					HBox(
@@ -487,18 +505,13 @@ class ConfigurationController {
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				},
-				TextField(treeItem?.value?.module?.config?.name ?: "").apply {
+				TextField().apply {
 					promptText = "No name"
-					textProperty().addListener { _, _, value ->
-						treeItem?.value?.title?.set(value)
-						treeItem?.value?.module?.config?.name = value
-					}
-					focusedProperty().addListener { _, _, hasFocus ->
-						if (!hasFocus) {
+					textProperty().bindBidirectional(treeItem?.value?.module?.config?.nameProperty)
+					focusedProperty().addListener { _, _, focused ->
+						if (!focused) {
 							controller.saveConfig()
 							FXCollections.sort<TreeItem<ModuleItem>>(treeItem?.parent?.children, treeComparator)
-							FXCollections.sort<Tab>(tabPaneMain.tabs, tabPaneMainComparator)
-							//tree.refresh()
 						}
 					}
 				})
@@ -510,9 +523,8 @@ class ConfigurationController {
 				},
 				CheckBox().apply {
 					maxHeight = Double.MAX_VALUE
-					isSelected = treeItem?.value?.module?.config?.enabled == true
+					selectedProperty().bindBidirectional(treeItem?.value?.module?.config?.enabledProperty)
 					selectedProperty().addListener { _, _, value ->
-						treeItem?.value?.module?.config?.enabled = value
 						val module = treeItem?.value?.module
 						if (value) when (module) {
 							is Service<*> -> module.refresh = true
@@ -554,13 +566,8 @@ class ConfigurationController {
 						graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
 					}
 					GridPane.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-					selectionModel.apply {
-						select(config.priority)
-						selectedItemProperty().addListener { _, _, value ->
-							config.priority = value
-							controller.saveConfig()
-						}
-					}
+					valueProperty().bindBidirectional(config.priorityProperty)
+					selectionModel.selectedItemProperty().addListener { _, _, _ -> controller.saveConfig() }
 				})
 		addRow(row++,
 				Label("Check interval").apply {
@@ -569,12 +576,12 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				HBox(
-						TextField(config.checkInterval?.toString() ?: "").apply {
+						TextField().apply {
 							maxWidth = 100.0
 							promptText = "Manual update only fi left empty"
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							textProperty().addListener { _, _, value -> config.checkInterval = value.toLongOrNull() }
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+							textProperty().bindBidirectional(config.checkIntervalProperty, LongStringConverter())
+							focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 						},
 						Label("ms").apply {
 							maxHeight = Double.MAX_VALUE
@@ -596,13 +603,13 @@ class ConfigurationController {
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				},
-				TextField(config.url).apply {
+				TextField().apply {
 					promptText = "https://..."
-					textProperty().addListener { _, _, value -> config.url = value }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+					textProperty().bindBidirectional(config.urlProperty)
+					focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 				})
 
-		row = initializeAuthentication(row, { config.auth }, { config.auth = it })
+		row = initializeAuthentication(row, config.authProperty)
 
 		addRow(row++,
 				Label("Trust certificate").apply {
@@ -612,11 +619,8 @@ class ConfigurationController {
 				},
 				CheckBox().apply {
 					maxHeight = Double.MAX_VALUE
-					isSelected = config.trustCertificate
-					selectedProperty().addListener { _, _, value ->
-						config.trustCertificate = value
-						controller.saveConfig()
-					}
+					selectedProperty().bindBidirectional(config.trustCertificateProperty)
+					selectedProperty().addListener { _, _, _ -> controller.saveConfig() }
 				})
 
 		addRow(row++,
@@ -626,14 +630,12 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				HBox(
-						TextField(config.connectTimeout?.toString() ?: "").apply {
+						TextField().apply {
 							maxWidth = 100.0
 							promptText = "10000"
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							textProperty().addListener { _, _, value ->
-								value.toLongOrNull().also { config.connectTimeout = it }
-							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+							textProperty().bindBidirectional(config.connectTimeoutProperty, LongStringConverter())
+							focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 						},
 						Label("ms").apply {
 							maxHeight = Double.MAX_VALUE
@@ -647,14 +649,12 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				HBox(
-						TextField(config.readTimeout?.toString() ?: "").apply {
+						TextField().apply {
 							maxWidth = 100.0
 							promptText = "10000"
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							textProperty().addListener { _, _, value ->
-								value.toLongOrNull().also { config.readTimeout = it }
-							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+							textProperty().bindBidirectional(config.readTimeoutProperty, LongStringConverter())
+							focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 						},
 						Label("ms").apply {
 							maxHeight = Double.MAX_VALUE
@@ -668,14 +668,12 @@ class ConfigurationController {
 					alignment = Pos.CENTER_RIGHT
 				},
 				HBox(
-						TextField(config.writeTimeout?.toString() ?: "").apply {
+						TextField().apply {
 							maxWidth = 100.0
 							promptText = "10000"
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							textProperty().addListener { _, _, value ->
-								value.toLongOrNull().also { config.writeTimeout = it }
-							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+							textProperty().bindBidirectional(config.writeTimeoutProperty, LongStringConverter())
+							focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 						},
 						Label("ms").apply {
 							maxHeight = Double.MAX_VALUE
@@ -685,25 +683,26 @@ class ConfigurationController {
 		return row
 	}
 
-	private fun initializeProxy(rowIndex: Int,
-								getter: () -> HttpProxy?,
-								setter: (HttpProxy?) -> Unit): Int = gridPane.run {
+	private fun initializeProxy(rowIndex: Int, proxyProperty: ObjectProperty<HttpProxy?>): Int = gridPane.run {
 		var row = rowIndex
 
-		val textFieldProxyAddress = TextField(getter()?.address ?: "")
-				.apply { promptText = "Proxy URL or IP address" }
-		val textFieldProxyPort = TextField(getter()?.port?.toString() ?: "")
-				.apply { promptText = "80" }
-		val textFieldNoProxy = TextField(getter()?.noProxy ?: "")
-				.apply {
-					promptText = ".example.com,.another.net"
-				}
-
-		val radioBasicAuth = RadioButton()
-		val textFieldUsername = TextField()
-		val textFieldPassword = PasswordField()
-		val radioTokenAuth = RadioButton()
-		val textFieldToken = TextField()
+		val proxy = proxyProperty.get() ?: HttpProxy()
+		val textFieldProxyAddress = TextField().apply {
+			promptText = "Proxy URL or IP address"
+			textProperty().bindBidirectional(proxy.addressProperty)
+			textProperty().addListener { _, _, value -> proxyProperty.set(if (value.isNotBlank()) proxy else null) }
+			focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
+		}
+		val textFieldProxyPort = TextField().apply {
+			promptText = "80"
+			textProperty().bindBidirectional(proxy.portProperty, IntegerStringConverter())
+			focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
+		}
+		val textFieldNoProxy = TextField().apply {
+			promptText = ".example.com,.another.net"
+			textProperty().bindBidirectional(proxy.noProxyProperty)
+			focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
+		}
 
 		addRow(row++,
 				Label("Proxy").apply {
@@ -714,25 +713,12 @@ class ConfigurationController {
 				HBox(*listOfNotNull(
 						textFieldProxyAddress.apply {
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							textProperty().addListener { _, _, value ->
-								val address = value.takeIf { it.isNotEmpty() }
-								val port = textFieldProxyPort.text.takeIf { it.isNotEmpty() }?.toIntOrNull() ?: 80
-								val noProxy = textFieldNoProxy.text?.takeIf { it.isNotBlank() }
-								setter(if (address == null) null else HttpProxy(address, port, noProxy))
-							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						},
 						textFieldProxyPort.apply {
 							minWidth = 75.0
 							maxWidth = 75.0
 							HBox.setHgrow(this, javafx.scene.layout.Priority.NEVER)
-							textProperty().addListener { _, _, value ->
-								val address = textFieldProxyAddress.text.takeIf { it.isNotEmpty() }
-								val port = value.takeIf { it.isNotEmpty() }?.toIntOrNull() ?: 80
-								val noProxy = textFieldNoProxy.text?.takeIf { it.isNotBlank() }
-								setter(if (address == null) null else HttpProxy(address, port, noProxy))
-							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+
 						}).toTypedArray()
 				).apply {
 					maxWidth = 500.0
@@ -748,43 +734,56 @@ class ConfigurationController {
 				textFieldNoProxy.apply {
 					maxWidth = 500.0
 					HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-					textProperty().addListener { _, _, value ->
-						val address = textFieldProxyAddress.text.takeIf { it.isNotEmpty() }
-						val port = textFieldProxyPort.text.takeIf { it.isNotEmpty() }?.toIntOrNull() ?: 80
-						val noProxy = value?.takeIf { it.isNotBlank() }
-						setter(if (address == null) null else HttpProxy(address, port, noProxy))
-					}
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 				})
 
 		addRow(row++, Pane(), Label("A comma-separated list of domain extensions proxy should not be used for."))
 
-		return initializeAuthentication(row, { getter()?.auth }, { getter()?.auth = it },
-				radioBasicAuth, textFieldUsername, textFieldPassword, radioTokenAuth, textFieldToken)
+		return initializeAuthentication(row, proxy.authProperty)
 	}
 
 	private fun initializeAuthentication(rowIndex: Int,
-										 getter: () -> AuthConfig?,
-										 setter: (AuthConfig?) -> Unit,
-										 radBasicAuth: RadioButton? = null,
-										 txtUsername: TextField? = null,
-										 txtPassword: PasswordField? = null,
-										 radTokenAuth: RadioButton? = null,
-										 txtToken: TextField? = null): Int = gridPane.run {
+										 authProperty: ObjectProperty<AuthConfig?>): Int = gridPane.run {
 		var row = rowIndex
 
-		val toggleGroupAuth = ToggleGroup()
-		val radioBasicAuth = (radBasicAuth ?: RadioButton()).apply { toggleGroup = toggleGroupAuth }
-		val textFieldUsername = (txtUsername ?: TextField()).apply {
-			text = getter()?.let { it as? BasicAuthConfig }?.username ?: ""
-			promptText = "No username"
+		val basicAuth = (authProperty.get() as? BasicAuthConfig) ?: BasicAuthConfig()
+		val tokenAuth = (authProperty.get() as? TokenAuthConfig) ?: TokenAuthConfig()
+
+		val updateBasicAuth = {
+			val filled = basicAuth.username.isNotBlank() && basicAuth.password.isNotBlank()
+			authProperty.set(if (filled) basicAuth else null)
+			controller.saveConfig()
 		}
-		val textFieldPassword = (txtPassword ?: PasswordField())
-				.apply { promptText = "No password" }
-		val radioTokenAuth = (radTokenAuth ?: RadioButton()).apply { toggleGroup = toggleGroupAuth }
-		val textFieldToken = (txtToken ?: TextField()).apply {
-			text = getter()?.let { it as? TokenAuthConfig }?.token ?: ""
+
+		val updateTokenAuth = {
+			authProperty.set(if (tokenAuth.token.isNotBlank()) tokenAuth else null)
+			controller.saveConfig()
+		}
+
+		val toggleGroupAuth = ToggleGroup()
+		val radioBasicAuth = RadioButton().apply {
+			toggleGroup = toggleGroupAuth
+			isSelected = authProperty.get() is BasicAuthConfig
+			selectedProperty().addListener { _, _, value -> if (value) updateBasicAuth() }
+		}
+		val textFieldUsername = TextField().apply {
+			promptText = "No username"
+			textProperty().bindBidirectional(basicAuth.usernameProperty)
+			focusedProperty().addListener { _, _, focused -> if (!focused) updateBasicAuth() }
+		}
+		val textFieldPassword = PasswordField().apply {
+			promptText = "No password"
+			textProperty().bindBidirectional(basicAuth.passwordProperty)
+			focusedProperty().addListener { _, _, focused -> if (!focused) updateBasicAuth() }
+		}
+		val radioTokenAuth = RadioButton().apply {
+			toggleGroup = toggleGroupAuth
+			isSelected = authProperty.get() is TokenAuthConfig
+			selectedProperty().addListener { _, _, focused -> if (focused) updateTokenAuth() }
+		}
+		val textFieldToken = TextField().apply {
 			promptText = "No token"
+			textProperty().bindBidirectional(tokenAuth.tokenProperty)
+			focusedProperty().addListener { _, _, focused -> if (!focused) updateTokenAuth() }
 		}
 
 		addRow(row++,
@@ -796,41 +795,12 @@ class ConfigurationController {
 				HBox(
 						radioBasicAuth.apply {
 							maxHeight = Double.MAX_VALUE
-							isSelected = getter() is BasicAuthConfig
-							selectedProperty().addListener { _, _, value ->
-								if (value && !isDisable) {
-									val usr = textFieldUsername.text.takeIf { it.isNotBlank() }
-									val pwd = textFieldPassword.text.takeIf { it.isNotBlank() }
-									setter(if (usr == null && pwd == null)
-										null else BasicAuthConfig(username = usr ?: "", password = pwd ?: ""))
-									controller.saveConfig()
-								}
-							}
 						},
 						textFieldUsername.apply {
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							textProperty().addListener { _, _, value ->
-								if (radioBasicAuth.isSelected && !isDisable) {
-									val usr = value.takeIf { it.isNotBlank() }
-									val pwd = textFieldPassword.text.takeIf { it.isNotBlank() }
-									setter(if (usr == null && pwd == null)
-										null else BasicAuthConfig(username = usr ?: "", password = pwd ?: ""))
-								}
-							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						},
 						textFieldPassword.apply {
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							text = getter()?.let { it as? BasicAuthConfig }?.password ?: ""
-							textProperty().addListener { _, _, value ->
-								if (radioBasicAuth.isSelected && !isDisable) {
-									val usr = textFieldUsername.text.takeIf { it.isNotBlank() }
-									val pwd = value.takeIf { it.isNotBlank() }
-									setter(if (usr == null && pwd == null)
-										null else BasicAuthConfig(username = usr ?: "", password = pwd ?: ""))
-								}
-							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						}).apply {
 					maxWidth = 500.0
 					alignment = Pos.CENTER
@@ -845,24 +815,9 @@ class ConfigurationController {
 				HBox(
 						radioTokenAuth.apply {
 							maxHeight = Double.MAX_VALUE
-							isSelected = getter() is TokenAuthConfig
-							selectedProperty().addListener { _, _, value ->
-								if (value && !isDisable) {
-									setter(textFieldToken.text
-											.takeIf { it.isNotEmpty() }
-											?.let { TokenAuthConfig(token = it) })
-									controller.saveConfig()
-								}
-							}
 						},
 						textFieldToken.apply {
 							HBox.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-							textProperty().addListener { _, _, value ->
-								if (radioTokenAuth.isSelected && !isDisable) setter(value
-										.takeIf { it.isNotBlank() }
-										?.let { TokenAuthConfig(token = it) })
-							}
-							focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
 						}).apply {
 					maxWidth = 500.0
 					alignment = Pos.CENTER
@@ -884,13 +839,8 @@ class ConfigurationController {
 						graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
 					}
 					GridPane.setHgrow(this, javafx.scene.layout.Priority.ALWAYS)
-					selectionModel.apply {
-						select(config.minPriority)
-						selectedItemProperty().addListener { _, _, value ->
-							config.minPriority = value
-							controller.saveConfig()
-						}
-					}
+					valueProperty().bindBidirectional(config.minPriorityProperty)
+					selectionModel.selectedItemProperty().addListener { _, _, _ -> controller.saveConfig() }
 				})
 
 		addRow(row++,
@@ -904,11 +854,8 @@ class ConfigurationController {
 						text = item?.takeUnless { empty }?.name
 						graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
 					}
-					selectionModel.select(config.minStatus)
-					selectionModel.selectedItemProperty().addListener { _, _, value ->
-						config.minStatus = value
-						controller.saveConfig()
-					}
+					valueProperty().bindBidirectional(config.minStatusProperty)
+					selectionModel.selectedItemProperty().addListener { _, _, _ -> controller.saveConfig() }
 				})
 
 		return row

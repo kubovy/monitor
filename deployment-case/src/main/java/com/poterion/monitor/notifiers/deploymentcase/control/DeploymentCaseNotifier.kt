@@ -20,8 +20,16 @@ import com.poterion.communication.serial.byte2Bools
 import com.poterion.communication.serial.calculateChecksum
 import com.poterion.communication.serial.communicator.BluetoothCommunicator
 import com.poterion.communication.serial.communicator.Channel
-import com.poterion.communication.serial.extensions.*
-import com.poterion.communication.serial.listeners.*
+import com.poterion.communication.serial.extensions.DataCommunicatorExtension
+import com.poterion.communication.serial.extensions.LcdCommunicatorExtension
+import com.poterion.communication.serial.extensions.RegistryCommunicatorExtension
+import com.poterion.communication.serial.extensions.RgbIndicatorCommunicatorExtension
+import com.poterion.communication.serial.extensions.StateMachineCommunicatorExtension
+import com.poterion.communication.serial.listeners.DataCommunicatorListener
+import com.poterion.communication.serial.listeners.LcdCommunicatorListener
+import com.poterion.communication.serial.listeners.RegistryCommunicatorListener
+import com.poterion.communication.serial.listeners.RgbIndicatorCommunicatorListener
+import com.poterion.communication.serial.listeners.StateMachineCommunicatorListener
 import com.poterion.communication.serial.payload.DeviceCapabilities
 import com.poterion.communication.serial.payload.LcdCommand
 import com.poterion.communication.serial.payload.RgbIndicatorConfiguration
@@ -34,7 +42,14 @@ import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
 import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageListener
-import com.poterion.monitor.notifiers.deploymentcase.data.*
+import com.poterion.monitor.notifiers.deploymentcase.data.Action
+import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
+import com.poterion.monitor.notifiers.deploymentcase.data.Device
+import com.poterion.monitor.notifiers.deploymentcase.data.DeviceKind
+import com.poterion.monitor.notifiers.deploymentcase.data.LcdKey
+import com.poterion.monitor.notifiers.deploymentcase.data.State
+import com.poterion.monitor.notifiers.deploymentcase.data.Variable
+import com.poterion.monitor.notifiers.deploymentcase.data.VirtualKey
 import com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController
 import com.poterion.monitor.notifiers.deploymentcase.ui.StateCompareWindowController
 import com.poterion.utils.javafx.Icon
@@ -111,8 +126,8 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to TextField(config.deviceAddress).apply {
-					textProperty().addListener { _, _, address -> config.deviceAddress = address }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+					textProperty().bindBidirectional(config.deviceAddressProperty)
+					focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 				})
 
 	override var configurationTab: Parent? = null

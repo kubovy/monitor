@@ -98,8 +98,8 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to TextField(config.filter).apply {
-					textProperty().addListener { _, _, filter -> config.filter = filter }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+					textProperty().bindBidirectional(config.filterProperty)
+					focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 				},
 				projectTableSettingsPlugin.rowNewItem)
 	override val configurationAddition: List<Parent>

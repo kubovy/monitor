@@ -34,7 +34,12 @@ import com.poterion.monitor.notifiers.devopslight.data.DevOpsLightConfig
 import com.poterion.monitor.notifiers.devopslight.data.DevOpsLightItemConfig
 import com.poterion.monitor.notifiers.devopslight.data.StateConfig
 import com.poterion.monitor.notifiers.devopslight.deepCopy
-import com.poterion.utils.javafx.*
+import com.poterion.utils.javafx.Icon
+import com.poterion.utils.javafx.bindFiltered
+import com.poterion.utils.javafx.cell
+import com.poterion.utils.javafx.factory
+import com.poterion.utils.javafx.toImage
+import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.ensureSuffix
 import com.poterion.utils.kotlin.noop
 import javafx.application.Platform
@@ -44,9 +49,22 @@ import javafx.fxml.FXMLLoader
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Parent
-import javafx.scene.control.*
+import javafx.scene.control.Alert
 import javafx.scene.control.Alert.AlertType
+import javafx.scene.control.Button
 import javafx.scene.control.ButtonType
+import javafx.scene.control.ChoiceBox
+import javafx.scene.control.ColorPicker
+import javafx.scene.control.ComboBox
+import javafx.scene.control.Label
+import javafx.scene.control.SelectionMode
+import javafx.scene.control.Slider
+import javafx.scene.control.SplitPane
+import javafx.scene.control.TableColumn
+import javafx.scene.control.TableView
+import javafx.scene.control.TextField
+import javafx.scene.control.TreeItem
+import javafx.scene.control.TreeView
 import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
@@ -307,8 +325,15 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 		}
 		comboConfigName.apply {
 			factory { item, empty ->
-				item?.takeUnless { empty }?.nameProperty?.also { textProperty().bindBidirectional(it) }
-				graphic = item?.takeUnless { empty }?.icon?.toImageView()
+				val serviceConfig = item.takeUnless { empty }
+				if (serviceConfig != null) {
+					textProperty().bind(serviceConfig.nameProperty)
+					graphic = serviceConfig.icon?.toImageView()
+				} else {
+					if (textProperty().isBound) textProperty().unbind()
+					text = null
+					graphic = null
+				}
 			}
 			items = notifier.controller
 					.applicationConfiguration

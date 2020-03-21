@@ -93,8 +93,8 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to TextField(config.filter).apply {
-					textProperty().addListener { _, _, filter -> config.filter = filter }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+					textProperty().bindBidirectional(config.filterProperty)
+					focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 				}, jobTableSettingsPlugin.rowNewItem)
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOf(jobTableSettingsPlugin.vbox)

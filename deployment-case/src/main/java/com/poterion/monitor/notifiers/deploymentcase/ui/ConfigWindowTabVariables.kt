@@ -19,7 +19,12 @@ package com.poterion.monitor.notifiers.deploymentcase.ui
 import com.poterion.communication.serial.toColor
 import com.poterion.communication.serial.toHex
 import com.poterion.monitor.notifiers.deploymentcase.control.findInStateMachine
-import com.poterion.monitor.notifiers.deploymentcase.data.*
+import com.poterion.monitor.notifiers.deploymentcase.data.Action
+import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
+import com.poterion.monitor.notifiers.deploymentcase.data.LightPattern
+import com.poterion.monitor.notifiers.deploymentcase.data.SharedUiData
+import com.poterion.monitor.notifiers.deploymentcase.data.Variable
+import com.poterion.monitor.notifiers.deploymentcase.data.VariableType
 import com.poterion.monitor.notifiers.deploymentcase.getDisplayString
 import com.poterion.utils.javafx.autoFitTable
 import com.poterion.utils.javafx.toObservableList
@@ -30,7 +35,18 @@ import javafx.collections.ListChangeListener
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
-import javafx.scene.control.*
+import javafx.scene.control.Alert
+import javafx.scene.control.Button
+import javafx.scene.control.ButtonType
+import javafx.scene.control.CheckBox
+import javafx.scene.control.ColorPicker
+import javafx.scene.control.ComboBox
+import javafx.scene.control.Label
+import javafx.scene.control.Slider
+import javafx.scene.control.TableCell
+import javafx.scene.control.TableColumn
+import javafx.scene.control.TableView
+import javafx.scene.control.TextField
 import javafx.scene.control.cell.PropertyValueFactory
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
@@ -232,7 +248,7 @@ class ConfigWindowTabVariables {
 				private fun createTextField(): TextField? {
 					textField1 = TextField(itemText)
 					textField1?.minWidth = width - graphicTextGap * 2
-					textField1?.focusedProperty()?.addListener { _, _, newValue -> if (!newValue) commitEdit(save()) }
+					textField1?.focusedProperty()?.addListener { _, _, focused -> if (!focused) commitEdit(save()) }
 					textField1?.setOnAction { commitEdit(save()) }
 					return textField1
 				}
@@ -241,7 +257,7 @@ class ConfigWindowTabVariables {
 					checkBox = CheckBox("")
 					checkBox?.isSelected = item?.toBoolean() == true
 					checkBox?.minWidth = width - graphicTextGap * 2
-					checkBox?.focusedProperty()?.addListener { _, _, newValue -> if (!newValue) commitEdit(save()) }
+					checkBox?.focusedProperty()?.addListener { _, _, focused -> if (!focused) commitEdit(save()) }
 					return checkBox
 				}
 
@@ -444,8 +460,8 @@ class ConfigWindowTabVariables {
 							override fun toString(item: Type) = toString(item)
 							override fun fromString(string: String?) = fromString(string)
 						}
-						focusedProperty()?.addListener { _, _, newValue -> if (!newValue) commitEdit(save()) }
-						selectionModel?.selectedItemProperty()?.addListener { _, _, newValue -> commitEdit(newValue) }
+						focusedProperty()?.addListener { _, _, focused -> if (!focused) commitEdit(save()) }
+						selectionModel?.selectedItemProperty()?.addListener { _, _, selected -> commitEdit(selected) }
 					}
 
 					return comboBox

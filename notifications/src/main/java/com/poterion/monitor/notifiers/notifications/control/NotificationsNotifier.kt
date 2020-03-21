@@ -46,6 +46,7 @@ import javafx.stage.Screen
 import javafx.stage.Stage
 import javafx.stage.StageStyle
 import javafx.util.Duration
+import javafx.util.StringConverter
 import org.controlsfx.control.Notifications
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -90,16 +91,21 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
-				} to HBox(TextField(config.repeatAfter?.let { it / 1000 }?.toInt()?.toString() ?: "")
+				} to HBox(TextField()
 						.apply {
 							prefWidth = 130.0
 							promptText = "Every occurrence"
-							focusedProperty().addListener { _, _, focused ->
-								if (!focused) {
-									config.repeatAfter = text.toLongOrNull()?.let { it * 1000 }
-									controller.saveConfig()
-								}
-							}
+							textProperty().bindBidirectional(config.repeatAfterProperty, object : StringConverter<Long?>() {
+								override fun fromString(string: String?): Long? = string
+										?.toLongOrNull()
+										?.let { it * 1000 }
+
+								override fun toString(value: Long?): String = value
+										?.let { it / 1000 }?.toInt()
+										?.toString()
+										?: ""
+							})
+							focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 						}, Label("seconds").apply { maxHeight = Double.MAX_VALUE }).apply {
 					spacing = 5.0
 				}) +

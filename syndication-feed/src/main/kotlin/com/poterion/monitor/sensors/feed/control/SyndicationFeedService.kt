@@ -114,11 +114,8 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 						text = item?.takeUnless { empty }?.name
 						graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
 					}
-					selectionModel.select(config.status)
-					selectionModel.selectedItemProperty().addListener { _, _, value ->
-						config.status = value
-						controller.saveConfig()
-					}
+					valueProperty().bindBidirectional(config.statusProperty)
+					selectionModel.selectedItemProperty().addListener { _, _, _ -> controller.saveConfig() }
 				},
 				queryTableSettingsPlugin.rowNewItem)
 

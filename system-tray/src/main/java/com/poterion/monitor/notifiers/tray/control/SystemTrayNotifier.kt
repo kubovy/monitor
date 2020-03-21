@@ -36,7 +36,12 @@ import com.poterion.monitor.ui.ConfigurationController
 import com.poterion.utils.javafx.Icon
 import com.poterion.utils.javafx.openInExternalApplication
 import com.poterion.utils.javafx.toImageView
-import dorkbox.systemTray.*
+import dorkbox.systemTray.Checkbox
+import dorkbox.systemTray.Entry
+import dorkbox.systemTray.Menu
+import dorkbox.systemTray.MenuItem
+import dorkbox.systemTray.Separator
+import dorkbox.systemTray.SystemTray
 import javafx.application.Platform
 import javafx.geometry.Pos
 import javafx.scene.Node
@@ -95,10 +100,8 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 					alignment = Pos.CENTER_RIGHT
 				} to CheckBox().apply {
 					maxHeight = Double.MAX_VALUE
-					selectedProperty().addListener { _, _, value ->
-						config.refresh = value
-						controller.saveConfig()
-					}
+					selectedProperty().bindBidirectional(config.refreshProperty)
+					selectedProperty().addListener { _, _, _ -> controller.saveConfig() }
 				})
 
 	override fun execute(action: NotifierAction): Unit = when (action) {

@@ -27,14 +27,29 @@ import com.poterion.monitor.data.data.SilencedStatusItem
 import com.poterion.monitor.notifiers.tabs.NotificationTabsIcon
 import com.poterion.monitor.notifiers.tabs.control.NotificationTabsNotifier
 import com.poterion.monitor.notifiers.tabs.data.NotificationTabsConfig
-import com.poterion.utils.javafx.*
+import com.poterion.utils.javafx.cell
+import com.poterion.utils.javafx.factory
+import com.poterion.utils.javafx.monitorExpansion
+import com.poterion.utils.javafx.openInExternalApplication
+import com.poterion.utils.javafx.setOnItemClick
+import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.containsExactly
 import com.poterion.utils.kotlin.noop
 import com.poterion.utils.kotlin.toUriOrNull
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
-import javafx.scene.control.*
+import javafx.scene.control.Button
+import javafx.scene.control.CheckBox
+import javafx.scene.control.ComboBox
+import javafx.scene.control.ContextMenu
+import javafx.scene.control.Label
+import javafx.scene.control.MenuItem
+import javafx.scene.control.SelectionMode
+import javafx.scene.control.Tooltip
+import javafx.scene.control.TreeItem
+import javafx.scene.control.TreeTableColumn
+import javafx.scene.control.TreeTableView
 import javafx.scene.input.KeyCode
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Region
@@ -167,59 +182,44 @@ class TabController {
 			graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
 			text = item?.takeUnless { empty }?.name
 		}
-		comboboxStatus.selectionModel.selectedItemProperty().addListener { _, _, value ->
-			if (config.selectedStatus != value) {
-				config.selectedStatus = value
-				refreshTable()
-				controller.saveConfig()
-			}
+		comboboxStatus.valueProperty().bindBidirectional(config.selectedStatusProperty)
+		comboboxStatus.selectionModel.selectedItemProperty().addListener { _, _, _ ->
+			refreshTable()
+			controller.saveConfig()
 		}
 
 		comboboxPriority.factory { item, empty ->
 			graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
 			text = item?.takeUnless { empty }?.name
 		}
-		comboboxPriority.selectionModel.selectedItemProperty().addListener { _, _, value ->
-			if (config.selectedPriority != value) {
-				config.selectedPriority = value
-				refreshTable()
-				controller.saveConfig()
-			}
-		}
-
-		checkboxShowWatched.selectedProperty().addListener { _, _, value ->
-			if (config.showWatched != value) {
-				config.showWatched = value
-				refreshTable()
-				controller.saveConfig()
-			}
-		}
-
-		checkboxShowSilenced.selectedProperty().addListener { _, _, value ->
-			if (config.showSilenced != value) {
-				config.showSilenced = value
-				refreshTable()
-				controller.saveConfig()
-			}
-		}
-
-		columnAlertsTitle.prefWidth = config.alertTitleWidth
-		columnAlertsTitle.widthProperty().addListener { _, _, value ->
-			config.alertTitleWidth = value.toDouble()
+		comboboxPriority.valueProperty().bindBidirectional(config.selectedPriorityProperty)
+		comboboxPriority.selectionModel.selectedItemProperty().addListener { _, _, _ ->
+			refreshTable()
 			controller.saveConfig()
 		}
 
-		columnAlertsService.prefWidth = config.alertServiceWidth
+		checkboxShowWatched.selectedProperty().bindBidirectional(config.showWatchedProperty)
+		checkboxShowWatched.selectedProperty().addListener { _, _, _ ->
+			refreshTable()
+			controller.saveConfig()
+		}
+
+		checkboxShowSilenced.selectedProperty().bindBidirectional(config.showSilencedProperty)
+		checkboxShowSilenced.selectedProperty().addListener { _, _, _ ->
+			refreshTable()
+			controller.saveConfig()
+		}
+
+		columnAlertsTitle.prefWidthProperty().bindBidirectional(config.alertTitleWidthProperty)
+		columnAlertsTitle.widthProperty().addListener { _, _, _ -> controller.saveConfig() }
+
+		columnAlertsService.prefWidthProperty().bindBidirectional(config.alertServiceWidthProperty)
 		columnAlertsService.widthProperty().addListener { _, _, value ->
-			config.alertServiceWidth = value.toDouble()
 			controller.saveConfig()
 		}
 
-		columnAlertsLabels.prefWidth = config.alertLabelsWidth
-		columnAlertsLabels.widthProperty().addListener { _, _, value ->
-			config.alertLabelsWidth = value.toDouble()
-			controller.saveConfig()
-		}
+		columnAlertsLabels.prefWidthProperty().bindBidirectional(config.alertLabelsWidthProperty)
+		columnAlertsLabels.widthProperty().addListener { _, _, _ -> controller.saveConfig() }
 
 		columnAlertsTitle.cell("title") { item, value, empty ->
 			text = value?.takeUnless { empty }
@@ -235,10 +235,13 @@ class TabController {
 		}
 
 		columnAlertsService.cell("serviceId") { item, _, empty ->
-			item?.takeUnless { empty }
-					?.let { controller.applicationConfiguration.serviceMap[it.serviceId] }
-					?.nameProperty
-					?.also { textProperty().bind(it) }
+			val service = item.takeUnless { empty }?.let { controller.applicationConfiguration.serviceMap[it.serviceId] }
+			if (service != null) {
+				textProperty().bind(service.nameProperty)
+			} else {
+				if (textProperty().isBound) textProperty().unbind()
+				text = null
+			}
 			style = when {
 				config.watchedItems.contains(item?.id) -> "-fx-font-weight: bold; -fx-text-fill: #600;"
 				index == 0 -> "-fx-font-weight: bold;"

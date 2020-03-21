@@ -61,7 +61,7 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 	}
 
 	override val definition: Module<AlertManagerConfig, ModuleInstanceInterface<AlertManagerConfig>> =
-		AlertManagerModule
+			AlertManagerModule
 	private val service
 		get() = retrofit?.create(AlertManagerRestService::class.java)
 
@@ -122,8 +122,8 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to TextField(config.nameRefs.joinToString(",")).apply {
-					focusedProperty().addListener { _, _, hasFocus ->
-						if (!hasFocus) {
+					focusedProperty().addListener { _, _, focused ->
+						if (!focused) {
 							config.nameRefs.setAll(text.replace("[\\n\\r\\t]".toRegex(), "").toSet(","))
 							controller.saveConfig()
 						}
@@ -135,8 +135,8 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to TextField(config.descriptionRefs.joinToString(",")).apply {
-					focusedProperty().addListener { _, _, hasFocus ->
-						if (!hasFocus) {
+					focusedProperty().addListener { _, _, focused ->
+						if (!focused) {
 							config.descriptionRefs.setAll(text.replace("[\\n\\r\\t]".toRegex(), "").toSet(","))
 							controller.saveConfig()
 						}
@@ -150,7 +150,7 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 				} to TextField(config.receivers.joinToString(",")).apply {
 					promptText = "All receivers"
 					textProperty().addListener { _, _, v -> config.receivers.setAll(v.toSet(",")) }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+					focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 				},
 				Pane() to Label("Comma separated list of receivers to take into account."),
 				Label("Labels").apply {
@@ -160,8 +160,8 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 				} to TextArea(config.labelFilter.joinToString(",")).apply {
 					promptText = "All labels and annotations"
 					prefHeight = 60.0
-					focusedProperty().addListener { _, _, hasFocus ->
-						if (!hasFocus) {
+					focusedProperty().addListener { _, _, focused ->
+						if (!focused) {
 							config.labelFilter.setAll(text.replace("[\\n\\r\\t]".toRegex(), "").toSet(","))
 							controller.saveConfig()
 						}
