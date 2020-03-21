@@ -25,7 +25,12 @@ import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.notifiers.AbstractNotifierConfig
 import com.poterion.utils.javafx.toObservableList
-import javafx.beans.property.*
+import javafx.beans.property.BooleanProperty
+import javafx.beans.property.DoubleProperty
+import javafx.beans.property.SimpleBooleanProperty
+import javafx.beans.property.SimpleDoubleProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
 import javafx.collections.ObservableList
 import java.util.*
 
@@ -45,7 +50,6 @@ import java.util.*
  * @param tableColumnWidths Saved UI table column widths (column name -> width)
  * @param deviceAddress
  * @param usbPort
- * @param grbColors
  * @param combineMultipleServices
  * @param split
  * @param items
@@ -62,7 +66,6 @@ class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.jav
 						deviceAddress: String = "",
 						usbPort: String = "",
 						onDemandConnection: Boolean = false,
-						grbColors: Boolean = false,
 						combineMultipleServices: Boolean = true,
 						split: Double = 0.2,
 						items: List<DevOpsLightItemConfig> = emptyList(),
@@ -88,13 +91,6 @@ class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.jav
 		set(value) = onDemandConnectionProperty.set(value)
 
 	val onDemandConnectionProperty: BooleanProperty = SimpleBooleanProperty(onDemandConnection)
-		@JsonIgnore get
-
-	var grbColors: Boolean
-		get() = grbColorsProperty.get()
-		set(value) = grbColorsProperty.set(value)
-
-	val grbColorsProperty: BooleanProperty = SimpleBooleanProperty(grbColors)
 		@JsonIgnore get
 
 	var combineMultipleServices: Boolean

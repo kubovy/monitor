@@ -46,8 +46,10 @@ import javafx.collections.FXCollections
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
-import javafx.scene.control.*
-import javafx.scene.layout.HBox
+import javafx.scene.control.CheckBox
+import javafx.scene.control.ChoiceBox
+import javafx.scene.control.Label
+import javafx.scene.control.TextField
 import javafx.util.StringConverter
 import jssc.SerialPortList
 import org.slf4j.Logger
@@ -131,18 +133,17 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to TextField(config.deviceAddress).apply {
-					textProperty().addListener { _, _, address -> config.deviceAddress = address }
-					focusedProperty().addListener { _, _, hasFocus -> if (!hasFocus) controller.saveConfig() }
+					textProperty().bindBidirectional(config.deviceAddressProperty)
+					focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 				},
 				Label("USB Port").apply {
 					maxWidth = Double.MAX_VALUE
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to ChoiceBox(usbPortList.sorted()).apply {
-					selectionModel.select(config.usbPort)
 					converter = object : StringConverter<String>() {
 						override fun toString(port: String?): String? = usbPortConnectedMap.getOrDefault(port, false)
-								?.let { connected -> "${port}${if (!connected) " (disconnected)" else ""}" }
+								.let { connected -> "${port}${if (!connected) " (disconnected)" else ""}" }
 
 						override fun fromString(string: String?): String? = string
 								?.let { "(.*)( \\(disconnected\\))?".toRegex() }
@@ -151,10 +152,8 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 								?.takeIf { it.isNotEmpty() }
 								?.get(0)
 					}
-					selectionModel.selectedItemProperty().addListener { _, _, usbPort ->
-						config.usbPort = usbPort
-						controller.saveConfig()
-					}
+					valueProperty().bindBidirectional(config.usbPortProperty)
+					selectionModel.selectedItemProperty().addListener { _, _, _ -> controller.saveConfig() }
 				},
 				Label("On demand connection").apply {
 					maxWidth = Double.MAX_VALUE
@@ -163,30 +162,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 				} to CheckBox().apply {
 					selectedProperty().bindBidirectional(config.onDemandConnectionProperty)
 					selectedProperty().addListener { _, _, _ -> controller.saveConfig() }
-				},
-				Label("Color Ordering").apply {
-					maxWidth = Double.MAX_VALUE
-					maxHeight = Double.MAX_VALUE
-					alignment = Pos.CENTER_RIGHT
-				} to HBox(
-						*ToggleGroup().let { group ->
-							listOf(
-									RadioButton("RGB").apply {
-										maxHeight = Double.MAX_VALUE
-										toggleGroup = group
-										isSelected = !config.grbColors
-									},
-									RadioButton("GRB").apply {
-										maxHeight = Double.MAX_VALUE
-										toggleGroup = group
-										isSelected = config.grbColors
-										selectedProperty().addListener { _, _, selected ->
-											config.grbColors = selected
-											controller.saveConfig()
-										}
-									})
-						}.toTypedArray()
-				))
+				})
 
 	private var _configurationTab: Pair<Parent, ConfigWindowController>? = null
 		get() {
