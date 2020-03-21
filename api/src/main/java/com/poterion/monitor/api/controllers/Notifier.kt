@@ -23,6 +23,7 @@ import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.data.services.ServiceSubConfig
 import com.poterion.utils.javafx.Icon
+import com.poterion.utils.javafx.bindFiltered
 import com.poterion.utils.javafx.mapped
 import com.poterion.utils.kotlin.noop
 import javafx.collections.FXCollections
@@ -82,15 +83,18 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 							TableSettingsPlugin.ColumnDefinition(
 									name = "Service Name",
 									getter = { this },
+									mutator = { it },
 									title = { getService?.name ?: "" },
 									icon = { getServiceIcon },
 									initialValue = "",
 									options = controller
 											.applicationConfiguration
 											.services
-											.filtered { x -> selectedServices.map { it.config.uuid }.contains(x.uuid) }
 											.sorted(compareBy { it.name })
 											.mapped { it?.uuid }
+											.bindFiltered(config.services) {
+												config.services.isEmpty() || !config.services.contains(it)
+											}
 //									options = {
 //										controller
 //												.applicationConfiguration

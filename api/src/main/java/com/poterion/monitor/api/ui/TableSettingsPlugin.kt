@@ -30,7 +30,15 @@ import javafx.collections.ObservableList
 import javafx.collections.transformation.SortedList
 import javafx.geometry.Insets
 import javafx.geometry.Pos
-import javafx.scene.control.*
+import javafx.scene.control.Alert
+import javafx.scene.control.Button
+import javafx.scene.control.ButtonType
+import javafx.scene.control.ComboBox
+import javafx.scene.control.Control
+import javafx.scene.control.Label
+import javafx.scene.control.TableColumn
+import javafx.scene.control.TableView
+import javafx.scene.control.TextField
 import javafx.scene.input.KeyCode
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
@@ -253,8 +261,8 @@ class TableSettingsPlugin<S>(private val tableName: String,
 	}
 
 	private fun save(additionalCallback: () -> Unit = {}) {
-		controller.saveConfig()
 		additionalCallback()
+		controller.saveConfig()
 		onSave()
 		changeListener.forEach { it() }
 	}
