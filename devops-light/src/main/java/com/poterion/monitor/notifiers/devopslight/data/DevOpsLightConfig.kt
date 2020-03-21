@@ -24,6 +24,7 @@ import com.poterion.communication.serial.toRGBColor
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.notifiers.AbstractNotifierConfig
+import com.poterion.monitor.data.notifiers.NotifierServiceReference
 import com.poterion.utils.javafx.toObservableList
 import javafx.beans.property.BooleanProperty
 import javafx.beans.property.DoubleProperty
@@ -55,13 +56,14 @@ import java.util.*
  * @param items
  * @author Jan Kubovy [jan@kubovy.eu]
  */
+@Suppress("MemberVisibilityCanBePrivate")
 class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.java.simpleName,
 						override var uuid: String = UUID.randomUUID().toString(),
 						name: String = "",
 						enabled: Boolean = false,
 						minPriority: Priority = Priority.LOW,
 						minStatus: Status = Status.NONE,
-						services: List<String> = emptyList(),
+						services: List<NotifierServiceReference> = emptyList(),
 						tableColumnWidths: Map<String, Int> = emptyMap(),
 						deviceAddress: String = "",
 						usbPort: String = "",

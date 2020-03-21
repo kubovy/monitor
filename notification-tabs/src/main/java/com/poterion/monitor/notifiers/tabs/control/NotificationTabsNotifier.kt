@@ -70,7 +70,7 @@ class NotificationTabsNotifier(override val controller: ControllerInterface, con
 
 	override fun onServicesChanged() {
 		super.onServicesChanged()
-		if (!config.services.contains(config.selectedServiceId)) {
+		if (!config.services.any { it.uuid == config.selectedServiceId }) {
 			config.selectedServiceId = null
 			selectedServices.forEach { it.refresh = true }
 		}

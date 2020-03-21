@@ -166,17 +166,15 @@ class ApplicationConfiguration(var version: String = "",
 
 	init {
 		serviceMap.addListener(MapChangeListener { change ->
-			if (change.wasRemoved()) {
-				_serviceList.removeIf { it.uuid == change.key }
-			}
+			if (change.wasRemoved()) _serviceList.removeIf { it?.uuid == change.key }
 			if (change.wasAdded()) _serviceList.add(change.valueAdded)
 		})
 		notifierMap.addListener(MapChangeListener { change ->
-			if (change.wasRemoved()) _notifierList.removeIf { it.uuid == change.key }
+			if (change.wasRemoved()) _notifierList.removeIf { it?.uuid == change.key }
 			if (change.wasAdded()) _notifierList.add(change.valueAdded)
 		})
 		silencedMap.addListener(MapChangeListener { change ->
-			if (change.wasRemoved()) _silencedList.removeIf { it.item.id == change.key }
+			if (change.wasRemoved()) _silencedList.removeIf { it?.item?.id == change.key }
 			if (change.wasAdded()) _silencedList.add(change.valueAdded)
 		})
 	}

@@ -18,13 +18,11 @@ package com.poterion.monitor.notifiers.tabs.ui
 
 import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.controllers.ControllerInterface
-import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.utils.toIcon
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.data.SilencedStatusItem
-import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.data.services.ServiceSubConfig
 import com.poterion.monitor.notifiers.tabs.NotificationTabsIcon
 import com.poterion.monitor.notifiers.tabs.control.NotificationTabsNotifier
@@ -79,7 +77,7 @@ class TabController {
 						}
 	}
 
-	@FXML private lateinit var comboboxService: ComboBox<Service<ServiceConfig<out ServiceSubConfig>>?>
+	@FXML private lateinit var comboboxService: ComboBox<String?>
 	@FXML private lateinit var comboboxConfiguration: ComboBox<String?>
 	@FXML private lateinit var comboboxStatus: ComboBox<Status>
 	@FXML private lateinit var comboboxPriority: ComboBox<Priority>
@@ -184,28 +182,23 @@ class TabController {
 
 	private fun start() {
 		comboboxService.factory { item, empty ->
-			graphic = item?.takeUnless { empty }?.definition?.icon?.toImageView()
-			text = item?.takeUnless { empty }?.config?.name ?: "All services".takeUnless { empty }
+			val service = item?.takeUnless { empty }?.let { uuid -> controller.services.find { it.config.uuid == uuid } }
+			graphic = service?.definition?.icon?.toImageView()
+			text = service?.config?.name ?: "All services".takeUnless { empty }
 		}
-		comboboxService.selectionModel.selectedItemProperty().addListener { _, _, value ->
-			if (config.selectedServiceId != value?.config?.uuid) {
-				config.selectedServiceId = value?.config?.uuid
-				comboboxConfiguration.items.clear()
-				comboboxConfiguration.items.add(null)
-				value?.config?.subConfig?.map { it.configTitle }
-						?.distinct()
-						?.sorted()
-						?.also { comboboxConfiguration.items.addAll(it) }
-				refreshTable()
-				controller.saveConfig()
-			}
+		comboboxService.valueProperty().bindBidirectional(config.selectedServiceIdProperty)
+		comboboxService.selectionModel.selectedItemProperty().addListener { _, _, _ ->
+			config.selectedConfiguration = null
+			refreshUI()
+			refreshTable()
+			controller.saveConfig()
 		}
 
 		comboboxConfiguration.factory { item, empty ->
 			text = (item?.takeUnless { it.isEmpty() } ?: "All configurations").takeUnless { empty }
 		}
 		comboboxConfiguration.valueProperty().bindBidirectional(config.selectedConfigurationProperty)
-		comboboxConfiguration.selectionModel.selectedItemProperty().addListener { _, _, value ->
+		comboboxConfiguration.selectionModel.selectedItemProperty().addListener { _, _, _ ->
 			refreshTable()
 			controller.saveConfig()
 		}
@@ -366,7 +359,7 @@ class TabController {
 						config.selectedServiceId = null
 						config.selectedConfiguration = null
 					}
-					comboboxService.items.removeIf { it?.config?.uuid == service?.uuid }
+					comboboxService.items.removeIf { it == service?.uuid }
 				}
 			}
 		})
@@ -376,52 +369,31 @@ class TabController {
 	}
 
 	private fun refreshUI() {
-		val selectedServiceId = config.selectedServiceId
-		val services = listOf(null) + notifier.selectedServices
-		if (!comboboxService.items.containsExactly(services) { it?.config }) {
-			comboboxService.items.setAll(services)
-		}
-		notifier.selectedServices
-				.find { it.config.uuid == selectedServiceId }
-				.also { service ->
-					if (comboboxService.selectionModel?.selectedItem?.config?.uuid != service?.config?.uuid) {
-						if (service == null) comboboxService.selectionModel.clearSelection()
-						else comboboxService.selectionModel.select(service)
-					}
-				}
+		val servicesIds = listOf(null) + config.services.map { it.uuid }
+		if (!comboboxService.items.containsExactly(servicesIds)) comboboxService.items.setAll(servicesIds)
 
-		comboboxConfiguration.items.setAll(listOf(null) + (comboboxService.selectionModel.selectedItem
-				?.config
+		val configs = listOf(null) + (comboboxService.selectionModel.selectedItem
+				?.let { controller.applicationConfiguration.serviceMap[it] }
 				?.subConfig
 				?.map { it.configTitle }
 				?.distinct()
 				?.sorted()
-				?: emptyList()))
+				?: emptyList())
+		if (!comboboxConfiguration.items.containsExactly(configs)) comboboxConfiguration.items.setAll(configs)
+		config.selectedConfiguration = config.selectedConfiguration?.takeIf { configs.contains(it) }
+				?: configs.firstOrNull()
 
-		val selectedStatus = config.selectedStatus ?: config.minStatus
 		val statuses = Status.values().filter { it.ordinal >= config.minStatus.ordinal }
-		if (!comboboxStatus.items.containsExactly(statuses)) {
-			comboboxStatus.items.setAll(statuses)
-		}
-		if (comboboxStatus.selectionModel.selectedItem != selectedStatus) {
-			comboboxStatus.selectionModel.select(selectedStatus)
-		}
+		if (!comboboxStatus.items.containsExactly(statuses)) comboboxStatus.items.setAll(statuses)
+		config.selectedStatus = config.selectedStatus?.takeIf { statuses.contains(it) }
+				?: config.minStatus.takeIf { statuses.contains(it) }
+						?: statuses.firstOrNull()
 
-		val selectedPriority = config.selectedPriority ?: config.minPriority
 		val priorities = Priority.values().filter { it.ordinal >= config.minPriority.ordinal }
-		if (!comboboxPriority.items.containsExactly(priorities)) {
-			comboboxPriority.items.setAll(priorities)
-		}
-		if (comboboxPriority.selectionModel.selectedItem != selectedPriority) {
-			comboboxPriority.selectionModel.select(selectedPriority)
-		}
-
-		if (checkboxShowWatched.isSelected != config.showWatched) {
-			checkboxShowWatched.isSelected = config.showWatched
-		}
-		if (checkboxShowSilenced.isSelected != config.showSilenced) {
-			checkboxShowSilenced.isSelected = config.showSilenced
-		}
+		if (!comboboxPriority.items.containsExactly(priorities)) comboboxPriority.items.setAll(priorities)
+		config.selectedPriority = config.selectedPriority?.takeIf { priorities.contains(it) }
+				?: config.minPriority.takeIf { priorities.contains(it) }
+						?: priorities.firstOrNull()
 	}
 
 	@FXML

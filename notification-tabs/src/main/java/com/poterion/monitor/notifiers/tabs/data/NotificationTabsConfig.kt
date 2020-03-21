@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.notifiers.AbstractNotifierConfig
+import com.poterion.monitor.data.notifiers.NotifierServiceReference
 import com.poterion.utils.javafx.toObservableSet
 import com.poterion.utils.kotlin.setAll
 import javafx.beans.property.BooleanProperty
@@ -66,7 +67,7 @@ class NotificationTabsConfig(override var type: String = NotificationTabsConfig:
 							 enabled: Boolean = false,
 							 minPriority: Priority = Priority.LOW,
 							 minStatus: Status = Status.NONE,
-							 services: List<String> = emptyList(),
+							 services: List<NotifierServiceReference> = emptyList(),
 							 tableColumnWidths: Map<String, Int> = emptyMap(),
 							 alertTitleWidth: Double = 200.0,
 							 alertServiceWidth: Double = 200.0,

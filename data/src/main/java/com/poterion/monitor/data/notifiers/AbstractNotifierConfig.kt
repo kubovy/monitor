@@ -46,7 +46,7 @@ abstract class AbstractNotifierConfig(name: String = "",
 									  enabled: Boolean = false,
 									  minPriority: Priority = Priority.LOW,
 									  minStatus: Status = Status.NONE,
-									  services: List<String> = emptyList(),
+									  services: List<NotifierServiceReference> = emptyList(),
 									  tableColumnWidths: Map<String, Int> = emptyMap()) :
 
 		AbstractModuleConfig(name, enabled, tableColumnWidths), NotifierConfig {
@@ -66,12 +66,12 @@ abstract class AbstractNotifierConfig(name: String = "",
 		@JsonIgnore get
 
 	@Suppress("unused")
-	private var _services: List<String>
+	private var _services: List<NotifierServiceReference>
 		@JsonProperty("services") get() = services
 		set(value) {
 			services.setAll(value)
 		}
 
-	final override val services: ObservableList<String> = services.toObservableList()
+	final override val services: ObservableList<NotifierServiceReference> = services.toObservableList()
 		@JsonIgnore get
 }

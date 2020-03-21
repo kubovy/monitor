@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.type.TypeReference
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
+import com.poterion.monitor.data.notifiers.NotifierServiceReference
 import io.reactivex.subjects.PublishSubject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -74,46 +75,53 @@ object StatusCollector {
 	fun filter(silencedIds: Collection<String>,
 			   minPriority: Priority,
 			   minStatus: Status = Status.NONE,
-			   serviceIds: Collection<String> = emptySet(),
+			   serviceReferences: Collection<NotifierServiceReference> = emptySet(),
 			   includingChildren: Boolean = false) = items
 			.asSequence()
 			.filter { it.parentId == null || includingChildren }
 			.filterNot { silencedIds.contains(it.id) }
 			.filter { it.priority >= minPriority }
 			.filter { it.status >= minStatus }
-			.filter { serviceIds.isEmpty() || serviceIds.contains(it.serviceId) }
+			.filter { item ->
+				serviceReferences.isEmpty()
+						|| serviceReferences.any {
+					it.uuid == item.serviceId
+							&& it.minPriority <= item.priority
+							&& it.minStatus <= item.status
+				}
+			}
 			.toList()
 
 	fun maxStatus(silencedIds: Collection<String>,
 				  minPriority: Priority,
 				  minStatus: Status = Status.NONE,
-				  serviceIds: Collection<String> = emptySet(),
+				  serviceReferences: Collection<NotifierServiceReference> = emptySet(),
 				  includingChildren: Boolean = false): Status =
-			topStatus(silencedIds, minPriority, minStatus, serviceIds, includingChildren)?.status ?: Status.NONE
+			topStatus(silencedIds, minPriority, minStatus, serviceReferences, includingChildren)?.status ?: Status.NONE
 
 	fun topStatusesPerService(silencedIds: Collection<String>,
 							  minPriority: Priority,
 							  minStatus: Status = Status.NONE,
-							  serviceIds: Collection<String> = emptySet(),
+							  serviceReferences: Collection<NotifierServiceReference> = emptySet(),
 							  includingChildren: Boolean = false) =
-			topStatuses(silencedIds, minPriority, minStatus, serviceIds, includingChildren)
+			topStatuses(silencedIds, minPriority, minStatus, serviceReferences, includingChildren)
 					.sortedByDescending { it.status.ordinal * 100 + it.priority.ordinal }
 					.distinctBy { it.serviceId }
 
 	fun topStatuses(silencedIds: Collection<String>,
 					minPriority: Priority,
 					minStatus: Status = Status.NONE,
-					serviceIds: Collection<String> = emptySet(),
+					serviceReferences: Collection<NotifierServiceReference> = emptySet(),
 					includingChildren: Boolean = false) =
-			filter(silencedIds, minPriority, minStatus, serviceIds, includingChildren)
-					.filter { it.status == maxStatus(silencedIds, minPriority, minStatus, serviceIds) }
+			filter(silencedIds, minPriority, minStatus, serviceReferences, includingChildren)
+					.filter { it.status == maxStatus(silencedIds, minPriority, minStatus, serviceReferences) }
 
 	fun topStatus(silencedIds: Collection<String>,
 				  minPriority: Priority,
 				  minStatus: Status = Status.NONE,
-				  serviceIds: Collection<String> = emptySet(),
+				  serviceReferences: Collection<NotifierServiceReference> = emptySet(),
 				  includingChildren: Boolean = false) =
-			filter(silencedIds, minPriority, minStatus, serviceIds, includingChildren)
+			filter(silencedIds, minPriority, minStatus, serviceReferences, includingChildren)
 					.maxBy { it.status.ordinal * 100 + it.priority.ordinal }
 
 	@Synchronized

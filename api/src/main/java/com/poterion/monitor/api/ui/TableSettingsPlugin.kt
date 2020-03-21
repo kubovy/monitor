@@ -26,6 +26,7 @@ import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.noop
 import javafx.beans.property.StringProperty
 import javafx.beans.value.WritableValue
+import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
 import javafx.collections.transformation.SortedList
 import javafx.geometry.Insets
@@ -56,6 +57,7 @@ class TableSettingsPlugin<S>(private val tableName: String,
 							 comparator: Comparator<S>,
 							 buttonText: String = "Add",
 							 private val actions: List<(S) -> Button?> = emptyList(),
+							 private val newItemValidator: (S) -> Boolean = { !items.contains(it) },
 							 private val onAdd: (S) -> Unit = {},
 							 private val onRemove: (S) -> Unit = {},
 							 private val onSave: () -> Unit = {},
@@ -79,6 +81,7 @@ class TableSettingsPlugin<S>(private val tableName: String,
 	private var newItem: S = createItem()
 	private val changeListener: MutableCollection<() -> Unit> = mutableListOf()
 	private var textFieldIndex = 0
+	private var clear: () -> Unit = {}
 
 	private fun <T> ColumnDefinition<S, T>.createControl() = if (options == null) {
 		TextField(initialValue.title()).also { textField ->
@@ -92,6 +95,10 @@ class TableSettingsPlugin<S>(private val tableName: String,
 	} else {
 		ComboBox<T>().also { combobox ->
 			combobox.items = options
+			combobox.items.addListener(ListChangeListener { change ->
+				combobox.selectionModel.clearSelection()
+				combobox.value = change.list.firstOrNull()
+			})
 			changeListener.add {
 				combobox.items = options
 				combobox.selectionModel.select(initialValue)
@@ -103,6 +110,10 @@ class TableSettingsPlugin<S>(private val tableName: String,
 			combobox.selectionModel.select(initialValue)
 			combobox.selectionModel.selectedItemProperty().addListener { _, _, value ->
 				newItem = newItem.mutator((value) ?: initialValue)
+			}
+			clear = {
+				combobox.value = combobox.items.firstOrNull()
+				combobox.selectionModel.clearSelection()
 			}
 		}
 	}
@@ -239,10 +250,12 @@ class TableSettingsPlugin<S>(private val tableName: String,
 	}
 
 	private fun addItem() {
-		if (!items.contains(newItem)) {
-			items.add(newItem)
+		if (newItemValidator(newItem)) {
+			val itemToAdd = newItem
 			newItem = createItem()
-			save { onAdd(newItem) }
+			clear()
+			items.add(itemToAdd)
+			save { onAdd(itemToAdd) }
 		}
 	}
 
