@@ -27,6 +27,8 @@ enum class CommonIcon : Icon {
 	LINK,
 	REFRESH,
 	DUPLICATE,
+	CUT,
+	PASTE,
 	TRASH,
 	SETTINGS,
 	UNDER_CONSTRUCTION,

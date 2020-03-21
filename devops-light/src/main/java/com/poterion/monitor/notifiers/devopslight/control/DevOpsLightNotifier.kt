@@ -104,7 +104,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 			sub?.add(NavigationItem(title = null))
 
 			config.items.sortedBy { it.id }.forEach { itemConfig ->
-				val title = itemConfig.id.takeIf { it.isNotEmpty() }
+				val title = itemConfig.id?.takeIf { it.isNotEmpty() } // To support old config
 				sub?.add(NavigationItem(
 						title = title ?: "Default",
 						icon = title?.let { DevOpsLightIcon.ITEM_NON_DEFAULT } ?: DevOpsLightIcon.ITEM_DEFAULT,
@@ -133,6 +133,8 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to TextField(config.deviceAddress).apply {
+					maxWidth = 150.0
+					promptText = "00:00:00:00:00:00"
 					textProperty().bindBidirectional(config.deviceAddressProperty)
 					focusedProperty().addListener { _, _, focused -> if (!focused) controller.saveConfig() }
 				},
@@ -160,6 +162,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				} to CheckBox().apply {
+					maxHeight = Double.MAX_VALUE
 					selectedProperty().bindBidirectional(config.onDemandConnectionProperty)
 					selectedProperty().addListener { _, _, _ -> controller.saveConfig() }
 				})

@@ -44,7 +44,7 @@ import javafx.collections.ObservableList
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 @Suppress("MemberVisibilityCanBePrivate")
-class DevOpsLightItemConfig(id: String = "",
+class DevOpsLightItemConfig(id: String? = null,
 							subId: String? = null,
 							statusNone: List<RgbLightConfiguration> = emptyList(),
 							statusUnknown: List<RgbLightConfiguration> = emptyList(),
@@ -57,7 +57,7 @@ class DevOpsLightItemConfig(id: String = "",
 							statusError: List<RgbLightConfiguration> = emptyList(),
 							statusFatal: List<RgbLightConfiguration> = emptyList()) {
 
-	var id: String
+	var id: String?
 		get() = idProperty.get()
 		set(value) = idProperty.set(value)
 
