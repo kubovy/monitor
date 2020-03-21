@@ -207,6 +207,7 @@ class TabController {
 		comboboxConfiguration.valueProperty().bindBidirectional(config.selectedConfigurationProperty)
 		comboboxConfiguration.selectionModel.selectedItemProperty().addListener { _, _, value ->
 			refreshTable()
+			controller.saveConfig()
 		}
 
 		comboboxStatus.factory { item, empty ->
@@ -378,7 +379,7 @@ class TabController {
 		val selectedServiceId = config.selectedServiceId
 		val services = listOf(null) + notifier.selectedServices
 		if (!comboboxService.items.containsExactly(services) { it?.config }) {
-			comboboxService.items.setAll(listOf(null) + notifier.selectedServices)
+			comboboxService.items.setAll(services)
 		}
 		notifier.selectedServices
 				.find { it.config.uuid == selectedServiceId }
@@ -388,6 +389,14 @@ class TabController {
 						else comboboxService.selectionModel.select(service)
 					}
 				}
+
+		comboboxConfiguration.items.setAll(listOf(null) + (comboboxService.selectionModel.selectedItem
+				?.config
+				?.subConfig
+				?.map { it.configTitle }
+				?.distinct()
+				?.sorted()
+				?: emptyList()))
 
 		val selectedStatus = config.selectedStatus ?: config.minStatus
 		val statuses = Status.values().filter { it.ordinal >= config.minStatus.ordinal }

@@ -20,15 +20,13 @@
 						<Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
 					</padding>
 				</Label>
-				<ComboBox fx:id="comboboxService" maxWidth="1.7976931348623157E308" prefWidth="150.0"
-						  HBox.hgrow="SOMETIMES"/>
+				<ComboBox fx:id="comboboxService" maxWidth="1.7976931348623157E308"/>
 				<Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Configuration:">
 					<padding>
 						<Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
 					</padding>
 				</Label>
-				<ComboBox fx:id="comboboxConfiguration" maxWidth="1.7976931348623157E308" prefWidth="150.0"
-						  HBox.hgrow="SOMETIMES"/>
+				<ComboBox fx:id="comboboxConfiguration" maxWidth="1.7976931348623157E308"/>
 				<Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Status:">
 					<padding>
 						<Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
