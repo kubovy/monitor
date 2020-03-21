@@ -27,6 +27,7 @@ import com.poterion.utils.javafx.bindFiltered
 import com.poterion.utils.javafx.mapped
 import com.poterion.utils.kotlin.noop
 import javafx.collections.FXCollections
+import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -62,8 +63,11 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 			.emptyObservableList()
 		get() {
 			if (field == FXCollections.emptyObservableList<Service<ServiceConfig<out ServiceSubConfig>>>()) {
-				field = controller.services
-						.filtered { config.services.isEmpty() || config.services.contains(it.config.uuid) }
+				field = controller
+						.services
+						.bindFiltered(config.services) {
+							config.services.isEmpty() || config.services.contains(it.config.uuid)
+						}
 			}
 			return field
 		}
@@ -115,6 +119,13 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOfNotNull(serviceTableSettingsPlugin?.vbox)
+
+	override fun initialize() {
+		super.initialize()
+		controller.applicationConfiguration.services.addListener(ListChangeListener { change ->
+			while (change.next()) if (change.wasRemoved()) config.services.removeAll(change.removed.map { it.uuid })
+		})
+	}
 
 	open fun onServicesChanged() = noop()
 

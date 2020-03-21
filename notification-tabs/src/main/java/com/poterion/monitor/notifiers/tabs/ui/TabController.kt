@@ -38,6 +38,7 @@ import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.containsExactly
 import com.poterion.utils.kotlin.noop
 import com.poterion.utils.kotlin.toUriOrNull
+import javafx.collections.ListChangeListener
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
@@ -139,6 +140,15 @@ class TabController {
 			{ -(it.value.startedAt ?: Instant.now()).epochSecond },
 			{ controller.applicationConfiguration.serviceMap[it.value.serviceId]?.name ?: "" },
 			{ it.value.title })
+
+	private val serviceSubConfigChangeListener = ListChangeListener<ServiceSubConfig> { change ->
+		while (change.next()) if (change.wasRemoved()) change.removed.forEach { removed ->
+			if (config.selectedConfiguration == removed.configTitle) {
+				config.selectedConfiguration = null
+			}
+			comboboxConfiguration.items.removeIf { it == removed.configTitle }
+		}
+	}
 
 	@FXML
 	fun initialize() {
@@ -339,6 +349,25 @@ class TabController {
 			}
 			contextMenu = item?.takeUnless { empty }?.contextMenu()
 		}
+
+		controller.applicationConfiguration.services.forEach { it.subConfig.addListener(serviceSubConfigChangeListener) }
+		controller.applicationConfiguration.services.addListener(ListChangeListener { change ->
+			while (change.next()) when {
+				change.wasAdded() -> change.addedSubList.forEach { service ->
+					service.subConfig.addListener(serviceSubConfigChangeListener)
+				}
+				change.wasRemoved() -> change.removed.forEach { service ->
+					service.subConfig.removeListener(serviceSubConfigChangeListener)
+					if (config.selectedServiceId == service.uuid) {
+						comboboxService.selectionModel.select(null)
+						config.selectedServiceId = null
+						config.selectedConfiguration = null
+					}
+					comboboxService.items.removeIf { it?.config?.uuid == service?.uuid }
+				}
+			}
+		})
+
 		refreshUI()
 		refreshTable()
 	}

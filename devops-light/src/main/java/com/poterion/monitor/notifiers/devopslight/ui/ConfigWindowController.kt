@@ -380,6 +380,40 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 
 		notifier.bluetoothCommunicator.register(this)
 		notifier.usbCommunicator.register(this)
+
+		notifier.controller.applicationConfiguration.services.forEach { service ->
+			val listener = serviceSubConfigListenerMap
+					.getOrPut(service.uuid) { createServiceSubConfigListener(service) }
+			service.subConfig.addListener(listener)
+		}
+		notifier.controller.applicationConfiguration.services.addListener(ListChangeListener { change ->
+			while (change.next()) when {
+				change.wasAdded() -> change.addedSubList.forEach { service ->
+					val listener = serviceSubConfigListenerMap
+							.getOrPut(service.uuid) { createServiceSubConfigListener(service) }
+					service.subConfig.addListener(listener)
+				}
+				change.wasRemoved() -> change.removed.forEach { service ->
+					service.subConfig.removeListener(serviceSubConfigListenerMap.remove(service.uuid))
+					treeConfigs.root.children.removeIf { it?.value?.serviceId == service.uuid }
+				}
+			}
+		})
+	}
+
+	private val serviceSubConfigListenerMap = mutableMapOf<String, ListChangeListener<ServiceSubConfig>>()
+
+	private fun createServiceSubConfigListener(service: ServiceConfig<out ServiceSubConfig>) = object : ListChangeListener<ServiceSubConfig> {
+		private val serviceId = service.uuid
+
+		override fun onChanged(change: ListChangeListener.Change<out ServiceSubConfig>) {
+			while (change.next()) if (change.wasRemoved()) change.removed.forEach { removed ->
+				treeConfigs.root.children.removeIf {
+					it?.value?.serviceId == serviceId
+							&& it.value?.subConfigId == removed?.configTitle
+				}
+			}
+		}
 	}
 
 	@FXML
