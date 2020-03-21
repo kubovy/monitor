@@ -71,7 +71,8 @@ class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.jav
 						combineMultipleServices: Boolean = true,
 						split: Double = 0.2,
 						items: List<DevOpsLightItemConfig> = emptyList(),
-						customColors: List<RgbColor> = emptyList()) :
+						customColors: List<RgbColor> = emptyList(),
+						expanded: List<String> = emptyList()) :
 		AbstractNotifierConfig(name, enabled, minPriority, minStatus, services, tableColumnWidths) {
 
 	var deviceAddress: String
@@ -127,5 +128,15 @@ class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.jav
 		}
 
 	val customColors: ObservableList<RgbColor> = customColors.toObservableList()
+		@JsonIgnore get
+
+	@Suppress("unused")
+	private var _expanded: List<String>
+		@JsonProperty("expanded") get() = expanded
+		set(value) {
+			expanded.setAll(value)
+		}
+
+	val expanded: ObservableList<String> = expanded.toObservableList()
 		@JsonIgnore get
 }

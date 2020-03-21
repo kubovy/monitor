@@ -38,6 +38,7 @@ import com.poterion.monitor.notifiers.devopslight.deepCopy
 import com.poterion.utils.javafx.Icon
 import com.poterion.utils.javafx.cell
 import com.poterion.utils.javafx.factory
+import com.poterion.utils.javafx.monitorExpansion
 import com.poterion.utils.javafx.toImage
 import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.ensureSuffix
@@ -331,7 +332,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 									TreeItem(StateConfig("Warning", CommonIcon.STATUS_WARNING, item.statusWarning)),
 									TreeItem(StateConfig("Error", CommonIcon.STATUS_ERROR, item.statusError)),
 									TreeItem(StateConfig("Fatal", CommonIcon.STATUS_FATAL, item.statusFatal)))
-							isExpanded = true
+							monitorExpansion()
 						}
 					}
 					.also {
@@ -447,6 +448,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 							TreeItem(StateConfig("Warning", CommonIcon.STATUS_WARNING, emptyList())),
 							TreeItem(StateConfig("Error", CommonIcon.STATUS_ERROR, emptyList())),
 							TreeItem(StateConfig("Fatal", CommonIcon.STATUS_FATAL, emptyList())))
+					monitorExpansion()
 				})
 				comboServiceConfig.apply {
 					selectionModel.clearSelection()
@@ -468,7 +470,10 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 			buttonTypes.setAll(ButtonType.YES, ButtonType.NO)
 		}.showAndWait().ifPresent { btnType ->
 			btnType.takeIf { it == ButtonType.YES }?.also {
-				if (selected.value.title.isNotEmpty()) selected.parent?.children?.remove(selected)
+				if (selected.value.title.isNotEmpty()) {
+					selected.parent?.children?.remove(selected)
+					selected.value?.key?.also { config.expanded.remove(it) }
+				}
 				saveConfig()
 			}
 		}
@@ -787,4 +792,18 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 					Insets.EMPTY))
 		}
 	}
+
+	private val StateConfig.key: String
+		get() = "${serviceId}-${subConfigId ?: "all"}"
+
+	private fun TreeItem<StateConfig>.monitorExpansion() = monitorExpansion(
+			{ item -> config.expanded.contains(item?.key) },
+			{ item, expanded ->
+				if (expanded) {
+					if (!config.expanded.contains(item?.key)) config.expanded.add(item?.key)
+				} else {
+					config.expanded.remove(item?.key)
+				}
+				notifier.controller.saveConfig()
+			})
 }
