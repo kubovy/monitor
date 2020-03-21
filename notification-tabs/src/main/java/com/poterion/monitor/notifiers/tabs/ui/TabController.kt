@@ -38,6 +38,9 @@ import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.containsExactly
 import com.poterion.utils.kotlin.noop
 import com.poterion.utils.kotlin.toUriOrNull
+import javafx.application.Platform
+import javafx.beans.value.ChangeListener
+import javafx.beans.value.ObservableValue
 import javafx.collections.ListChangeListener
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
@@ -82,7 +85,7 @@ class TabController {
 	@FXML private lateinit var comboboxPriority: ComboBox<Priority>
 	@FXML private lateinit var checkboxShowWatched: CheckBox
 	@FXML private lateinit var checkboxShowSilenced: CheckBox
-	@FXML private lateinit var btnRefresh: Button
+	@FXML private lateinit var buttonRefresh: Button
 	@FXML private lateinit var treeTableAlerts: TreeTableView<StatusItem>
 	@FXML private lateinit var columnAlertsTitle: TreeTableColumn<StatusItem, String>
 	@FXML private lateinit var columnAlertsService: TreeTableColumn<StatusItem, String>
@@ -152,8 +155,7 @@ class TabController {
 
 	@FXML
 	fun initialize() {
-		btnRefresh.graphic = CommonIcon.REFRESH.toImageView()
-		btnRefresh.text = ""
+		buttonRefresh.graphic = CommonIcon.REFRESH.toImageView()
 		treeTableAlerts.root = TreeItem(StatusItem("", "ROOT", Priority.NONE, Status.NONE, ""))
 		treeTableAlerts.isShowRoot = false
 		treeTableAlerts.selectionModel.selectionMode = SelectionMode.MULTIPLE
@@ -415,7 +417,28 @@ class TabController {
 
 	@FXML
 	fun onRefresh() {
-		notifier.selectedServices.forEach { it.refresh = true }
+		val services = notifier.selectedServices.filter { it.config.enabled }
+		if (services.isNotEmpty()) {
+			buttonRefresh.text = "Refreshing ..."
+			buttonRefresh.isDisable = true
+			var count = 0
+			services.forEach { service ->
+				count++
+				service.refreshProperty.addListener(object : ChangeListener<Boolean> {
+					override fun changed(observable: ObservableValue<out Boolean>, previous: Boolean, value: Boolean) {
+						if (!value) {
+							count--
+							observable.removeListener(this)
+						}
+						if (count <= 0) Platform.runLater {
+							buttonRefresh.isDisable = false
+							buttonRefresh.text = "Refresh"
+						}
+					}
+				})
+				service.refresh = true
+			}
+		}
 	}
 
 	fun update(statusItems: Collection<StatusItem>) {

@@ -62,18 +62,19 @@ class ControllerWorker private constructor(
 		while (running) try {
 			val now = System.currentTimeMillis()
 			services.filter { it.shouldRun(now) }
-				.parallelStreamIntermediate(Runtime.getRuntime().availableProcessors()) { service ->
-					service.refresh = false
-					serviceLastChecked[service.config.uuid] = System.currentTimeMillis()
-					try {
-						service.check {
-							StatusCollector.update(it,
-									(service.definition as? ServiceModule)?.staticNotificationSet != false)
+					.parallelStreamIntermediate(Runtime.getRuntime().availableProcessors()) { service ->
+						try {
+							if (service.config.enabled) service.check {
+								StatusCollector.update(it,
+										(service.definition as? ServiceModule)?.staticNotificationSet != false)
+							}
+						} catch (t: Throwable) {
+							LOGGER.error(t.message, t)
+						} finally {
+							service.refresh = false
+							serviceLastChecked[service.config.uuid] = System.currentTimeMillis()
 						}
-					} catch (t: Throwable) {
-						LOGGER.error(t.message, t)
 					}
-				}
 			Thread.sleep(1_000L)
 		} catch (e: InterruptedException) {
 			running = false
@@ -81,9 +82,9 @@ class ControllerWorker private constructor(
 		return !running
 	}
 
-	private fun Service<ServiceConfig<out ServiceSubConfig>>.shouldRun(now: Long) = refresh || config
+	private fun Service<ServiceConfig<out ServiceSubConfig>>.shouldRun(now: Long) = refresh || (config
 			.let { config -> config.checkInterval?.let { config.uuid to it } }
 			?.let { (uuid, checkInterval) -> (serviceLastChecked[uuid] ?: 0L) to checkInterval }
 			?.let { (lastChecked, checkInterval) -> (now - lastChecked) > checkInterval }
-			?: false
+			?: false)
 }

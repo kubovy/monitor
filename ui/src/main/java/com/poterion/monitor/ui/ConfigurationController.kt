@@ -37,6 +37,7 @@ import com.poterion.monitor.data.auth.TokenAuthConfig
 import com.poterion.monitor.data.data.SilencedStatusItem
 import com.poterion.utils.javafx.cell
 import com.poterion.utils.javafx.confirmDialog
+import com.poterion.utils.javafx.ensureApplicationThread
 import com.poterion.utils.javafx.factory
 import com.poterion.utils.javafx.openInExternalApplication
 import com.poterion.utils.javafx.toImage
@@ -588,7 +589,17 @@ class ConfigurationController {
 							maxHeight = Double.MAX_VALUE
 							padding = Insets(5.0)
 						},
-						Button("", CommonIcon.REFRESH.toImageView()).apply { setOnAction { refresh = true } }
+						Button("", CommonIcon.REFRESH.toImageView()).apply {
+							disableProperty().bind(refreshProperty)
+							setOnAction { refresh = true }
+						},
+						Label(if (refresh) "Refreshing..." else "").apply {
+							maxHeight = Double.MAX_VALUE
+							padding = Insets(5.0)
+							refreshProperty.addListener { _, _, value ->
+								ensureApplicationThread { text = if (value) "Refreshing..." else "" }
+							}
+						}
 				).apply {
 					alignment = Pos.CENTER_LEFT
 				})
