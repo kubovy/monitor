@@ -20,3 +20,4 @@ build/
 .DS_Store
 /.gitconfig
 .directory
+/src/main/resources/application.properties

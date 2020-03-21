@@ -29,10 +29,17 @@ import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.ModuleDeserializer
 import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.monitor.data.auth.AuthDeserializer
+import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.notifiers.NotifierDeserializer
 import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.data.services.ServiceDeserializer
+import org.slf4j.LoggerFactory
+import java.io.File
+import java.time.LocalDateTime
+import kotlin.math.pow
+
+private val LOGGER = LoggerFactory.getLogger("com.poterion.monitor.api.Utils")
 
 val objectMapper = ObjectMapper(YAMLFactory()).apply {
 	registerModule(ParameterNamesModule())
@@ -61,4 +68,37 @@ val objectMapper = ObjectMapper(YAMLFactory()).apply {
 	configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false)
 	configure(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES, false)
 	configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+}
+
+fun String.toVersionNumber(): Long {
+	if (contains("SNAPSHOT")) return Long.MAX_VALUE
+	return split(".")
+			.map { it.toDoubleOrNull() ?: 0.0 }
+			.reversed()
+			.takeIf { it.isNotEmpty() }
+			?.reduceIndexed { index, acc, i -> acc + (i * 10_000.0.pow(index)) }
+			?.toLong()
+			?: 0L
+}
+
+fun ApplicationConfiguration.save() {
+	val backupFile = File(Shared.configFile.absolutePath + "-" + LocalDateTime.now().toString())
+	try {
+		val tempFile = File(Shared.configFile.absolutePath + ".tmp")
+		var success = tempFile.parentFile.exists() || tempFile.parentFile.mkdirs()
+		objectMapper.writeValue(tempFile, this)
+		success = success
+				&& (!backupFile.exists() || backupFile.delete())
+				&& (Shared.configFile.parentFile.exists() || Shared.configFile.parentFile.mkdirs())
+				&& (!Shared.configFile.exists() || Shared.configFile.renameTo(backupFile))
+				&& tempFile.renameTo(Shared.configFile.absoluteFile)
+		if (success) backupFile.delete()
+		else LOGGER.error("Failed saving configuration to ${Shared.configFile.absolutePath} (backup ${backupFile})")
+	} catch (e: Exception) {
+		LOGGER.error(e.message, e)
+	} finally {
+		if (!Shared.configFile.exists() && backupFile.exists() && !backupFile.renameTo(Shared.configFile)) {
+			LOGGER.error("Restoring ${backupFile} failed!")
+		}
+	}
 }

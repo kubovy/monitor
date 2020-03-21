@@ -46,7 +46,8 @@ import javafx.collections.ObservableMap
  */
 @Suppress("unused", "MemberVisibilityCanBePrivate")
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)
-class ApplicationConfiguration(btDiscovery: Boolean = false,
+class ApplicationConfiguration(var version: String = "",
+							   btDiscovery: Boolean = false,
 							   showOnStartup: Boolean = true,
 							   startMinimized: Boolean = false,
 							   windowWidth: Double = 1200.0,

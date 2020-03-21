@@ -26,6 +26,7 @@ import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.api.objectMapper
+import com.poterion.monitor.api.save
 import com.poterion.monitor.data.ModuleDeserializer
 import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.notifiers.NotifierAction
@@ -64,6 +65,7 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 	override val notifiers: ObservableList<Notifier<NotifierConfig>> = FXCollections.observableArrayList()
 
 	override var applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration()
+		private set
 	private val configuration: PublishSubject<Boolean> = PublishSubject.create()
 
 	@Deprecated("Use properties in config")
@@ -74,6 +76,10 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 		modules.forEach { registerModule(it) }
 		if (Shared.configFile.exists()) try {
 			applicationConfiguration = objectMapper.readValue(Shared.configFile, ApplicationConfiguration::class.java)
+			applicationConfiguration.version = Shared.properties
+					.getProperty("version", "0")
+					.takeUnless { it.contains("SNAPSHOT") }
+					?: "0"
 			(applicationConfiguration.serviceMap as MutableMap<String, ServiceConfig<out ServiceSubConfig>?>)
 					.filterValues { it == null }
 					.keys
@@ -137,26 +143,8 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 		}
 
 		configuration.sample(1, TimeUnit.SECONDS, true).subscribe {
-			val backupFile = File(Shared.configFile.absolutePath + "-" + LocalDateTime.now().toString())
-			try {
-				configListeners.forEach { it.invoke(applicationConfiguration) }
-				val tempFile = File(Shared.configFile.absolutePath + ".tmp")
-				var success = tempFile.parentFile.exists() || tempFile.parentFile.mkdirs()
-				objectMapper.writeValue(tempFile, applicationConfiguration)
-				success = success
-						&& (!backupFile.exists() || backupFile.delete())
-						&& (Shared.configFile.parentFile.exists() || Shared.configFile.parentFile.mkdirs())
-						&& (!Shared.configFile.exists() || Shared.configFile.renameTo(backupFile))
-						&& tempFile.renameTo(Shared.configFile.absoluteFile)
-				if (success) backupFile.delete()
-				else LOGGER.error("Failed saving configuration to ${Shared.configFile.absolutePath} (backup ${backupFile})")
-			} catch (e: Exception) {
-				LOGGER.error(e.message, e)
-			} finally {
-				if (!Shared.configFile.exists() && backupFile.exists() && !backupFile.renameTo(Shared.configFile)) {
-					LOGGER.error("Restoring ${backupFile} failed!")
-				}
-			}
+			configListeners.forEach { it.invoke(applicationConfiguration) }
+			applicationConfiguration.save()
 		}
 	}
 

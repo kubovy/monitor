@@ -34,7 +34,12 @@ import com.poterion.monitor.ui.ConfigurationController
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.stage.Stage
-import org.apache.commons.cli.*
+import org.apache.commons.cli.CommandLineParser
+import org.apache.commons.cli.DefaultParser
+import org.apache.commons.cli.HelpFormatter
+import org.apache.commons.cli.Option
+import org.apache.commons.cli.Options
+import org.apache.commons.cli.ParseException
 import java.io.File
 import kotlin.system.exitProcess
 
@@ -113,6 +118,8 @@ class Main: Application() {
 				line.getOptionValue("directory")?.also { Shared.configDirectory = File(it) }
 				line.getOptionValue("config")?.also { Shared.configFile = File(it) }
 				line.getOptionValue("cache")?.also { Shared.cacheFile = File(it) }
+
+				migrate()
 
 				launch(Main::class.java, *args)
 			} catch (e: ParseException) { // oops, something went wrong
