@@ -1,4 +1,4 @@
-rootProject.name = 'monitor'
+rootProject.name = 'poterion-monitor'
 // Libs
 include 'kotlin-utils'
 include 'javafx-utils'

@@ -7,27 +7,30 @@ plugins {
     id 'idea'
 }
 
-group 'com.poterion.monitor'
+group 'com.poterion.bluetooth'
 version project.hasProperty('version') && project.version != "unspecified" ? project.version : '1.0-SNAPSHOT'
 
 ext {
     APP_NAME = "Poterion Monitor"
+    IMAGE_NAME = "poterion-monitor"
     VENDOR = "Poterion"
     EMAIL = "apps@poterion.com"
+    ICON = "api/src/main/resources/com/poterion/monitor/api/icons/application.icns"
+    CATEGORY = "Utility"
+    PACKAGE = "com.poterion.monitor"
+    STARTING_YEAR = "2018"
+
     if (Os.isFamily(Os.FAMILY_MAC)) {
-        IMAGE_NAME = "${APP_NAME}"
         ARCHIVE = 'tar.gz'
         JDK = 'zulu8.42.0.23-ca-fx-jdk8.0.232-macosx_x64'
         JRE_SUFFIX = ""
         CONTAINERS = ['image', 'dmg', 'pkg']
     } else if (Os.isFamily(Os.FAMILY_UNIX)) {
-        IMAGE_NAME = "poterion-monitor"
         ARCHIVE = 'tar.gz'
         JDK = 'zulu8.42.0.23-ca-fx-jdk8.0.232-linux_x64'
         JRE_SUFFIX = "/jre"
         CONTAINERS = ['image', 'deb', 'rpm']
     } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-        IMAGE_NAME = "${APP_NAME}"
         ARCHIVE = 'zip'
         JDK =  'zulu8.42.0.23-ca-fx-jdk8.0.232-win_x64'
         JRE_SUFFIX = ""
@@ -91,24 +94,11 @@ compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
 
-task writePropertyFile(group: 'build') {
-    doLast {
-        def var = new Properties()
-        File file = file("src/main/resources/application.properties")
-
-        if (file.exists()) var.load(file.newDataInputStream())
-        var.setProperty("version", "${version}")
-        var.store(file.newWriter(), null)
-    }
-}
-
-tasks.assemble.dependsOn(writePropertyFile)
-
 task assembleFatJar(type: Jar, group: 'build', dependsOn: [assemble, extractOpenJDK]) {
     manifest {
-        attributes 'Implementation-Title': 'Poterion Monitor',
+        attributes 'Implementation-Title': "${APP_NAME}",
                 'Implementation-Version': archiveVersion,
-                'Main-Class': 'com.poterion.monitor.Main'
+                'Main-Class': "${PACKAGE}.Main"
     }
     archiveBaseName.set(project.name + '-' + (project.hasProperty('flavor') ? project.flavor : 'all'))
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
@@ -128,7 +118,7 @@ task assembleSelfContained(group: 'build', dependsOn: assembleFatJar) {
         logger.info("Building self contained images: ${CONTAINERS}")
         logger.info("JAVA_HOME=${JAVA_HOME}")
         logger.info("JPACKAGER=${JPACKAGER}")
-        logger.info("SRC=${file("${buildDir}/libs/monitor-all-${version}.jar").path}")
+        logger.info("SRC=${file("${buildDir}/libs/${IMAGE_NAME}-all-${version}.jar").path}")
         CONTAINERS.forEach { type ->
             try {
                 logger.info("Packaging ${type} of ${APP_NAME} ${version.replace("-SNAPSHOT", "")}")
@@ -137,23 +127,23 @@ task assembleSelfContained(group: 'build', dependsOn: assembleFatJar) {
                             "-deploy",
                             "-Bruntime=${JRE_HOME}",
                             "-BappVersion=${version.replace("-SNAPSHOT", "")}",
-                            "-Bicon=api/src/main/resources/com/poterion/monitor/api/icons/application.icns",
-                            "-Bcategory=Utility",
+                            "-Bicon=${ICON}",
+                            "-Bcategory=${CATEGORY}",
                             "-BlicenseFile=COPYING",
-                            "-Bcopyright=2018-${LocalDate.now().year} ${VENDOR}",
+                            "-Bcopyright=${STARTING_YEAR}-${LocalDate.now().year} ${VENDOR}",
                             "-Bemail=${EMAIL}",
                             //"-Barguments=--config-dir=.", // Store config inside the app directory
                             "-Bmac.category=Utility",
-                            "-Bmac.CFBundleIdentifier=com.poterion.monitor",
+                            "-Bmac.CFBundleIdentifier=${PACKAGE}",
                             "-Bmac.CFBundleName=${APP_NAME}",
                             "-Bmac.CFBundleVersion=${version.replace("-SNAPSHOT", "")}",
                             "-native", type,
                             "-srcdir", ".",
-                            "-srcfiles", "build/libs/monitor-all-${version}.jar",
+                            "-srcfiles", "build/libs/${IMAGE_NAME}-all-${version}.jar",
                             "-srcfiles", "COPYING",
                             "-outdir", ".",
                             "-outfile", IMAGE_NAME,
-                            "-appclass", "com.poterion.monitor.Main",
+                            "-appclass", "${PACKAGE}.Main",
                             "-name", IMAGE_NAME,
                             "-title", APP_NAME,
                             "-vendor", VENDOR,
@@ -173,7 +163,7 @@ task assembleSelfContained(group: 'build', dependsOn: assembleFatJar) {
 }
 
 task archiveSelfContainedLinuxImage(type: Tar, group: 'build') {
-    archiveBaseName = "poterion-${project.name}"
+    archiveBaseName = "${project.name}"
     archiveVersion = "${project.version.replace("-SNAPSHOT", "")}"
     archiveExtension = 'tar.gz'
     into ("/${IMAGE_NAME}/"){
