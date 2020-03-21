@@ -60,20 +60,20 @@ class StoryboardConfig(override var type: String = StoryboardConfig::class.java.
 					   writeTimeout: Long? = null,
 					   tableColumnWidths: Map<String, Int> = emptyMap(),
 					   projects: List<StoryboardProjectConfig> = emptyList()) :
-		AbstractServiceConfig(name, enabled, url, trustCertificate, auth, order, priority, checkInterval,
-				connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
+		AbstractServiceConfig<StoryboardProjectConfig>(name, enabled, url, trustCertificate, auth, order, priority,
+				checkInterval, connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
 
 	@Suppress("unused")
 	private var _projects: List<StoryboardProjectConfig>
-		@JsonProperty("projects") get() = projects
+		@JsonProperty("projects") get() = subConfig
 		set(value) {
-			projects.setAll(value)
+			subConfig.setAll(value)
 		}
 
 	/**
 	 * Project name / [Priority] mapping
 	 * @see [StoryboardProjectConfig]
 	 */
-	val projects: ObservableList<StoryboardProjectConfig> = projects.toObservableList()
+	override val subConfig: ObservableList<StoryboardProjectConfig> = projects.toObservableList()
 		@JsonIgnore get
 }

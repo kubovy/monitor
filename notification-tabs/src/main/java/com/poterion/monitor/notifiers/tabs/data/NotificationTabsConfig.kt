@@ -23,7 +23,14 @@ import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.notifiers.AbstractNotifierConfig
 import com.poterion.utils.javafx.toObservableSet
 import com.poterion.utils.kotlin.setAll
-import javafx.beans.property.*
+import javafx.beans.property.BooleanProperty
+import javafx.beans.property.DoubleProperty
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.SimpleBooleanProperty
+import javafx.beans.property.SimpleDoubleProperty
+import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
 import javafx.collections.ObservableSet
 import java.util.*
 
@@ -52,6 +59,7 @@ import java.util.*
  * @param watchedItems
  * @author Jan Kubovy [jan@kubovy.eu]
  */
+@Suppress("unused", "MemberVisibilityCanBePrivate")
 class NotificationTabsConfig(override var type: String = NotificationTabsConfig::class.java.simpleName,
 							 override var uuid: String = UUID.randomUUID().toString(),
 							 name: String = "Notification Tabs",
@@ -62,10 +70,12 @@ class NotificationTabsConfig(override var type: String = NotificationTabsConfig:
 							 tableColumnWidths: Map<String, Int> = emptyMap(),
 							 alertTitleWidth: Double = 200.0,
 							 alertServiceWidth: Double = 200.0,
+							 alertConfigWidth: Double = 200.0,
 							 alertLabelsWidth: Double = 200.0,
 							 selectedPriority: Priority? = null,
 							 selectedStatus: Status? = null,
 							 selectedServiceId: String? = null,
+							 selectedConfiguration: String? = null,
 							 showWatched: Boolean = false,
 							 showSilenced: Boolean = false,
 							 watchedItems: Set<String> = emptySet()) :
@@ -83,6 +93,13 @@ class NotificationTabsConfig(override var type: String = NotificationTabsConfig:
 		set(value) = alertServiceWidthProperty.set(value)
 
 	val alertServiceWidthProperty: DoubleProperty = SimpleDoubleProperty(alertServiceWidth)
+		@JsonIgnore get
+
+	var alertConfigWidth: Double
+		get() = alertConfigWidthProperty.get()
+		set(value) = alertConfigWidthProperty.set(value)
+
+	val alertConfigWidthProperty: DoubleProperty = SimpleDoubleProperty(alertConfigWidth)
 		@JsonIgnore get
 
 	var alertLabelsWidth: Double
@@ -111,6 +128,13 @@ class NotificationTabsConfig(override var type: String = NotificationTabsConfig:
 		set(value) = selectedServiceIdProperty.set(value)
 
 	val selectedServiceIdProperty: StringProperty = SimpleStringProperty(selectedServiceId)
+		@JsonIgnore get
+
+	var selectedConfiguration: String?
+		get() = selectedConfigurationProperty.get()
+		set(value) = selectedConfigurationProperty.set(value)
+
+	val selectedConfigurationProperty: StringProperty = SimpleStringProperty(selectedConfiguration)
 		@JsonIgnore get
 
 	var showWatched: Boolean

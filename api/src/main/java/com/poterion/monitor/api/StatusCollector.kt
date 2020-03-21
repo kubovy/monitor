@@ -37,12 +37,12 @@ object StatusCollector {
 	private val itemMap = mutableMapOf<String, Collection<StatusItem>>()
 	var items = emptyList<StatusItem>()
 		private set
-	val status: PublishSubject<StatusCollector> = PublishSubject.create<StatusCollector>()
+	val status: PublishSubject<StatusCollector> = PublishSubject.create()
 
 	init {
 		if (Shared.cacheFile.exists()) {
 			val statusItems = objectMapper
-					.readValue(Shared.cacheFile, object: TypeReference<List<StatusItem?>?>() {})
+					.readValue(Shared.cacheFile, object : TypeReference<List<StatusItem?>?>() {})
 					?.filterNotNull()
 			if (statusItems != null) update(statusItems, false)
 		}
@@ -89,23 +89,32 @@ object StatusCollector {
 				  minStatus: Status = Status.NONE,
 				  serviceIds: Collection<String> = emptySet(),
 				  includingChildren: Boolean = false): Status =
-		topStatus(silencedIds, minPriority, minStatus, serviceIds, includingChildren)?.status ?: Status.NONE
+			topStatus(silencedIds, minPriority, minStatus, serviceIds, includingChildren)?.status ?: Status.NONE
+
+	fun topStatusesPerService(silencedIds: Collection<String>,
+							  minPriority: Priority,
+							  minStatus: Status = Status.NONE,
+							  serviceIds: Collection<String> = emptySet(),
+							  includingChildren: Boolean = false) =
+			topStatuses(silencedIds, minPriority, minStatus, serviceIds, includingChildren)
+					.sortedByDescending { it.status.ordinal * 100 + it.priority.ordinal }
+					.distinctBy { it.serviceId }
 
 	fun topStatuses(silencedIds: Collection<String>,
 					minPriority: Priority,
 					minStatus: Status = Status.NONE,
 					serviceIds: Collection<String> = emptySet(),
 					includingChildren: Boolean = false) =
-		filter(silencedIds, minPriority, minStatus, serviceIds, includingChildren)
-				.filter { it.status == maxStatus(silencedIds, minPriority, minStatus, serviceIds) }
-				.distinctBy { it.serviceId }
+			filter(silencedIds, minPriority, minStatus, serviceIds, includingChildren)
+					.filter { it.status == maxStatus(silencedIds, minPriority, minStatus, serviceIds) }
 
 	fun topStatus(silencedIds: Collection<String>,
 				  minPriority: Priority,
 				  minStatus: Status = Status.NONE,
 				  serviceIds: Collection<String> = emptySet(),
 				  includingChildren: Boolean = false) =
-		filter(silencedIds, minPriority, minStatus, serviceIds, includingChildren).maxBy { it.status }
+			filter(silencedIds, minPriority, minStatus, serviceIds, includingChildren)
+					.maxBy { it.status.ordinal * 100 + it.priority.ordinal }
 
 	@Synchronized
 	fun update(statusItems: Collection<StatusItem>, update: Boolean) {

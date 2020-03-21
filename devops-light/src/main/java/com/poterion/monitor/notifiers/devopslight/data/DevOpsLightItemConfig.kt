@@ -27,7 +27,7 @@ import javafx.collections.ObservableList
 /**
  * DevOps light configuration item
  *
- * @param id Configuation item ID
+ * @param id Configuration item ID
  * @param statusNone List of [RgbLightConfiguration] for [Status.NONE][com.poterion.monitor.data.Status.NONE]
  * @param statusUnknown List of [RgbLightConfiguration] for [Status.UNKNOWN][com.poterion.monitor.data.Status.UNKNOWN]
  * @param statusOk List of [RgbLightConfiguration] for [Status.OK][com.poterion.monitor.data.Status.OK]
@@ -43,7 +43,9 @@ import javafx.collections.ObservableList
  * @param statusFatal List of [RgbLightConfiguration] for [Status.FATAL][com.poterion.monitor.data.Status.FATAL]
  * @author Jan Kubovy [jan@kubovy.eu]
  */
+@Suppress("MemberVisibilityCanBePrivate")
 class DevOpsLightItemConfig(id: String = "",
+							subId: String? = null,
 							statusNone: List<RgbLightConfiguration> = emptyList(),
 							statusUnknown: List<RgbLightConfiguration> = emptyList(),
 							statusOk: List<RgbLightConfiguration> = emptyList(),
@@ -60,6 +62,13 @@ class DevOpsLightItemConfig(id: String = "",
 		set(value) = idProperty.set(value)
 
 	val idProperty: StringProperty = SimpleStringProperty(id)
+		@JsonIgnore get
+
+	var subId: String?
+		get() = subIdProperty.get()
+		set(value) = subIdProperty.set(value)
+
+	val subIdProperty: StringProperty = SimpleStringProperty(subId)
 		@JsonIgnore get
 
 	@Suppress("unused")

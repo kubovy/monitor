@@ -75,8 +75,8 @@ class AlertManagerConfig(override val type: String = AlertManagerConfig::class.j
 						 receivers: Set<String> = emptySet(),
 						 labelFilter: Set<String> = emptySet(),
 						 labels: List<AlertManagerLabelConfig> = emptyList()) :
-		AbstractServiceConfig(name, enabled, url, trustCertificate, auth, order, priority, checkInterval,
-				connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
+		AbstractServiceConfig<AlertManagerLabelConfig>(name, enabled, url, trustCertificate, auth, order, priority,
+				checkInterval, connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
 
 	@Suppress("unused")
 	private var _nameRefs: Set<String>
@@ -133,16 +133,16 @@ class AlertManagerConfig(override val type: String = AlertManagerConfig::class.j
 
 	@Suppress("unused")
 	private var _labels: List<AlertManagerLabelConfig>
-		@JsonProperty("labels") get() = labels
+		@JsonProperty("labels") get() = subConfig
 		set(value) {
-			labels.setAll(value)
+			subConfig.setAll(value)
 		}
 
 	/**
 	 * Label/Annotation/Value to [Priority]/[Status][com.poterion.monitor.data.Status] mapping.
 	 * @see AlertManagerLabelConfig
 	 */
-	val labels: ObservableList<AlertManagerLabelConfig> = labels.toObservableList()
+	override val subConfig: ObservableList<AlertManagerLabelConfig> = labels.toObservableList()
 		@JsonIgnore get
 
 }

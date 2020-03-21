@@ -19,6 +19,7 @@ package com.poterion.monitor.sensors.feed.data
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
+import com.poterion.monitor.data.services.ServiceSubConfig
 import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
@@ -38,7 +39,7 @@ class SyndicationFeedFilterConfig(name: String = "",
 								  titleFilter: String = "",
 								  summaryFilter: String = "",
 								  priority: Priority = Priority.NONE,
-								  status: Status = Status.NONE) {
+								  status: Status = Status.NONE) : ServiceSubConfig {
 	/**
 	 * Item name.
 	 * @see nameProperty
@@ -113,4 +114,7 @@ class SyndicationFeedFilterConfig(name: String = "",
 	 */
 	val statusProperty: ObjectProperty<Status> = SimpleObjectProperty(status)
 		@JsonIgnore get
+
+	override val configTitle: String
+		get() = name
 }

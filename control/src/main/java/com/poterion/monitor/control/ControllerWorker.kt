@@ -20,6 +20,7 @@ import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.data.services.ServiceConfig
+import com.poterion.monitor.data.services.ServiceSubConfig
 import com.poterion.utils.kotlin.parallelStreamIntermediate
 import org.slf4j.LoggerFactory
 import java.util.concurrent.Callable
@@ -28,13 +29,17 @@ import java.util.concurrent.Executors
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class ControllerWorker private constructor(private val services: Collection<Service<ServiceConfig>>) : Callable<Boolean> {
+class ControllerWorker private constructor(
+		private val services: Collection<Service<ServiceConfig<out ServiceSubConfig>>>) :
+
+		Callable<Boolean> {
+
 	companion object {
 		private val LOGGER = LoggerFactory.getLogger(ControllerWorker::class.java)
 		private var instance: ControllerWorker? = null
 		private val executor = Executors.newSingleThreadExecutor()
 
-		fun start(services: Collection<Service<ServiceConfig>>) {
+		fun start(services: Collection<Service<ServiceConfig<out ServiceSubConfig>>>) {
 			if (instance == null || instance?.running == false) {
 				instance = instance ?: ControllerWorker(services)
 				instance?.running = true
@@ -68,7 +73,7 @@ class ControllerWorker private constructor(private val services: Collection<Serv
 					} catch (t: Throwable) {
 						LOGGER.error(t.message, t)
 					}
-					}
+				}
 			Thread.sleep(1_000L)
 		} catch (e: InterruptedException) {
 			running = false
@@ -76,7 +81,7 @@ class ControllerWorker private constructor(private val services: Collection<Serv
 		return !running
 	}
 
-	private fun Service<ServiceConfig>.shouldRun(now: Long) = refresh || config
+	private fun Service<ServiceConfig<out ServiceSubConfig>>.shouldRun(now: Long) = refresh || config
 			.let { config -> config.checkInterval?.let { config.uuid to it } }
 			?.let { (uuid, checkInterval) -> (serviceLastChecked[uuid] ?: 0L) to checkInterval }
 			?.let { (lastChecked, checkInterval) -> (now - lastChecked) > checkInterval }

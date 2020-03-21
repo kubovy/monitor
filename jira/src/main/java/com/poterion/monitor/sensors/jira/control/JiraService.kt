@@ -28,7 +28,12 @@ import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.sensors.jira.JiraModule
-import com.poterion.monitor.sensors.jira.data.*
+import com.poterion.monitor.sensors.jira.data.JiraConfig
+import com.poterion.monitor.sensors.jira.data.JiraErrorResponse
+import com.poterion.monitor.sensors.jira.data.JiraIssue
+import com.poterion.monitor.sensors.jira.data.JiraIssueFieldProgress
+import com.poterion.monitor.sensors.jira.data.JiraQueryConfig
+import com.poterion.monitor.sensors.jira.data.JiraSearchRequestBody
 import com.poterion.utils.javafx.openInExternalApplication
 import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.toUriOrNull
@@ -50,7 +55,7 @@ import kotlin.math.round
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class JiraService(override val controller: ControllerInterface, config: JiraConfig): Service<JiraConfig>(config) {
+class JiraService(override val controller: ControllerInterface, config: JiraConfig) : Service<JiraConfig>(config) {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(JiraService::class.java)
@@ -60,7 +65,7 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 	private val service
 		get() = retrofit?.create(JiraRestService::class.java)
 	private var lastUpdate: Long? = null
-	private var cache: MutableMap<String, JiraIssue> = mutableMapOf()
+	private var cache: MutableMap<String, StatusItem> = mutableMapOf()
 
 	private val queryTableSettingsPlugin = TableSettingsPlugin(
 			tableName = "queryTable",
@@ -69,7 +74,7 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 			controller = controller,
 			config = config,
 			createItem = { JiraQueryConfig() },
-			items = config.queries,
+			items = config.subConfig,
 			displayName = { name },
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition(
@@ -143,8 +148,8 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		if (config.enabled && config.url.isNotEmpty()) {
-			val alerts = cache.map { (k, v) -> k to v.toStatusItem() }.toMap().toMutableMap()
-			for (query in config.queries) {
+			val alerts = cache.map { (k, v) -> k to v }.toMap().toMutableMap()
+			for (query in config.subConfig) {
 				var count = 0
 				var total = 1
 				var error: String? = null
@@ -167,9 +172,11 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 						total = body?.total ?: 0
 						offset += limit
 
-						val issues = body?.issues ?: emptyList()
-						cache.putAll(issues.mapNotNull { it.key?.let { key -> key to it } }.toMap())
-						alerts.putAll(issues.mapNotNull { it.key?.let { key -> key to it.toStatusItem() } }.toMap())
+						val issues = (body?.issues ?: emptyList())
+								.mapNotNull { it.key?.let { key -> key to it.toStatusItem(query) } }
+								.toMap()
+						cache.putAll(issues)
+						alerts.putAll(issues)
 						count += issues.size
 					} else try {
 						error = http
@@ -196,15 +203,16 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 
 	private fun MutableMap<String, StatusItem>.addErrorStatus(query: JiraQueryConfig,
 															  error: String,
-															  status: Status) {
-		put("${query.name}-error", StatusItem(
-				id = "${config.uuid}-error",
-				serviceId = config.uuid,
-				priority = config.priority,
-				status = status,
-				title = "[${query.name}] ${error}",
-				isRepeatable = false))
-	}
+															  status: Status) = put(
+			"${query.name}-error",
+			StatusItem(
+					id = "${config.uuid}-error",
+					serviceId = config.uuid,
+					configIds = mutableListOf(query.configTitle),
+					priority = config.priority,
+					status = status,
+					title = "[${query.name}] ${error}",
+					isRepeatable = false))
 
 	private val JiraIssue.priority: Priority
 		get() = fields?.priority?.name?.let { config.priorityMapping[it] }
@@ -223,9 +231,10 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 	private val JiraIssueFieldProgress.percent: Int?
 		get() = progress?.let { p -> total?.let { t -> round(p.toDouble() * 100.0 / t.toDouble()).toInt() } }
 
-	private fun JiraIssue.toStatusItem() = StatusItem(
+	private fun JiraIssue.toStatusItem(query: JiraQueryConfig) = StatusItem(
 			id = "${config.uuid}-${this.key}",
 			serviceId = config.uuid,
+			configIds = mutableListOf(query.configTitle),
 			priority = this.priority,
 			status = this.status,
 			title = "[${this.key}] ${this.fields?.summary}",

@@ -24,6 +24,8 @@ import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.data.SilencedStatusItem
+import com.poterion.monitor.data.services.ServiceConfig
+import com.poterion.monitor.data.services.ServiceSubConfig
 import com.poterion.monitor.notifiers.tabs.NotificationTabsIcon
 import com.poterion.monitor.notifiers.tabs.control.NotificationTabsNotifier
 import com.poterion.monitor.notifiers.tabs.data.NotificationTabsConfig
@@ -73,7 +75,8 @@ class TabController {
 						}
 	}
 
-	@FXML private lateinit var comboboxService: ComboBox<Service<*>?>
+	@FXML private lateinit var comboboxService: ComboBox<Service<ServiceConfig<out ServiceSubConfig>>?>
+	@FXML private lateinit var comboboxConfiguration: ComboBox<String?>
 	@FXML private lateinit var comboboxStatus: ComboBox<Status>
 	@FXML private lateinit var comboboxPriority: ComboBox<Priority>
 	@FXML private lateinit var checkboxShowWatched: CheckBox
@@ -82,6 +85,7 @@ class TabController {
 	@FXML private lateinit var treeTableAlerts: TreeTableView<StatusItem>
 	@FXML private lateinit var columnAlertsTitle: TreeTableColumn<StatusItem, String>
 	@FXML private lateinit var columnAlertsService: TreeTableColumn<StatusItem, String>
+	@FXML private lateinit var columnAlertsConfig: TreeTableColumn<StatusItem, List<String>>
 	@FXML private lateinit var columnAlertsPriority: TreeTableColumn<StatusItem, Priority>
 	@FXML private lateinit var columnAlertsLabels: TreeTableColumn<StatusItem, Map<String, String>>
 	@FXML private lateinit var columnAlertsStarted: TreeTableColumn<StatusItem, Instant>
@@ -111,6 +115,7 @@ class TabController {
 							&& config.selectedStatus?.ordinal?.let { it <= item.status.ordinal } != false
 							&& config.selectedPriority?.ordinal?.let { it <= item.priority.ordinal } != false
 							&& config.selectedServiceId?.let { it == item.serviceId } != false
+							&& config.selectedConfiguration?.let { item.configIds.contains(it) } != false
 				}
 				.map { if (it.isSilenced) it.copy(priority = Priority.NONE) else it }
 				.toList()
@@ -173,9 +178,23 @@ class TabController {
 		comboboxService.selectionModel.selectedItemProperty().addListener { _, _, value ->
 			if (config.selectedServiceId != value?.config?.uuid) {
 				config.selectedServiceId = value?.config?.uuid
+				comboboxConfiguration.items.clear()
+				comboboxConfiguration.items.add(null)
+				value?.config?.subConfig?.map { it.configTitle }
+						?.distinct()
+						?.sorted()
+						?.also { comboboxConfiguration.items.addAll(it) }
 				refreshTable()
 				controller.saveConfig()
 			}
+		}
+
+		comboboxConfiguration.factory { item, empty ->
+			text = (item?.takeUnless { it.isEmpty() } ?: "All configurations").takeUnless { empty }
+		}
+		comboboxConfiguration.valueProperty().bindBidirectional(config.selectedConfigurationProperty)
+		comboboxConfiguration.selectionModel.selectedItemProperty().addListener { _, _, value ->
+			refreshTable()
 		}
 
 		comboboxStatus.factory { item, empty ->
@@ -218,6 +237,9 @@ class TabController {
 			controller.saveConfig()
 		}
 
+		columnAlertsConfig.prefWidthProperty().bindBidirectional(config.alertConfigWidthProperty)
+		columnAlertsConfig.widthProperty().addListener { _, _, _ -> controller.saveConfig() }
+
 		columnAlertsLabels.prefWidthProperty().bindBidirectional(config.alertLabelsWidthProperty)
 		columnAlertsLabels.widthProperty().addListener { _, _, _ -> controller.saveConfig() }
 
@@ -242,6 +264,17 @@ class TabController {
 				if (textProperty().isBound) textProperty().unbind()
 				text = null
 			}
+			style = when {
+				config.watchedItems.contains(item?.id) -> "-fx-font-weight: bold; -fx-text-fill: #600;"
+				index == 0 -> "-fx-font-weight: bold;"
+				item?.priority == Priority.NONE -> "-fx-text-fill: #999; -fx-font-style: italic;"
+				else -> null
+			}
+			contextMenu = item?.takeUnless { empty }?.contextMenu()
+		}
+
+		columnAlertsConfig.cell("configIds") { item, value, empty ->
+			text = value?.takeUnless { empty }?.joinToString(", ")
 			style = when {
 				config.watchedItems.contains(item?.id) -> "-fx-font-weight: bold; -fx-text-fill: #600;"
 				index == 0 -> "-fx-font-weight: bold;"

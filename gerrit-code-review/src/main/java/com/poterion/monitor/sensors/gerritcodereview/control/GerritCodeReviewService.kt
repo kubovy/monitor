@@ -73,7 +73,7 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 			controller = controller,
 			config = config,
 			createItem = { GerritCodeReviewQueryConfig() },
-			items = config.queries,
+			items = config.subConfig,
 			displayName = { name },
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition(
@@ -119,10 +119,11 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		lastFound.keys
-				.filterNot { key -> config.queries.map { it.name }.contains(key) }
+				.filterNot { key -> config.subConfig.map { it.name }.contains(key) }
 				.forEach { lastFound.remove(it) }
 		if (config.enabled && config.url.isNotEmpty()) {
-			val queries = config.queries.mapNotNull { q -> service?.check(q.query)?.let { q to it } }
+			val queries = config.subConfig.mapNotNull { q -> service?.check(q.query)?.let { q to it } }
+			val statuses = mutableMapOf<String, StatusItem>()
 			for ((query, call) in queries) try {
 				val response = call.execute()
 				LOGGER.info("${call.request().method()} ${call.request().url()}:" +
@@ -134,7 +135,15 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 						val queryAlerts = http?.objectMapper
 								?.readValue<List<GerritCodeReviewQueryResponse>>(body.substring(startIndex),
 										responseType)
-								?.map { item -> item.toStatusItem(query) }
+								?.map { entity ->
+									statuses[entity.id]
+											?.apply {
+												priority = maxOf(priority, query.priority)
+												status = maxOf(status, query.status)
+												if (!configIds.contains(query.configTitle)) configIds.add(query.configTitle)
+											}
+											?: entity.toStatusItem(query).also { statuses[it.id] = it }
+								}
 								?.takeIf { it.isNotEmpty() }
 						if (queryAlerts == null) lastFound.remove(query.name)
 						else lastFound[query.name] = queryAlerts.toMutableList()
@@ -156,6 +165,7 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 		cache.add(StatusItem(
 				id = id,
 				serviceId = config.uuid,
+				configIds = mutableListOf(query.configTitle),
 				priority = query.priority,
 				status = status,
 				title = "[${query.name}] ${error}",
@@ -165,6 +175,7 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 	private fun GerritCodeReviewQueryResponse.toStatusItem(query: GerritCodeReviewQueryConfig) = StatusItem(
 			id = "${config.uuid}-${this.changeId}",
 			serviceId = config.uuid,
+			configIds = mutableListOf(query.configTitle),
 			priority = query.priority,
 			status = query.status,
 			title = "[${query.name}] ${this.subject ?: ""}",

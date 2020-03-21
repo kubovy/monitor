@@ -23,13 +23,14 @@ import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.Priority
 import javafx.beans.property.IntegerProperty
 import javafx.beans.property.ObjectProperty
+import javafx.collections.ObservableList
 
 /**
  * Service configuration interface.
  *
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-interface ServiceConfig : ModuleConfig, HttpConfig {
+interface ServiceConfig<SC> : ModuleConfig, HttpConfig {
 	/**
 	 * Order of the service in which it will be evaluated.
 	 * @see orderProperty
@@ -71,5 +72,8 @@ interface ServiceConfig : ModuleConfig, HttpConfig {
 	 * @see checkInterval
 	 */
 	val checkIntervalProperty: ObjectProperty<Long?>
+		@JsonIgnore get
+
+	val subConfig: ObservableList<SC>
 		@JsonIgnore get
 }

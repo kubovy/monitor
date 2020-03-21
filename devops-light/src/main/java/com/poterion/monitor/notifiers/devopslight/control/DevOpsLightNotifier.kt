@@ -184,7 +184,9 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 						.topStatuses(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
 								config.minStatus, config.services)
 						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
-						.mapNotNull { it.toLightConfig() }
+						.mapNotNull { item -> item.toLightConfig(item.status)?.let { it to item.status } }
+						.distinctBy { (config, _) -> config.id to config.subId }
+						.map { (config, status) -> config.toLights(status) }
 						.flatten()
 						.takeIf { it.isNotEmpty() }
 						?: config.items.firstOrNull { it.id == "" }?.statusOk
@@ -192,7 +194,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 						.topStatus(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
 								config.minStatus, config.services)
 						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
-						?.toLightConfig()
+						?.let { it.toLightConfig(it.status)?.toLights(it.status) }
 						?: config.items.firstOrNull { it.id == "" }?.statusOk
 
 				lights?.also { lastState = it }
@@ -269,24 +271,24 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 		usbPortList.removeAll(removedPorts + listOf("CHANGE"))
 	}
 
-	private fun StatusItem?.toLightConfig(): List<RgbLightConfiguration>? {
-		val lightConfig = config.items
-				.map { it.id to it }
-				.toMap()
-				.let { it[this?.serviceId ?: ""] ?: it[""] }
+	private fun StatusItem.toLightConfig(status: Status): DevOpsLightItemConfig? = config.items
+			.find { it.id == serviceId && configIds.contains(it.subId) }?.takeIf { it.toLights(status).isNotEmpty() }
+			?: config.items.find { it.id == serviceId && it.subId == null }?.takeIf { it.toLights(status).isNotEmpty() }
+			?: config.items.find { it.id == "" }?.takeIf { it.toLights(status).isNotEmpty() }
 
-		return when (this?.status) {
-			Status.NONE, Status.OFF -> lightConfig?.statusNone
-			Status.UNKNOWN -> lightConfig?.statusUnknown
-			Status.OK -> lightConfig?.statusOk
-			Status.INFO -> lightConfig?.statusInfo
-			Status.NOTIFICATION -> lightConfig?.statusNotification
-			Status.CONNECTION_ERROR -> lightConfig?.statusConnectionError
-			Status.SERVICE_ERROR -> lightConfig?.statusServiceError
-			Status.WARNING -> lightConfig?.statusWarning
-			Status.ERROR -> lightConfig?.statusError
-			Status.FATAL -> lightConfig?.statusFatal
-			else -> lightConfig?.statusNone
+	private fun DevOpsLightItemConfig.toLights(status: Status): List<RgbLightConfiguration> {
+		return when (status) {
+			Status.NONE, Status.OFF -> statusNone
+			Status.UNKNOWN -> statusUnknown
+			Status.OK -> statusOk
+			Status.INFO -> statusInfo
+			Status.NOTIFICATION -> statusNotification
+			Status.CONNECTION_ERROR -> statusConnectionError
+			Status.SERVICE_ERROR -> statusServiceError
+			Status.WARNING -> statusWarning
+			Status.ERROR -> statusError
+			Status.FATAL -> statusFatal
+			else -> statusNone
 		}
 	}
 }

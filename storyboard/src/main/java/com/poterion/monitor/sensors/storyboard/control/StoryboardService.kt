@@ -68,7 +68,7 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 			controller = controller,
 			config = config,
 			createItem = { StoryboardProjectConfig() },
-			items = config.projects,
+			items = config.subConfig,
 			displayName = { name },
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition(
@@ -102,10 +102,10 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
 		lastFound.keys
-				.filterNot { key -> config.projects.map { it.name }.contains(key) }
+				.filterNot { key -> config.subConfig.map { it.name }.contains(key) }
 				.forEach { lastFound.remove(it) }
 		if (config.enabled && config.url.isNotEmpty()) {
-			for (project in config.projects) try {
+			for (project in config.subConfig) try {
 				val alerts = mutableListOf<StatusItem>()
 				val call = service?.projects(project.name)
 				val response = call?.execute()
@@ -152,6 +152,7 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 		cache.add(StatusItem(
 				id = id,
 				serviceId = config.uuid,
+				configIds = mutableListOf(project.configTitle),
 				priority = project.priority,
 				status = status,
 				title = "[${project.name}] ${error}",
@@ -161,6 +162,7 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 	private fun Story.toStatusItem(project: StoryboardProjectConfig) = StatusItem(
 			id = "${config.uuid}-${project.name}-${this.id}",
 			serviceId = config.uuid,
+			configIds = mutableListOf(project.configTitle),
 			priority = when (this.status) {
 				"invalid" -> Priority.NONE
 				else -> project.priority
@@ -216,6 +218,7 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 	private fun Task.toStatusItem(project: StoryboardProjectConfig, story: Story) = StatusItem(
 			id = "${config.uuid}-${project.name}-${story.id}-${this.id}",
 			serviceId = config.uuid,
+			configIds = mutableListOf(project.configTitle),
 			parentId = "${config.uuid}-${project.name}-${story.id}",
 			parentRequired = true,
 			priority = when (this.status) {

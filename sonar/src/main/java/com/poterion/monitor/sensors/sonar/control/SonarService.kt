@@ -30,6 +30,7 @@ import com.poterion.monitor.sensors.sonar.data.SonarConfig
 import com.poterion.monitor.sensors.sonar.data.SonarProjectConfig
 import com.poterion.monitor.sensors.sonar.data.SonarProjectResponse
 import com.poterion.utils.javafx.toObservableList
+import com.poterion.utils.kotlin.setAll
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -50,8 +51,7 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 	override val definition: Module<SonarConfig, ModuleInstanceInterface<SonarConfig>> = SonarModule
 	private val service
 		get() = retrofit?.create(SonarRestService::class.java)
-	private val projects = config.projects.map { it.name to it }.toMap()
-	private var lastFoundProjectNames: Collection<String> = projects.keys
+	private var lastFoundProjectIds: MutableList<Int> = mutableListOf()
 
 	private val projectTableSettingsPlugin = TableSettingsPlugin(
 			tableName = "projectTable",
@@ -60,7 +60,7 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 			controller = controller,
 			config = config,
 			createItem = { SonarProjectConfig() },
-			items = config.projects,
+			items = config.subConfig,
 			displayName = { name },
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition<SonarProjectConfig, Number>(
@@ -116,72 +116,44 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 					val foundProjects = response.body()
 							?.filter { project -> config.filter?.let { project.name.matches(it.toRegex()) } != false }
 
-					lastFoundProjectNames = foundProjects?.map { it.name } ?: projects.keys
+					lastFoundProjectIds.setAll(foundProjects?.map { it.id } ?: config.subConfig.map { it.id })
 
 					foundProjects
-						?.map {
-							StatusItem(
-								id = "${config.uuid}-${it.id}",
-								serviceId = config.uuid,
-								priority = it.priority,
-								status = it.severity,
-								title = it.name,
-								link = "${config.url}dashboard/index/${it.id}",
-								isRepeatable = false)
-						}
-						?.also(updater)
+							?.mapNotNull { entity -> config.subConfig.find { it.id == entity.id }?.let { entity to it } }
+							?.map { (entity, projectConfig) ->
+								StatusItem(
+										id = "${config.uuid}-${entity.id}",
+										serviceId = config.uuid,
+										configIds = mutableListOf(projectConfig.configTitle),
+										priority = projectConfig.priority,
+										status = entity.severity,
+										title = entity.name,
+										link = "${config.url}dashboard/index/${entity.id}",
+										isRepeatable = false)
+							}
+							?.also(updater)
 				} else {
-					lastFoundProjectNames
-						.mapNotNull { projects[it] }
-						.map {
-							StatusItem(
-								id = "${config.uuid}-${it.id}",
-								serviceId = config.uuid,
-								priority = it.priority,
-								status = Status.SERVICE_ERROR,
-								title = it.name,
-								link = config.url,
-								isRepeatable = false)
-						}
-						.also(updater)
+					lastFoundProjectIds
+							.mapNotNull { id -> config.subConfig.find { it.id == id } }
+							.map { it.toStatusItem(Status.SERVICE_ERROR) }
+							.also(updater)
 				}
 			} catch (e: IOException) {
 				call?.request()?.also { LOGGER.warn("${it.method()} ${it.url()}: ${e.message}", e) }
-					?: LOGGER.warn(e.message, e)
-				lastFoundProjectNames
-					.mapNotNull { projects[it] }
-					.map {
-						StatusItem(
-							id = "${config.uuid}-${it.id}",
-							serviceId = config.uuid,
-							priority = it.priority,
-							status = Status.CONNECTION_ERROR,
-							title = it.name,
-							link = config.url,
-							isRepeatable = false)
-					}
-					.also(updater)
+						?: LOGGER.warn(e.message, e)
+				lastFoundProjectIds
+						.mapNotNull { id -> config.subConfig.find { it.id == id } }
+						.map { it.toStatusItem(Status.CONNECTION_ERROR) }
+						.also(updater)
 			}
 		} catch (e: IOException) {
 			LOGGER.error(e.message, e)
-			lastFoundProjectNames
-					.mapNotNull { projects[it] }
-					.map {
-						StatusItem(
-								id = "${config.uuid}-${it.id}",
-								serviceId = config.uuid,
-								priority = it.priority,
-								status = Status.CONNECTION_ERROR,
-								title = it.name,
-								link = config.url,
-								isRepeatable = false)
-					}
+			lastFoundProjectIds
+					.mapNotNull { id -> config.subConfig.find { it.id == id } }
+					.map { it.toStatusItem(Status.CONNECTION_ERROR) }
 					.also(updater)
 		}
 	}
-
-	private val SonarProjectResponse.priority
-		get() = projects[name]?.priority ?: config.priority
 
 	private val SonarProjectResponse.severity
 		get() = (msr.firstOrNull { it.key == "alert_status" }?.data?.toUpperCase() ?: "UNKNOWN").let {
@@ -192,4 +164,14 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 				else -> Status.UNKNOWN
 			}
 		}
+
+	private fun SonarProjectConfig.toStatusItem(status: Status) = StatusItem(
+			id = "${config.uuid}-${id}",
+			serviceId = config.uuid,
+			configIds = mutableListOf(configTitle),
+			priority = priority,
+			status = status,
+			title = name,
+			link = config.url,
+			isRepeatable = false)
 }

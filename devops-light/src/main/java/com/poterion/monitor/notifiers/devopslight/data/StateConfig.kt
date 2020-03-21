@@ -25,4 +25,5 @@ import com.poterion.utils.javafx.Icon
 data class StateConfig(var title: String,
 					   val icon: Icon? = null,
 					   var lightConfigs: List<RgbLightConfiguration>? = null,
-					   var serviceId: String = "")
+					   var serviceId: String = "",
+					   var subConfigId: String? = null)

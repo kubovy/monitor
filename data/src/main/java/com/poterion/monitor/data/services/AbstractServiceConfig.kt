@@ -19,7 +19,14 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.AbstractModuleConfig
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.auth.AuthConfig
-import javafx.beans.property.*
+import javafx.beans.property.BooleanProperty
+import javafx.beans.property.IntegerProperty
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.SimpleBooleanProperty
+import javafx.beans.property.SimpleIntegerProperty
+import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
 
 /**
  * Abstract service configuration with common implementation of [ServiceConfig].
@@ -40,19 +47,19 @@ import javafx.beans.property.*
  * @param tableColumnWidths Saved UI table column widths (column name -> width)
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-abstract class AbstractServiceConfig(name: String = "",
-									 enabled: Boolean = false,
-									 url: String = "",
-									 trustCertificate: Boolean = false,
-									 auth: AuthConfig? = null,
-									 order: Int = Int.MAX_VALUE,
-									 priority: Priority = Priority.NONE,
-									 checkInterval: Long? = null,
-									 connectTimeout: Long? = null,
-									 readTimeout: Long? = null,
-									 writeTimeout: Long? = null,
-									 tableColumnWidths: Map<String, Int> = emptyMap()) :
-		AbstractModuleConfig(name, enabled, tableColumnWidths), ServiceConfig {
+abstract class AbstractServiceConfig<SC>(name: String = "",
+										 enabled: Boolean = false,
+										 url: String = "",
+										 trustCertificate: Boolean = false,
+										 auth: AuthConfig? = null,
+										 order: Int = Int.MAX_VALUE,
+										 priority: Priority = Priority.NONE,
+										 checkInterval: Long? = null,
+										 connectTimeout: Long? = null,
+										 readTimeout: Long? = null,
+										 writeTimeout: Long? = null,
+										 tableColumnWidths: Map<String, Int> = emptyMap()) :
+		AbstractModuleConfig(name, enabled, tableColumnWidths), ServiceConfig<SC> {
 
 	final override var order: Int
 		get() = orderProperty.get()

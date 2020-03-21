@@ -17,6 +17,7 @@
 package com.poterion.monitor.sensors.jira.data
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.poterion.monitor.data.services.ServiceSubConfig
 import javafx.beans.property.SimpleStringProperty
 import javafx.beans.property.StringProperty
 
@@ -28,7 +29,7 @@ import javafx.beans.property.StringProperty
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 class JiraQueryConfig(name: String = "",
-					  jql: String = "") {
+					  jql: String = "") : ServiceSubConfig {
 
 	/**
 	 * Query name.
@@ -59,4 +60,7 @@ class JiraQueryConfig(name: String = "",
 	 */
 	val jqlProperty: StringProperty = SimpleStringProperty(jql)
 		@JsonIgnore get
+
+	override val configTitle: String
+		get() = name
 }

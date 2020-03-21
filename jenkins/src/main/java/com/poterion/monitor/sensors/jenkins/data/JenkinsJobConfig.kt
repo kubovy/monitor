@@ -18,6 +18,7 @@ package com.poterion.monitor.sensors.jenkins.data
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.Priority
+import com.poterion.monitor.data.services.ServiceSubConfig
 import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
@@ -31,7 +32,7 @@ import javafx.beans.property.StringProperty
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 class JenkinsJobConfig(name: String = "",
-					   priority: Priority = Priority.NONE) {
+					   priority: Priority = Priority.NONE) : ServiceSubConfig {
 
 	/**
 	 * Job name.
@@ -62,4 +63,7 @@ class JenkinsJobConfig(name: String = "",
 	 */
 	val priorityProperty: ObjectProperty<Priority> = SimpleObjectProperty(priority)
 		@JsonIgnore get
+
+	override val configTitle: String
+		get() = name
 }

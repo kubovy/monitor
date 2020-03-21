@@ -51,7 +51,7 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 	override val definition: Module<JenkinsConfig, ModuleInstanceInterface<JenkinsConfig>> = JenkinsModule
 	private val service
 		get() = retrofit?.create(JenkinsRestService::class.java)
-	private val jobs = config.jobs.map { it.name to it }.toMap()
+	private val jobs = config.subConfig.map { it.name to it }.toMap()
 	private var lastFoundJobNames: Collection<String> = jobs.keys
 
 	private val jobTableSettingsPlugin = TableSettingsPlugin(
@@ -60,7 +60,7 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 			controller = controller,
 			config = config,
 			createItem = { JenkinsJobConfig() },
-			items = config.jobs,
+			items = config.subConfig,
 			displayName = { name },
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition(
@@ -116,67 +116,38 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 					foundJobs
 						?.map {
 							StatusItem(
-								id = "${config.uuid}-${it.name}",
-								serviceId = config.uuid,
-								priority = it.priority,
-								status = it.severity,
-								title = it.name,
-								link = it.url,
-								isRepeatable = false)
+									id = "${config.uuid}-${it.name}",
+									serviceId = config.uuid,
+									configIds = listOfNotNull(jobs[it.name]?.configTitle).toMutableList(),
+									priority = jobs[it.name]?.priority ?: config.priority,
+									status = it.severity,
+									title = it.name,
+									link = it.url,
+									isRepeatable = false)
 						}
 						?.also(updater)
 				} else {
 					lastFoundJobNames
-						.mapNotNull { jobs[it] }
-						.map {
-							StatusItem(
-								id = "${config.uuid}-${it.name}",
-								serviceId = config.uuid,
-								priority = it.priority,
-								status = Status.SERVICE_ERROR,
-								title = it.name,
-								link = config.url,
-								isRepeatable = false)
-						}
+							.mapNotNull { jobs[it] }
+							.map { it.toStatusItem(Status.SERVICE_ERROR) }
 						.also(updater)
 				}
 			} catch (e: Exception) {
 				call?.request()?.also { LOGGER.warn("${it.method()} ${it.url()}: ${e.message}", e) }
 					?: LOGGER.warn(e.message, e)
 				lastFoundJobNames
-					.mapNotNull { jobs[it] }
-					.map {
-						StatusItem(
-							id = "${config.uuid}-${it.name}",
-							serviceId = config.uuid,
-							priority = it.priority,
-							status = Status.CONNECTION_ERROR,
-							title = it.name,
-							link = config.url,
-							isRepeatable = false)
-					}
+						.mapNotNull { jobs[it] }
+						.map { it.toStatusItem(Status.CONNECTION_ERROR) }
 					.also(updater)
 			}
 		} catch (e: IOException) {
 			LOGGER.error(e.message, e)
 			lastFoundJobNames
 					.mapNotNull { jobs[it] }
-					.map {
-						StatusItem(
-								id = "${config.uuid}-${it.name}",
-								serviceId = config.uuid,
-								priority = it.priority,
-								status = Status.CONNECTION_ERROR,
-								title = it.name,
-								link = config.url,
-								isRepeatable = false)
-					}
+					.map { it.toStatusItem(Status.CONNECTION_ERROR) }
 					.also(updater)
 		}
 	}
-
-	private val JenkinsJobResponse.priority
-		get() = jobs[name]?.priority ?: config.priority
 
 	private val JenkinsJobResponse.severity
 		get() = (color?.toLowerCase() ?: "").let {
@@ -191,4 +162,14 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 				else -> Status.UNKNOWN
 			}
 		}
+
+	private fun JenkinsJobConfig.toStatusItem(status: Status): StatusItem = StatusItem(
+			id = "${config.uuid}-${name}",
+			serviceId = config.uuid,
+			configIds = mutableListOf(configTitle),
+			priority = priority,
+			status = status,
+			title = name,
+			link = config.url,
+			isRepeatable = false)
 }

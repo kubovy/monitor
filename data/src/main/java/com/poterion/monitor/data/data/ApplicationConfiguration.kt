@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.services.ServiceConfig
+import com.poterion.monitor.data.services.ServiceSubConfig
 import com.poterion.utils.javafx.ReadOnlyObservableList
 import com.poterion.utils.javafx.toObservableMap
 import com.poterion.utils.kotlin.setAll
@@ -43,6 +44,7 @@ import javafx.collections.ObservableMap
  *
  * @author Jan Kubovy [jan@kubovy.eu]
  */
+@Suppress("unused", "MemberVisibilityCanBePrivate")
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)
 class ApplicationConfiguration(btDiscovery: Boolean = false,
 							   showOnStartup: Boolean = true,
@@ -53,7 +55,7 @@ class ApplicationConfiguration(btDiscovery: Boolean = false,
 							   selectedTab: String? = null,
 							   previousTab: String? = null,
 							   proxy: HttpProxy? = null,
-							   services: Map<String, ServiceConfig> = emptyMap(),
+							   services: Map<String, ServiceConfig<out ServiceSubConfig>> = emptyMap(),
 							   notifiers: Map<String, NotifierConfig> = emptyMap(),
 							   silenced: Map<String, SilencedStatusItem> = emptyMap()) {
 
@@ -121,16 +123,17 @@ class ApplicationConfiguration(btDiscovery: Boolean = false,
 		@JsonIgnore get
 
 	@Suppress("unused")
-	private var _services: Map<String, ServiceConfig>
+	private var _services: Map<String, ServiceConfig<out ServiceSubConfig>>
 		@JsonProperty("services") get() = serviceMap
 		set(value) = serviceMap.setAll(value)
 
-	val serviceMap: ObservableMap<String, ServiceConfig> = services.toObservableMap()
+	val serviceMap: ObservableMap<String, ServiceConfig<out ServiceSubConfig>> = services.toObservableMap()
 		@JsonIgnore get
 
-	private val _serviceList: ObservableList<ServiceConfig> = FXCollections.observableArrayList(services.values)
+	private val _serviceList: ObservableList<ServiceConfig<out ServiceSubConfig>> = FXCollections
+			.observableArrayList(services.values)
 
-	val services: ReadOnlyObservableList<ServiceConfig> = ReadOnlyObservableList(_serviceList)
+	val services: ReadOnlyObservableList<ServiceConfig<out ServiceSubConfig>> = ReadOnlyObservableList(_serviceList)
 		@JsonIgnore get
 
 	@Suppress("unused")

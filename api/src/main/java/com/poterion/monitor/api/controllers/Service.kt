@@ -19,12 +19,15 @@ package com.poterion.monitor.api.controllers
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.services.ServiceConfig
+import com.poterion.monitor.data.services.ServiceSubConfig
 import retrofit2.Retrofit
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-abstract class Service<out Config: ServiceConfig>(config: Config): AbstractModule<Config>(config) {
+abstract class Service<out Config : ServiceConfig<out ServiceSubConfig>>(config: Config) :
+		AbstractModule<Config>(config) {
+
 	override val navigationRoot: NavigationItem
 		get() = NavigationItem(
 				titleProperty = config.nameProperty,

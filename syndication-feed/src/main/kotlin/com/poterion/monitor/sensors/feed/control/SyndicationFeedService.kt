@@ -66,7 +66,7 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 			controller = controller,
 			config = config,
 			createItem = { SyndicationFeedFilterConfig() },
-			items = config.filters,
+			items = config.subConfig,
 			displayName = { name },
 			columnDefinitions = listOf(
 					TableSettingsPlugin.ColumnDefinition(
@@ -171,17 +171,18 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 			if (feed != null) {
 				lastFound.clear()
 				for (entry in feed.entries) {
-					val (priority, status) = config.filters
+					val (title, priority, status) = config.subConfig
 							.asSequence()
 							.filter { it.titleFilter.toRegex().containsMatchIn(entry.title) }
 							.filter { it.summaryFilter.toRegex().containsMatchIn(entry.description.value) }
 							.firstOrNull()
-							?.let { it.priority to it.status }
-							?: (config.priority to config.status)
+							?.let { Triple(it.configTitle, it.priority, it.status) }
+							?: Triple(null, config.priority, config.status)
 
 					val statusItem = StatusItem(
 							id = "${config.uuid}|${entry.title}",
 							serviceId = config.uuid,
+							configIds = listOfNotNull(title).toMutableList(),
 							priority = priority,
 							status = status,
 							title = "[${feed.title ?: config.name}] ${entry.title}",

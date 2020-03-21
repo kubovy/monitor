@@ -33,6 +33,7 @@ import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.notifiers.NotifierDeserializer
 import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.data.services.ServiceDeserializer
+import com.poterion.monitor.data.services.ServiceSubConfig
 import io.reactivex.subjects.PublishSubject
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
@@ -58,7 +59,8 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 	override val modules = mutableListOf<Module<*, *>>()
 
 	// TODO Make read-only and react on applicationConfiguration.services/notifiers changes
-	override val services: ObservableList<Service<ServiceConfig>> = FXCollections.observableArrayList()
+	override val services: ObservableList<Service<ServiceConfig<out ServiceSubConfig>>> = FXCollections
+			.observableArrayList()
 	override val notifiers: ObservableList<Notifier<NotifierConfig>> = FXCollections.observableArrayList()
 
 	override var applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration()
@@ -72,7 +74,7 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 		modules.forEach { registerModule(it) }
 		if (Shared.configFile.exists()) try {
 			applicationConfiguration = objectMapper.readValue(Shared.configFile, ApplicationConfiguration::class.java)
-			(applicationConfiguration.serviceMap as MutableMap<String, ServiceConfig?>)
+			(applicationConfiguration.serviceMap as MutableMap<String, ServiceConfig<out ServiceSubConfig>?>)
 					.filterValues { it == null }
 					.keys
 					.forEach { applicationConfiguration.serviceMap.remove(it) }
@@ -104,7 +106,7 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 			LOGGER.info("Loading ${module.title} module...")
 			module.loadControllers(this, applicationConfiguration).forEach { ctrl ->
 				when (ctrl) {
-					is Service<*> -> services.add(ctrl as Service<ServiceConfig>)
+					is Service<*> -> services.add(ctrl as Service<ServiceConfig<out ServiceSubConfig>>)
 					is Notifier<*> -> notifiers.add(ctrl as Notifier<NotifierConfig>)
 				}
 			}
@@ -166,7 +168,7 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 		when (controller) {
 			is Service<*> -> {
 				applicationConfiguration.serviceMap[controller.config.uuid] = controller.config
-				services.add(controller as Service<ServiceConfig>)
+				services.add(controller as Service<ServiceConfig<out ServiceSubConfig>>)
 			}
 			is Notifier<*> -> {
 				applicationConfiguration.notifierMap[controller.config.uuid] = controller.config

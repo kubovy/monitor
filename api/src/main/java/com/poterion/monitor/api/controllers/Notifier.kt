@@ -21,6 +21,7 @@ import com.poterion.monitor.api.ui.TableSettingsPlugin
 import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.services.ServiceConfig
+import com.poterion.monitor.data.services.ServiceSubConfig
 import com.poterion.utils.javafx.Icon
 import com.poterion.utils.javafx.mapped
 import com.poterion.utils.kotlin.noop
@@ -48,7 +49,7 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 								})
 				))
 
-	private val String.getService: ServiceConfig?
+	private val String.getService: ServiceConfig<out ServiceSubConfig>?
 		get() = controller.applicationConfiguration.serviceMap[this]
 
 	private val String.getServiceIcon: Icon?
@@ -56,9 +57,10 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 				.let { conf -> controller.modules.find { module -> module.configClass == conf?.let { it::class } } }
 				?.icon
 
-	var selectedServices: ObservableList<Service<ServiceConfig>> = FXCollections.emptyObservableList()
+	var selectedServices: ObservableList<Service<ServiceConfig<out ServiceSubConfig>>> = FXCollections
+			.emptyObservableList()
 		get() {
-			if (field == FXCollections.emptyObservableList<Service<ServiceConfig>>()) {
+			if (field == FXCollections.emptyObservableList<Service<ServiceConfig<out ServiceSubConfig>>>()) {
 				field = controller.services
 						.filtered { config.services.isEmpty() || config.services.contains(it.config.uuid) }
 			}

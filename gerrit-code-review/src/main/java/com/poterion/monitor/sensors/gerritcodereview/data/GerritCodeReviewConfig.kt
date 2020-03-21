@@ -61,20 +61,20 @@ class GerritCodeReviewConfig(override val type: String = GerritCodeReviewConfig:
 							 writeTimeout: Long? = null,
 							 tableColumnWidths: Map<String, Int> = emptyMap(),
 							 queries: List<GerritCodeReviewQueryConfig> = emptyList()) :
-		AbstractServiceConfig(name, enabled, url, trustCertificate, auth, order, priority, checkInterval,
-				connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
+		AbstractServiceConfig<GerritCodeReviewQueryConfig>(name, enabled, url, trustCertificate, auth, order, priority,
+				checkInterval, connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
 
 	@Suppress("unused")
 	private var _queries: Collection<GerritCodeReviewQueryConfig>
-		@JsonProperty("queries") get() = queries
+		@JsonProperty("queries") get() = subConfig
 		set(value) {
-			queries.setAll(value)
+			subConfig.setAll(value)
 		}
 
 	/**
 	 * Query - [Priority],[Status][com.poterion.monitor.data.Status] mapping.
 	 * @see [GerritCodeReviewQueryConfig]
 	 */
-	val queries: ObservableList<GerritCodeReviewQueryConfig> = queries.toObservableList()
+	override val subConfig: ObservableList<GerritCodeReviewQueryConfig> = queries.toObservableList()
 		@JsonIgnore get
 }

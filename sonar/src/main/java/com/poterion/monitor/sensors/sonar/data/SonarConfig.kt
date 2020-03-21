@@ -64,22 +64,21 @@ class SonarConfig(override val type: String = SonarConfig::class.java.simpleName
 				  tableColumnWidths: Map<String, Int> = emptyMap(),
 				  projects: List<SonarProjectConfig> = emptyList(),
 				  filter: String? = null) :
-
-		AbstractServiceConfig(name, enabled, url, trustCertificate, auth, order, priority, checkInterval,
-				connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
+		AbstractServiceConfig<SonarProjectConfig>(name, enabled, url, trustCertificate, auth, order, priority,
+				checkInterval, connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
 
 	@Suppress("unused")
 	private var _projects: List<SonarProjectConfig>
-		@JsonProperty("projects") get() = projects
+		@JsonProperty("projects") get() = subConfig
 		set(value) {
-			projects.setAll(value)
+			subConfig.setAll(value)
 		}
 
 	/**
 	 * Project ID / [Priority] mapping.
 	 * @see SonarProjectConfig
 	 */
-	val projects: ObservableList<SonarProjectConfig> = projects.toObservableList()
+	override val subConfig: ObservableList<SonarProjectConfig> = projects.toObservableList()
 		@JsonIgnore get
 
 	/**
