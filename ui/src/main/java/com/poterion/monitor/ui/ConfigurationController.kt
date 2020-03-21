@@ -593,11 +593,27 @@ class ConfigurationController {
 							disableProperty().bind(refreshProperty)
 							setOnAction { refresh = true }
 						},
-						Label(if (refresh) "Refreshing..." else "").apply {
+						Label().apply {
 							maxHeight = Double.MAX_VALUE
 							padding = Insets(5.0)
+							if (refresh) {
+								text = "Refreshing..."
+								style = null
+							} else {
+								textProperty().bind(lastErrorProperty)
+								style = " -fx-text-fill: #F00;"
+							}
 							refreshProperty.addListener { _, _, value ->
-								ensureApplicationThread { text = if (value) "Refreshing..." else "" }
+								ensureApplicationThread {
+									if (textProperty().isBound) textProperty().unbind()
+									if (value) {
+										text = "Refreshing..."
+										style = null
+									} else {
+										textProperty().bind(lastErrorProperty)
+										style = " -fx-text-fill: #F00;"
+									}
+								}
 							}
 						}
 				).apply {
@@ -848,7 +864,7 @@ class ConfigurationController {
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				},
-				ComboBox<Priority>(FXCollections.observableArrayList(*Priority.values())).apply {
+				ComboBox(FXCollections.observableArrayList(*Priority.values())).apply {
 					factory { item, empty ->
 						text = item?.takeUnless { empty }?.name
 						graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()
@@ -864,7 +880,7 @@ class ConfigurationController {
 					maxHeight = Double.MAX_VALUE
 					alignment = Pos.CENTER_RIGHT
 				},
-				ComboBox<Status>(Status.values().toObservableList()).apply {
+				ComboBox(Status.values().toObservableList()).apply {
 					factory { item, empty ->
 						text = item?.takeUnless { empty }?.name
 						graphic = item?.takeUnless { empty }?.toIcon()?.toImageView()

@@ -106,53 +106,53 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 		get() = super.configurationAddition + listOf(projectTableSettingsPlugin.vbox)
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
-		try {
+		var error: String? = null
+		if (config.enabled && config.url.isNotBlank()) try {
 			val call = service?.check()
-			try {
-				val response = call?.execute()
-				LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+			val response = call?.execute()
+			LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+					" ${response?.code()} ${response?.message()}")
+			if (response?.isSuccessful == true) {
+				val foundProjects = response.body()
+						?.filter { project -> config.filter?.let { project.name.matches(it.toRegex()) } != false }
+
+				lastFoundProjectIds.setAll(foundProjects?.map { it.id } ?: config.subConfig.map { it.id })
+
+				foundProjects
+						?.mapNotNull { entity -> config.subConfig.find { it.id == entity.id }?.let { entity to it } }
+						?.map { (entity, projectConfig) ->
+							StatusItem(
+									id = "${config.uuid}-${entity.id}",
+									serviceId = config.uuid,
+									configIds = mutableListOf(projectConfig.configTitle),
+									priority = projectConfig.priority,
+									status = entity.severity,
+									title = entity.name,
+									link = "${config.url}dashboard/index/${entity.id}",
+									isRepeatable = false)
+						}
+						?.also(updater)
+			} else {
+				LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
 						" ${response?.code()} ${response?.message()}")
-				if (response?.isSuccessful == true) {
-					val foundProjects = response.body()
-							?.filter { project -> config.filter?.let { project.name.matches(it.toRegex()) } != false }
-
-					lastFoundProjectIds.setAll(foundProjects?.map { it.id } ?: config.subConfig.map { it.id })
-
-					foundProjects
-							?.mapNotNull { entity -> config.subConfig.find { it.id == entity.id }?.let { entity to it } }
-							?.map { (entity, projectConfig) ->
-								StatusItem(
-										id = "${config.uuid}-${entity.id}",
-										serviceId = config.uuid,
-										configIds = mutableListOf(projectConfig.configTitle),
-										priority = projectConfig.priority,
-										status = entity.severity,
-										title = entity.name,
-										link = "${config.url}dashboard/index/${entity.id}",
-										isRepeatable = false)
-							}
-							?.also(updater)
-				} else {
-					lastFoundProjectIds
-							.mapNotNull { id -> config.subConfig.find { it.id == id } }
-							.map { it.toStatusItem(Status.SERVICE_ERROR) }
-							.also(updater)
-				}
-			} catch (e: IOException) {
-				call?.request()?.also { LOGGER.warn("${it.method()} ${it.url()}: ${e.message}", e) }
-						?: LOGGER.warn(e.message, e)
+				error = response?.let { "Code: ${it.code()} ${it.message() ?: ""}" } ?: "Service error"
 				lastFoundProjectIds
 						.mapNotNull { id -> config.subConfig.find { it.id == id } }
-						.map { it.toStatusItem(Status.CONNECTION_ERROR) }
+						.map { projectConfig ->
+							projectConfig.toStatusItem(Status.SERVICE_ERROR,
+									response?.let { "Code: ${it.code()} ${it.message() ?: ""}" })
+						}
 						.also(updater)
 			}
 		} catch (e: IOException) {
-			LOGGER.error(e.message, e)
+			LOGGER.error(e.message)
+			error = e.message ?: "Connection error"
 			lastFoundProjectIds
 					.mapNotNull { id -> config.subConfig.find { it.id == id } }
-					.map { it.toStatusItem(Status.CONNECTION_ERROR) }
+					.map { projectConfig -> projectConfig.toStatusItem(Status.CONNECTION_ERROR, e.message) }
 					.also(updater)
 		}
+		lastErrorProperty.set(error)
 	}
 
 	private val SonarProjectResponse.severity
@@ -165,13 +165,14 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 			}
 		}
 
-	private fun SonarProjectConfig.toStatusItem(status: Status) = StatusItem(
+	private fun SonarProjectConfig.toStatusItem(status: Status, detail: String?) = StatusItem(
 			id = "${config.uuid}-${id}",
 			serviceId = config.uuid,
 			configIds = mutableListOf(configTitle),
 			priority = priority,
 			status = status,
 			title = name,
+			detail = detail,
 			link = config.url,
 			isRepeatable = false)
 }

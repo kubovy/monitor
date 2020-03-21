@@ -22,6 +22,7 @@ import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.data.services.ServiceSubConfig
 import javafx.beans.property.BooleanProperty
 import javafx.beans.property.SimpleBooleanProperty
+import javafx.beans.property.SimpleStringProperty
 import retrofit2.Retrofit
 
 /**
@@ -48,6 +49,8 @@ abstract class Service<out Config : ServiceConfig<out ServiceSubConfig>>(config:
 		set(value) = refreshProperty.set(value)
 
 	val refreshProperty: BooleanProperty = SimpleBooleanProperty(false)
+
+	val lastErrorProperty = SimpleStringProperty(null)
 
 	protected val retrofit: Retrofit?
 		get() = http?.retrofit

@@ -174,66 +174,68 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 		get() = super.configurationAddition + listOf(labelTableSettingsPlugin.vbox)
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
-		if (config.enabled && config.url.isNotEmpty()) try {
+		var error: String? = null
+		if (config.enabled && config.url.isNotBlank()) try {
 			val call = service?.check()
-			try {
-				val response = call?.execute()
-				LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+			val response = call?.execute()
+			LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+					" ${response?.code()} ${response?.message()}")
+			if (response?.isSuccessful == true) {
+				val configPairs = config.subConfig.map { "${it.name}:${it.value}" to it }.toMap()
+				val alerts = response.body()
+						?.filter { it.status?.silencedBy?.isEmpty() != false }
+						?.filter { it.status?.inhibitedBy?.isEmpty() != false }
+						?.filter { a ->
+							config.receivers.isEmpty() || a.receivers.map { it.name }.any {
+								config.receivers.contains(it)
+							}
+						}
+						?.map { item -> item to item.labels.map { "${it.key}:${it.value}" } }
+						?.map { (item, labels) -> item to labels.mapNotNull { configPairs[it] } }
+						?.mapNotNull { (item, configs) -> configs.takeIf { it.isNotEmpty() }?.let { item to it } }
+						//?.sortedWith(compareBy({ (item, configs) -> configs.status.ordinal }, { (p, _) -> p.priority.ordinal }))
+						?.associateBy { (i, _) ->
+							config.nameRefs.mapNotNull { i.annotations[it] ?: i.labels[it] }.firstOrNull() ?: ""
+						}
+						?.map { (name, pair) -> Triple(name, pair.first, pair.second) }
+						?.also { lastFound = it }
+						?.map { (name, items, configs) -> createStatusItem(name, items, configs) }
+						?.takeIf { it.isNotEmpty() }
+						?: listOf(StatusItem(
+								id = "${config.uuid}-no-alerts",
+								serviceId = config.uuid,
+								priority = config.priority,
+								status = Status.OK,
+								title = "No alerts",
+								isRepeatable = false))
+				updater(alerts)
+			} else {
+				LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
 						" ${response?.code()} ${response?.message()}")
-				if (response?.isSuccessful == true) {
-					val configPairs = config.subConfig.map { "${it.name}:${it.value}" to it }.toMap()
-					val alerts = response.body()
-							?.filter { it.status?.silencedBy?.isEmpty() != false }
-							?.filter { it.status?.inhibitedBy?.isEmpty() != false }
-							?.filter { a ->
-								config.receivers.isEmpty() || a.receivers.map { it.name }.any {
-									config.receivers.contains(it)
-								}
-							}
-							?.map { item -> item to item.labels.map { "${it.key}:${it.value}" } }
-							?.map { (item, labels) -> item to labels.mapNotNull { configPairs[it] } }
-							?.mapNotNull { (item, configs) -> configs.takeIf { it.isNotEmpty() }?.let { item to it } }
-							//?.sortedWith(compareBy({ (item, configs) -> configs.status.ordinal }, { (p, _) -> p.priority.ordinal }))
-							?.associateBy { (i, _) ->
-								config.nameRefs.mapNotNull { i.annotations[it] ?: i.labels[it] }.firstOrNull() ?: ""
-							}
-							?.map { (name, pair) -> Triple(name, pair.first, pair.second) }
-							?.also { lastFound = it }
-							?.map { (name, items, configs) -> createStatusItem(name, items, configs) }
-							?.takeIf { it.isNotEmpty() }
-							?: listOf(StatusItem(
-									id = "${config.uuid}-no-alerts",
-									serviceId = config.uuid,
-									priority = config.priority,
-									status = Status.OK,
-									title = "No alerts",
-									isRepeatable = false))
-					updater(alerts)
-				} else {
-					updater(getStatusItems("Service error", Status.SERVICE_ERROR))
-				}
-			} catch (e: Exception) {
-				call?.request()
-						?.also { LOGGER.warn("${it.method()} ${it.url()}: ${e.message}", e) }
-						?: LOGGER.warn(e.message)
-				updater(getStatusItems("Connection error", Status.CONNECTION_ERROR))
+				error = response?.let { "Code: ${it.code()} ${it.message() ?: ""}" } ?: "Service error"
+				updater(getStatusItems("Service error", Status.SERVICE_ERROR,
+						response?.let { "Code: ${it.code()} ${it.message() ?: ""}" }))
 			}
 		} catch (e: IOException) {
-			LOGGER.error(e.message, e)
-			updater(getStatusItems("Connection error", Status.CONNECTION_ERROR))
+			LOGGER.error(e.message)
+			error = e.message ?: "Connection error"
+			updater(getStatusItems("Connection error", Status.CONNECTION_ERROR, e.message))
 		}
+		lastErrorProperty.set(error)
 	}
 
 	private fun getStatusItems(defaultTitle: String,
-							   rewriteStatus: Status? = null): Collection<StatusItem> = lastFound
+							   rewriteStatus: Status,
+							   detail: String?): Collection<StatusItem> = lastFound
 			.map { (name, item, configs) -> createStatusItem(name, item, configs, rewriteStatus) }
 			.takeIf { it.isNotEmpty() }
 			?: listOf(StatusItem(
-					id = "${config.uuid}-${rewriteStatus?.name ?: Status.OK.name}",
+					id = "${config.uuid}-${rewriteStatus.name}",
 					serviceId = config.uuid,
 					priority = config.priority,
-					status = rewriteStatus ?: Status.OK,
+					status = rewriteStatus,
 					title = defaultTitle,
+					detail = detail,
 					isRepeatable = false))
 
 	private fun createStatusItem(title: String,
@@ -246,6 +248,11 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 			priority = labelConfigs.maxBy { it.priority }?.priority ?: config.priority,
 			status = status ?: labelConfigs.maxBy { it.status }?.status ?: Status.UNKNOWN,
 			title = title,
+			detail = config.descriptionRefs.mapNotNull { response.annotations[it] ?: response.labels[it] }.firstOrNull()
+					?: "Annotations:"
+					+ response.annotations.map { (k, v) -> "\t${k}: ${v}" }.joinToString("\n", "\n", "\n")
+					+ "Labels:"
+					+ response.labels.map { (k, v) -> "\t${k}: ${v}" }.joinToString("\n", "\n"),
 			labels = (response.labels + response.annotations)
 					.filterNot { (k, _) -> config.nameRefs.contains(k) }
 					.filterNot { (k, _) -> config.descriptionRefs.contains(k) }

@@ -57,14 +57,14 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 	}
 
 	override val definition: Module<GerritCodeReviewConfig, ModuleInstanceInterface<GerritCodeReviewConfig>> =
-		GerritCodeReviewModule
+			GerritCodeReviewModule
 	private val service
 		get() = retrofit?.create(GerritCodeReviewRestService::class.java)
 	private val responseType = http
 			?.objectMapper
 			?.typeFactory
 			?.constructCollectionType(MutableList::class.java, GerritCodeReviewQueryResponse::class.java)
-	private var lastFound: MutableMap<String, MutableCollection<StatusItem>> = mutableMapOf()
+	private var lastFound: MutableMap<String?, MutableCollection<StatusItem>> = mutableMapOf()
 
 	private val queryTableSettingsPlugin = TableSettingsPlugin(
 			tableName = "queryTable",
@@ -121,7 +121,8 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 		lastFound.keys
 				.filterNot { key -> config.subConfig.map { it.name }.contains(key) }
 				.forEach { lastFound.remove(it) }
-		if (config.enabled && config.url.isNotEmpty()) {
+		var error: String? = null
+		if (config.enabled && config.url.isNotBlank()) try {
 			val queries = config.subConfig.mapNotNull { q -> service?.check(q.query)?.let { q to it } }
 			val statuses = mutableMapOf<String, StatusItem>()
 			for ((query, call) in queries) try {
@@ -148,27 +149,40 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 						if (queryAlerts == null) lastFound.remove(query.name)
 						else lastFound[query.name] = queryAlerts.toMutableList()
 					}
-				} else addErrorStatus(query, "Service error", Status.SERVICE_ERROR)
+				} else {
+					LOGGER.warn("${call.request().method()} ${call.request().url()}:" +
+							" ${response.code()} ${response.message()}")
+					error = "Code: ${response.code()} ${response.message() ?: "Service error"}"
+					addErrorStatus("Service error", Status.SERVICE_ERROR, error, query)
+				}
 			} catch (e: IOException) {
-				LOGGER.error(e.message, e)
-				addErrorStatus(query, "Connection error", Status.CONNECTION_ERROR)
+				LOGGER.error(e.message)
+				error = e.message ?: "Connection error"
+				addErrorStatus("Connection error", Status.CONNECTION_ERROR, e.message, query)
 			}
 			updater(lastFound.values.flatten())
+		} catch (e: IOException) {
+			LOGGER.error(e.message)
+			error = e.message ?: "Connection error"
+			addErrorStatus("Connection error", Status.CONNECTION_ERROR, e.message)
 		}
+		lastErrorProperty.set(error)
 	}
 
-	private fun addErrorStatus(query: GerritCodeReviewQueryConfig,
-							   error: String,
-							   status: Status) {
-		val id = "${config.uuid}-${query.name}-error"
-		val cache = lastFound.getOrPut(query.name, { mutableListOf() })
+	private fun addErrorStatus(error: String,
+							   status: Status,
+							   detail: String?,
+							   query: GerritCodeReviewQueryConfig? = null) {
+		val id = "${config.uuid}-${query?.name ?: ""}-error"
+		val cache = lastFound.getOrPut(query?.name, { mutableListOf() })
 		cache.add(StatusItem(
 				id = id,
 				serviceId = config.uuid,
-				configIds = mutableListOf(query.configTitle),
-				priority = query.priority,
+				configIds = listOfNotNull(query?.configTitle).toMutableList(),
+				priority = query?.priority ?: config.priority,
 				status = status,
-				title = "[${query.name}] ${error}",
+				title = "${query?.name?.let { "[${it}] " }}${error}",
+				detail = detail,
 				isRepeatable = false))
 	}
 
@@ -178,7 +192,7 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 			configIds = mutableListOf(query.configTitle),
 			priority = query.priority,
 			status = query.status,
-			title = "[${query.name}] ${this.subject ?: ""}",
+			title = "[${id}] ${subject ?: ""}",
 			//detail = item.subject,
 			labels = listOf(
 					"Project" to this.project,

@@ -43,7 +43,6 @@ import javafx.scene.control.Button
 import javafx.scene.layout.Region
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.io.IOException
 import java.net.URLEncoder
 import java.time.Instant
 import java.time.format.DateTimeFormatterBuilder
@@ -147,12 +146,12 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
-		if (config.enabled && config.url.isNotEmpty()) {
+		if (config.enabled && config.url.isNotBlank()) {
 			val alerts = cache.map { (k, v) -> k to v }.toMap().toMutableMap()
+			var error: String? = null
 			for (query in config.subConfig) {
 				var count = 0
 				var total = 1
-				var error: String? = null
 				var offset = 0
 				val limit = 100
 				while (count < min(1000, total) && error == null && config.enabled) try {
@@ -179,23 +178,29 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 						alerts.putAll(issues)
 						count += issues.size
 					} else try {
+						LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
+								" ${response?.code()} ${response?.message()}")
 						error = http
 								?.objectMapper
 								?.readValue(response?.errorBody()?.string(), JiraErrorResponse::class.java)
 								?.errorMessages
 								?.firstOrNull()
-								?.let { "[${query.name}] ${it}" }
-								?: "Failed retrieving ${query.name} query"
+								?: response?.let {
+									"Code: ${it.code()} ${it.message() ?: "Failed retrieving ${query.name} query"}"
+								} ?: "Failed retrieving ${query.name} query"
 					} catch (e: Throwable) {
 						error = "Failed retrieving ${query.name} query"
 					}
 
-					if (error != null) alerts.addErrorStatus(query, "Service error: ${error}", Status.SERVICE_ERROR)
-				} catch (e: IOException) {
-					LOGGER.error(e.message, e)
-					alerts.addErrorStatus(query, "Connection error", Status.CONNECTION_ERROR)
+					if (error != null) alerts.addErrorStatus(query, "Service error", Status.SERVICE_ERROR, error)
+				} catch (e: Exception) {
+					LOGGER.error("${config.url} with ${query.jql}: ${e.message}")
+					error = e.message ?: "Connection error"
+					alerts.addErrorStatus(query, "Connection error", Status.CONNECTION_ERROR, e.message)
+					count = total
 				}
 			}
+			lastErrorProperty.set(error)
 			lastUpdate = Instant.now().toEpochMilli()
 			updater(alerts.values)
 		}
@@ -203,7 +208,8 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 
 	private fun MutableMap<String, StatusItem>.addErrorStatus(query: JiraQueryConfig,
 															  error: String,
-															  status: Status) = put(
+															  status: Status,
+															  detail: String?) = put(
 			"${query.name}-error",
 			StatusItem(
 					id = "${config.uuid}-error",
@@ -212,6 +218,7 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 					priority = config.priority,
 					status = status,
 					title = "[${query.name}] ${error}",
+					detail = detail,
 					isRepeatable = false))
 
 	private val JiraIssue.priority: Priority

@@ -100,20 +100,20 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 		get() = super.configurationAddition + listOf(jobTableSettingsPlugin.vbox)
 
 	override fun check(updater: (Collection<StatusItem>) -> Unit) {
-		try {
+		var error: String? = null
+		if (config.enabled && config.url.isNotBlank()) try {
 			val call = service?.check()
-			try {
-				val response = call?.execute()
-				LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
-						" ${response?.code()} ${response?.message()}")
-				if (response?.isSuccessful == true) {
-					val foundJobs = response.body()
+			val response = call?.execute()
+			LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+					" ${response?.code()} ${response?.message()}")
+			if (response?.isSuccessful == true) {
+				val foundJobs = response.body()
 						?.jobs
 						?.filter { job -> config.filter?.let { job.name.matches(it.toRegex()) } ?: true }
 
-					lastFoundJobNames = foundJobs?.map { it.name } ?: jobs.keys
+				lastFoundJobNames = foundJobs?.map { it.name } ?: jobs.keys
 
-					foundJobs
+				foundJobs
 						?.map {
 							StatusItem(
 									id = "${config.uuid}-${it.name}",
@@ -126,27 +126,27 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 									isRepeatable = false)
 						}
 						?.also(updater)
-				} else {
-					lastFoundJobNames
-							.mapNotNull { jobs[it] }
-							.map { it.toStatusItem(Status.SERVICE_ERROR) }
-						.also(updater)
-				}
-			} catch (e: Exception) {
-				call?.request()?.also { LOGGER.warn("${it.method()} ${it.url()}: ${e.message}", e) }
-					?: LOGGER.warn(e.message, e)
+			} else {
+				LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
+						" ${response?.code()} ${response?.message()}")
+				error = response?.let { "Code: ${it.code()} ${it.message() ?: "Service error"}" } ?: "Service error"
 				lastFoundJobNames
 						.mapNotNull { jobs[it] }
-						.map { it.toStatusItem(Status.CONNECTION_ERROR) }
-					.also(updater)
+						.map { jobConfig ->
+							jobConfig.toStatusItem(Status.SERVICE_ERROR,
+									response?.let { "Code: ${it.code()} ${it.message()}" })
+						}
+						.also(updater)
 			}
 		} catch (e: IOException) {
-			LOGGER.error(e.message, e)
+			LOGGER.error(e.message)
+			error = e.message ?: "Connection error"
 			lastFoundJobNames
 					.mapNotNull { jobs[it] }
-					.map { it.toStatusItem(Status.CONNECTION_ERROR) }
+					.map { it.toStatusItem(Status.CONNECTION_ERROR, e.message) }
 					.also(updater)
 		}
+		lastErrorProperty.set(error)
 	}
 
 	private val JenkinsJobResponse.severity
@@ -163,13 +163,14 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 			}
 		}
 
-	private fun JenkinsJobConfig.toStatusItem(status: Status): StatusItem = StatusItem(
+	private fun JenkinsJobConfig.toStatusItem(status: Status, detail: String?) = StatusItem(
 			id = "${config.uuid}-${name}",
 			serviceId = config.uuid,
 			configIds = mutableListOf(configTitle),
 			priority = priority,
 			status = status,
 			title = name,
+			detail = detail,
 			link = config.url,
 			isRepeatable = false)
 }
