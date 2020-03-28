@@ -26,26 +26,19 @@ import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.api.objectMapper
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.monitor.data.HttpProxy
-import com.poterion.monitor.data.ModuleConfig
+import com.poterion.monitor.api.workers.UpdateChecker
+import com.poterion.monitor.data.*
 import com.poterion.monitor.data.Priority
-import com.poterion.monitor.data.Status
-import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.monitor.data.auth.BasicAuthConfig
 import com.poterion.monitor.data.auth.TokenAuthConfig
 import com.poterion.monitor.data.data.SilencedStatusItem
-import com.poterion.utils.javafx.cell
-import com.poterion.utils.javafx.confirmDialog
-import com.poterion.utils.javafx.ensureApplicationThread
-import com.poterion.utils.javafx.factory
-import com.poterion.utils.javafx.openInExternalApplication
-import com.poterion.utils.javafx.toImage
-import com.poterion.utils.javafx.toImageView
-import com.poterion.utils.javafx.toObservableList
+import com.poterion.utils.javafx.*
 import com.poterion.utils.kotlin.noop
+import javafx.application.Platform
 import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.fxml.FXML
@@ -57,33 +50,10 @@ import javafx.geometry.VPos
 import javafx.scene.Cursor
 import javafx.scene.Parent
 import javafx.scene.Scene
-import javafx.scene.control.Button
-import javafx.scene.control.CheckBox
-import javafx.scene.control.ComboBox
-import javafx.scene.control.ContextMenu
-import javafx.scene.control.Control
-import javafx.scene.control.Label
-import javafx.scene.control.MenuItem
-import javafx.scene.control.PasswordField
-import javafx.scene.control.RadioButton
-import javafx.scene.control.SelectionMode
-import javafx.scene.control.SplitPane
-import javafx.scene.control.Tab
-import javafx.scene.control.TabPane
-import javafx.scene.control.TableColumn
-import javafx.scene.control.TableView
-import javafx.scene.control.TextField
-import javafx.scene.control.ToggleGroup
-import javafx.scene.control.TreeItem
-import javafx.scene.control.TreeView
+import javafx.scene.control.*
 import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
-import javafx.scene.layout.GridPane
-import javafx.scene.layout.HBox
-import javafx.scene.layout.Pane
-import javafx.scene.layout.Region
-import javafx.scene.layout.RowConstraints
-import javafx.scene.layout.VBox
+import javafx.scene.layout.*
 import javafx.util.converter.IntegerStringConverter
 import javafx.util.converter.LongStringConverter
 import java.net.URI
@@ -894,6 +864,41 @@ class ConfigurationController {
 
 	private fun initializeAbout(rowCount: Int): Int = gridPane.run {
 		var row = rowCount
+
+		val lastVersion: StringProperty = SimpleStringProperty("")
+		UpdateChecker.lastVersion.subscribe { version -> Platform.runLater { lastVersion.set(version) } }
+
+		addRow(row++,
+				Label("Version:").apply {
+					maxWidth = Double.MAX_VALUE
+					maxHeight = Double.MAX_VALUE
+					alignment = Pos.CENTER_RIGHT
+				},
+				HBox(5.0,
+						Label(controller.applicationConfiguration.version).apply { maxHeight = Double.MAX_VALUE },
+						Label("Update available:").apply {
+							style = "-fx-text-fill: #009"
+							maxHeight = Double.MAX_VALUE
+							visibleProperty().bind(lastVersion.isNotEmpty
+									.and(lastVersion.isNotEqualTo(controller.applicationConfiguration.version)))
+							setOnMouseEntered { scene.cursor = Cursor.HAND; }
+							setOnMouseExited { scene.cursor = Cursor.DEFAULT; }
+							setOnMouseClicked {
+								openInExternalApplication("https://artifacts.poterion.com/root/poterion-monitor/")
+							}
+						},
+						Label().apply {
+							textProperty().bind(lastVersion)
+							style = "-fx-text-fill: #009"
+							maxHeight = Double.MAX_VALUE
+							visibleProperty().bind(lastVersion.isNotEmpty
+									.and(lastVersion.isNotEqualTo(controller.applicationConfiguration.version)))
+							setOnMouseEntered { scene.cursor = Cursor.HAND; }
+							setOnMouseExited { scene.cursor = Cursor.DEFAULT; }
+							setOnMouseClicked {
+								openInExternalApplication("https://artifacts.poterion.com/root/poterion-monitor/")
+							}
+						}))
 
 		addRow(row++,
 				Label("Author:").apply {

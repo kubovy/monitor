@@ -18,7 +18,7 @@ package com.poterion.monitor.notifiers.deploymentcase.data
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.poterion.monitor.data.HttpConfig
+import com.poterion.monitor.data.HttpConfigInterface
 import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.utils.javafx.toObservableList
 import com.poterion.utils.javafx.toObservableMap
@@ -63,7 +63,7 @@ class Configuration(name: String = "",
 					devices: List<Device> = emptyList(),
 					jobStatus: Map<String, String> = emptyMap(),
 					pipelineStatus: Map<String, String> = emptyMap(),
-					stateMachine: List<State> = emptyList()) : HttpConfig {
+					stateMachine: List<State> = emptyList()) : HttpConfigInterface {
 
 	var name: String
 		get() = nameProperty.get()
