@@ -21,7 +21,7 @@ import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.notifiers.NotifierServiceReference
-import io.reactivex.subjects.PublishSubject
+import io.reactivex.subjects.BehaviorSubject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -38,7 +38,7 @@ object StatusCollector {
 	private val itemMap = mutableMapOf<String, Collection<StatusItem>>()
 	var items = emptyList<StatusItem>()
 		private set
-	val status: PublishSubject<StatusCollector> = PublishSubject.create()
+	val status: BehaviorSubject<StatusCollector> = BehaviorSubject.create()
 
 	init {
 		if (Shared.cacheFile.exists()) {

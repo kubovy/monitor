@@ -38,7 +38,7 @@ import com.poterion.monitor.data.services.ServiceDeserializer
 import com.poterion.monitor.data.services.ServiceSubConfig
 import com.poterion.utils.javafx.confirmDialog
 import com.poterion.utils.javafx.openInExternalApplication
-import io.reactivex.subjects.PublishSubject
+import io.reactivex.subjects.BehaviorSubject
 import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
@@ -70,7 +70,7 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 
 	override var applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration()
 		private set
-	private val configuration: PublishSubject<Boolean> = PublishSubject.create()
+	private val configuration: BehaviorSubject<Boolean> = BehaviorSubject.create()
 
 	@Deprecated("Use properties in config")
 	private val configListeners = mutableListOf<(ApplicationConfiguration) -> Unit>()
