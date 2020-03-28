@@ -19,31 +19,25 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.AbstractModuleConfig
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.auth.AuthConfig
-import javafx.beans.property.BooleanProperty
-import javafx.beans.property.IntegerProperty
-import javafx.beans.property.ObjectProperty
-import javafx.beans.property.SimpleBooleanProperty
-import javafx.beans.property.SimpleIntegerProperty
-import javafx.beans.property.SimpleObjectProperty
-import javafx.beans.property.SimpleStringProperty
-import javafx.beans.property.StringProperty
+import javafx.beans.property.*
 
 /**
  * Abstract service configuration with common implementation of [ServiceConfig].
  *
  * @param name Module name
  * @param enabled Whether module is enabled (`true`) or not (`false`)
- * @param url Service [URL][java.net.URL] (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
- * @param trustCertificate Whether to trust all certificates (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
- * @param auth Service [authentication][AuthConfig] (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param url Service [URL][java.net.URL] (see [HttpConfig][com.poterion.monitor.data.HttpConfigInterface])
+ * @param trustCertificate Whether to trust all certificates (see
+ *        [HttpConfig][com.poterion.monitor.data.HttpConfigInterface])
+ * @param auth Service [authentication][AuthConfig] (see [HttpConfig][com.poterion.monitor.data.HttpConfigInterface])
  * @param order Order of the service in which it will be evaluated
  * @param priority Priority of the service used for [items][com.poterion.monitor.data.StatusItem] yield by it unless
  *        otherwise additionally configured.
  * @param checkInterval Interval in which the service will be periodically checked for new
  *        [items][com.poterion.monitor.data.StatusItem].
- * @param connectTimeout Connection timeout (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
- * @param readTimeout Read timeout (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
- * @param writeTimeout Write timeout (see [HttpConfig][com.poterion.monitor.data.HttpConfig])
+ * @param connectTimeout Connection timeout (see [HttpConfig][com.poterion.monitor.data.HttpConfigInterface])
+ * @param readTimeout Read timeout (see [HttpConfig][com.poterion.monitor.data.HttpConfigInterface])
+ * @param writeTimeout Write timeout (see [HttpConfig][com.poterion.monitor.data.HttpConfigInterface])
  * @param tableColumnWidths Saved UI table column widths (column name -> width)
  * @author Jan Kubovy [jan@kubovy.eu]
  */

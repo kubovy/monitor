@@ -22,7 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.poterion.monitor.api.utils.toAuthenticator
 import com.poterion.monitor.api.utils.toProxy
-import com.poterion.monitor.data.HttpConfig
+import com.poterion.monitor.data.HttpConfigInterface
 import com.poterion.monitor.data.HttpProxy
 import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.monitor.data.auth.BasicAuthConfig
@@ -43,7 +43,7 @@ import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLContext
 import javax.net.ssl.X509TrustManager
 
-class HttpServiceModule(private val appConfig: ApplicationConfiguration, private val config: HttpConfig) {
+class HttpServiceModule(private val appConfig: ApplicationConfiguration, private val config: HttpConfigInterface) {
 	companion object {
 		private val LOGGER: Logger = LoggerFactory.getLogger(HttpServiceModule::class.java)
 	}

@@ -1,25 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ChoiceBox?>
-<?import javafx.scene.control.ColorPicker?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.Separator?>
-<?import javafx.scene.control.Slider?>
-<?import javafx.scene.control.SplitPane?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.TableView?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.control.TreeView?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
 <?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Pane?>
-<?import javafx.scene.layout.RowConstraints?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.*?>
 <SplitPane fx:id="splitPane" dividerPositions="0.2" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
            onKeyPressed="#onKeyPressed" prefHeight="845.0" prefWidth="1220.0" xmlns="http://javafx.com/javafx/11.0.1"
            xmlns:fx="http://javafx.com/fxml/1"
@@ -47,14 +31,14 @@
         </VBox>
         <VBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" spacing="5.0">
             <children>
-                <GridPane hgap="5.0" vgap="5.0">
+                <GridPane hgap="5.0" maxWidth="1.7976931348623157E308" vgap="5.0" VBox.vgrow="SOMETIMES">
                     <columnConstraints>
-                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0"/>
-                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0"/>
-                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0"/>
-                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0"/>
-                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0"/>
-                        <ColumnConstraints hgrow="ALWAYS" minWidth="10.0"/>
+                        <ColumnConstraints maxWidth="1.7976931348623157E308" minWidth="10.0" percentWidth="20.0"/>
+                        <ColumnConstraints maxWidth="1.7976931348623157E308" minWidth="10.0" percentWidth="20.0"/>
+                        <ColumnConstraints maxWidth="1.7976931348623157E308" minWidth="10.0" percentWidth="20.0"/>
+                        <ColumnConstraints maxWidth="1.7976931348623157E308" minWidth="10.0" percentWidth="20.0"/>
+                        <ColumnConstraints maxWidth="1.7976931348623157E308" minWidth="10.0" percentWidth="20.0"/>
+                        <ColumnConstraints maxWidth="1.7976931348623157E308" minWidth="10.0" percentWidth="20.0"/>
                     </columnConstraints>
                     <rowConstraints>
                         <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES"/>
@@ -74,13 +58,17 @@
                             </padding>
                         </Label>
                         <ColorPicker fx:id="comboBoxColor1" maxWidth="1.7976931348623157E308" GridPane.rowIndex="4"/>
-                        <Label text="Pattern" GridPane.rowIndex="2">
+                        <Label maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Pattern"
+                               GridPane.rowIndex="2">
                             <GridPane.margin>
-                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+                                <Insets/>
                             </GridPane.margin>
+                            <padding>
+                                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+                            </padding>
                         </Label>
                         <ComboBox fx:id="comboBoxPattern" maxWidth="1.7976931348623157E308" GridPane.columnIndex="1"
-                                  GridPane.columnSpan="2" GridPane.hgrow="ALWAYS" GridPane.rowIndex="2"/>
+                                  GridPane.columnSpan="2" GridPane.rowIndex="2"/>
                         <ColorPicker fx:id="comboBoxColor2" maxWidth="1.7976931348623157E308" GridPane.columnIndex="1"
                                      GridPane.rowIndex="4"/>
                         <ColorPicker fx:id="comboBoxColor3" maxWidth="1.7976931348623157E308" GridPane.columnIndex="2"

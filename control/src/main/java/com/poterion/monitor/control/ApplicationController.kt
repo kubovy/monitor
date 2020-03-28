@@ -27,6 +27,7 @@ import com.poterion.monitor.api.modules.NotifierModule
 import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.api.objectMapper
 import com.poterion.monitor.api.save
+import com.poterion.monitor.api.workers.UpdateChecker
 import com.poterion.monitor.data.ModuleDeserializer
 import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.notifiers.NotifierAction
@@ -35,7 +36,10 @@ import com.poterion.monitor.data.notifiers.NotifierDeserializer
 import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.data.services.ServiceDeserializer
 import com.poterion.monitor.data.services.ServiceSubConfig
-import io.reactivex.subjects.PublishSubject
+import com.poterion.utils.javafx.confirmDialog
+import com.poterion.utils.javafx.openInExternalApplication
+import io.reactivex.subjects.BehaviorSubject
+import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.stage.Stage
@@ -66,7 +70,7 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 
 	override var applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration()
 		private set
-	private val configuration: PublishSubject<Boolean> = PublishSubject.create()
+	private val configuration: BehaviorSubject<Boolean> = BehaviorSubject.create()
 
 	@Deprecated("Use properties in config")
 	private val configListeners = mutableListOf<(ApplicationConfiguration) -> Unit>()
@@ -146,6 +150,19 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 			configListeners.forEach { it.invoke(applicationConfiguration) }
 			applicationConfiguration.save()
 		}
+
+		var lastVersionChecked = applicationConfiguration.version
+		UpdateChecker.lastVersion.subscribe { lastVersion ->
+			Platform.runLater {
+				if (lastVersionChecked != lastVersion) confirmDialog("Update available",
+						"Do you want to download the new version?",
+						"New version ${lastVersion} is available") {
+					openInExternalApplication("https://artifacts.poterion.com/root/poterion-monitor/")
+				}
+				lastVersionChecked = lastVersion
+			}
+		}
+		UpdateChecker.start(applicationConfiguration)
 	}
 
 	override fun add(module: Module<*, *>): ModuleInstanceInterface<*>? {

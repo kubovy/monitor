@@ -14,66 +14,95 @@
  * You should have received a copy of the GNU General Public License          *
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.      *
  ******************************************************************************/
-package com.poterion.monitor.data.services
+package com.poterion.monitor.data
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.poterion.monitor.data.HttpConfigInterface
-import com.poterion.monitor.data.ModuleConfig
-import com.poterion.monitor.data.Priority
-import javafx.beans.property.IntegerProperty
+import com.poterion.monitor.data.auth.AuthConfig
+import javafx.beans.property.BooleanProperty
 import javafx.beans.property.ObjectProperty
-import javafx.collections.ObservableList
+import javafx.beans.property.StringProperty
 
 /**
- * Service configuration interface.
+ * HTTP configuration interface.
  *
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-interface ServiceConfig<SC> : ModuleConfig, HttpConfigInterface {
+interface HttpConfigInterface {
 	/**
-	 * Order of the service in which it will be evaluated.
-	 * @see orderProperty
+	 * Service [URL][java.net.URL]
+	 * @see urlProperty
 	 */
-	var order: Int
-		@JsonInclude(value = JsonInclude.Include.ALWAYS) get
+	var url: String
 
 	/**
-	 * Order property.
-	 * @see order
+	 * [URL][java.net.URL] property.
+	 * @see url
 	 */
-	val orderProperty: IntegerProperty
+	val urlProperty: StringProperty
 		@JsonIgnore get
 
 	/**
-	 * Priority of the service used for [items][com.poterion.monitor.data.StatusItem] yield by it unless otherwise
-	 * additionally configured.
-	 * @see priorityProperty
+	 * If `true`, all certificates will be trusted, if `false` only trusted certificates will be trusted.
+	 * @see trustCertificateProperty
 	 */
-	var priority: Priority
-		@JsonInclude(value = JsonInclude.Include.ALWAYS) get
+	var trustCertificate: Boolean
 
 	/**
-	 * Priority property.
-	 * @see priority
+	 * Trust certificate property.
+	 * @see trustCertificate
 	 */
-	val priorityProperty: ObjectProperty<Priority>
+	val trustCertificateProperty: BooleanProperty
 		@JsonIgnore get
 
 	/**
-	 * Interval in which the service will be periodically checked for new [items][com.poterion.monitor.data.StatusItem].
-	 * @see checkIntervalProperty
+	 * Service [authentication][AuthConfig]
+	 * @see authProperty
 	 */
-	var checkInterval: Long?
-		@JsonInclude(value = JsonInclude.Include.ALWAYS) get
+	var auth: AuthConfig?
 
 	/**
-	 * Check interval property.
-	 * @see checkInterval
+	 * Service [authentication][AuthConfig] property.
+	 * @see auth
 	 */
-	val checkIntervalProperty: ObjectProperty<Long?>
+	val authProperty: ObjectProperty<AuthConfig?>
 		@JsonIgnore get
 
-	val subConfig: ObservableList<SC>
+	/**
+	 * Connection timeout.
+	 * @see connectTimeoutProperty
+	 */
+	var connectTimeout: Long?
+
+	/**
+	 * Connection timeout property
+	 * @see connectTimeout
+	 */
+	val connectTimeoutProperty: ObjectProperty<Long?>
+		@JsonIgnore get
+
+	/**
+	 * Read timeout
+	 * @see readTimeoutProperty
+	 */
+	var readTimeout: Long?
+
+	/**
+	 * Read timeout property
+	 * @see readTimeout
+	 */
+	val readTimeoutProperty: ObjectProperty<Long?>
+		@JsonIgnore get
+
+	/**
+	 * Write timeout.
+	 * @see writeTimeoutProperty
+	 */
+	var writeTimeout: Long?
+
+	/**
+	 * Write timeout property.
+	 * @see writeTimeout
+	 */
+	val writeTimeoutProperty: ObjectProperty<Long?>
 		@JsonIgnore get
 }

@@ -1,108 +1,74 @@
 /******************************************************************************
- * Copyright (C) 2020 Jan Kubovy (jan@kubovy.eu)                              *
+ * Copyright (c) 2020 Jan Kubovy <jan@kubovy.eu>                              *
  *                                                                            *
- * This program is free software: you can redistribute it and/or modify       *
- * it under the terms of the GNU General Public License as published by       *
- * the Free Software Foundation, either version 3 of the License, or          *
- * (at your option) any later version.                                        *
+ * This program is free software: you can redistribute it and/or modify it    *
+ * under the terms of the GNU General Public License as published by the Free *
+ * Software Foundation, version 3.                                            *
  *                                                                            *
- * This program is distributed in the hope that it will be useful,            *
- * but WITHOUT ANY WARRANTY; without even the implied warranty of             *
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the              *
- * GNU General Public License for more details.                               *
+ * This program is distributed in the hope that it will be useful, but        *
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY *
+ * or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License    *
+ * for more details.                                                          *
  *                                                                            *
- * You should have received a copy of the GNU General Public License          *
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.      *
+ * You should have received a copy of the GNU General Public License along    *
+ * with this program. If not, see <https://www.gnu.org/licenses/>.            *
  ******************************************************************************/
 package com.poterion.monitor.data
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.auth.AuthConfig
-import javafx.beans.property.BooleanProperty
-import javafx.beans.property.ObjectProperty
-import javafx.beans.property.StringProperty
+import javafx.beans.property.*
 
 /**
- * HTTP configuration interface.
- *
+ * HTTP configuration
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-interface HttpConfig {
-	/**
-	 * Service [URL][java.net.URL]
-	 * @see urlProperty
-	 */
-	var url: String
+class HttpConfig(url: String = "",
+				 trustCertificate: Boolean = false,
+				 auth: AuthConfig? = null,
+				 connectTimeout: Long? = null,
+				 readTimeout: Long? = null,
+				 writeTimeout: Long? = null) : HttpConfigInterface {
 
-	/**
-	 * [URL][java.net.URL] property.
-	 * @see url
-	 */
-	val urlProperty: StringProperty
+	override var url: String
+		get() = urlProperty.get()
+		set(value) = urlProperty.set(value)
+
+	override val urlProperty: StringProperty = SimpleStringProperty(url)
 		@JsonIgnore get
 
-	/**
-	 * If `true`, all certificates will be trusted, if `false` only trusted certificates will be trusted.
-	 * @see trustCertificateProperty
-	 */
-	var trustCertificate: Boolean
+	override var trustCertificate: Boolean
+		get() = trustCertificateProperty.get()
+		set(value) = trustCertificateProperty.set(value)
 
-	/**
-	 * Trust certificate property.
-	 * @see trustCertificate
-	 */
-	val trustCertificateProperty: BooleanProperty
+	override val trustCertificateProperty: BooleanProperty = SimpleBooleanProperty(trustCertificate)
 		@JsonIgnore get
 
-	/**
-	 * Service [authentication][AuthConfig]
-	 * @see authProperty
-	 */
-	var auth: AuthConfig?
+	override var auth: AuthConfig?
+		get() = authProperty.get()
+		set(value) = authProperty.set(value)
 
-	/**
-	 * Service [authentication][AuthConfig] property.
-	 * @see auth
-	 */
-	val authProperty: ObjectProperty<AuthConfig?>
+	override val authProperty: ObjectProperty<AuthConfig?> = SimpleObjectProperty(auth)
 		@JsonIgnore get
 
-	/**
-	 * Connection timeout.
-	 * @see connectTimeoutProperty
-	 */
-	var connectTimeout: Long?
+	override var connectTimeout: Long?
+		get() = connectTimeoutProperty.get()
+		set(value) = connectTimeoutProperty.set(value)
 
-	/**
-	 * Connection timeout property
-	 * @see connectTimeout
-	 */
-	val connectTimeoutProperty: ObjectProperty<Long?>
+	override val connectTimeoutProperty: ObjectProperty<Long?> = SimpleObjectProperty(connectTimeout)
 		@JsonIgnore get
 
-	/**
-	 * Read timeout
-	 * @see readTimeoutProperty
-	 */
-	var readTimeout: Long?
+	override var readTimeout: Long?
+		get() = readTimeoutProperty.get()
+		set(value) = readTimeoutProperty.set(value)
 
-	/**
-	 * Read timeout property
-	 * @see readTimeout
-	 */
-	val readTimeoutProperty: ObjectProperty<Long?>
+	override val readTimeoutProperty: ObjectProperty<Long?> = SimpleObjectProperty(readTimeout)
 		@JsonIgnore get
 
-	/**
-	 * Write timeout.
-	 * @see writeTimeoutProperty
-	 */
-	var writeTimeout: Long?
+	override var writeTimeout: Long?
+		get() = writeTimeoutProperty.get()
+		set(value) = writeTimeoutProperty.set(value)
 
-	/**
-	 * Write timeout property.
-	 * @see writeTimeout
-	 */
-	val writeTimeoutProperty: ObjectProperty<Long?>
+	override val writeTimeoutProperty: ObjectProperty<Long?> = SimpleObjectProperty(writeTimeout)
 		@JsonIgnore get
 }
