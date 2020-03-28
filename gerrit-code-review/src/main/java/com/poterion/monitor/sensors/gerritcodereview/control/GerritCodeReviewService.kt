@@ -192,7 +192,7 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 			configIds = mutableListOf(query.configTitle),
 			priority = query.priority,
 			status = query.status,
-			title = "[${id}] ${subject ?: ""}",
+			title = subject ?: changeId ?: id ?: "",
 			//detail = item.subject,
 			labels = listOf(
 					"Project" to this.project,
