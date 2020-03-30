@@ -86,7 +86,7 @@ class ConfigWindowTabDevices {
 				override fun updateItem(item: Type?, empty: Boolean) {
 					super.updateItem(item, empty)
 					@Suppress("UNCHECKED_CAST")
-					text = transformer(tableRow.item as? Entry, item)
+					text = transformer(tableRow.item, item)
 				}
 			}
 		}

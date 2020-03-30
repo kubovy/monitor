@@ -80,7 +80,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 
 	private val usbScannerListener = object : ScannerListener<USBCommunicator.Descriptor> {
 		override fun onAvailableDevicesChanged(channel: Channel, devices: Collection<USBCommunicator.Descriptor>) {
-			updateSerialPorts(devices)
+			Platform.runLater { updateSerialPorts(devices) }
 		}
 	}
 

@@ -152,7 +152,7 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 				} else {
 					LOGGER.warn("${call.request().method()} ${call.request().url()}:" +
 							" ${response.code()} ${response.message()}")
-					error = "Code: ${response.code()} ${response.message() ?: "Service error"}"
+					error = "Code: ${response.code()} ${response.message()}"
 					addErrorStatus("Service error", Status.SERVICE_ERROR, error, query)
 				}
 			} catch (e: IOException) {

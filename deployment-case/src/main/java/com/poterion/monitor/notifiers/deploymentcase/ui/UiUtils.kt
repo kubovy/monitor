@@ -42,7 +42,7 @@ fun <Entry> TableColumn<Entry, String>.initEditableText(propertyName: String,
 
 			override fun startEdit() {
 				super.startEdit()
-				if (!isEmpty && !isReadOnly(tableRow?.item as? Entry)) {
+				if (!isEmpty && !isReadOnly(tableRow?.item)) {
 					text = null
 					graphic = createTextField()
 					textField?.selectAll()
@@ -69,7 +69,7 @@ fun <Entry> TableColumn<Entry, String>.initEditableText(propertyName: String,
 				} else {
 					text = item
 					graphic = null
-					style = styler(tableRow?.item as? Entry)
+					style = styler(tableRow?.item)
 				}
 			}
 

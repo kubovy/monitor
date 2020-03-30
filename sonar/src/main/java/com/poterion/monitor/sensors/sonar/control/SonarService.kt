@@ -135,12 +135,12 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 			} else {
 				LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
 						" ${response?.code()} ${response?.message()}")
-				error = response?.let { "Code: ${it.code()} ${it.message() ?: ""}" } ?: "Service error"
+				error = response?.let { "Code: ${it.code()} ${it.message()}" } ?: "Service error"
 				lastFoundProjectIds
 						.mapNotNull { id -> config.subConfig.find { it.id == id } }
 						.map { projectConfig ->
 							projectConfig.toStatusItem(Status.SERVICE_ERROR,
-									response?.let { "Code: ${it.code()} ${it.message() ?: ""}" })
+									response?.let { "Code: ${it.code()} ${it.message()}" })
 						}
 						.also(updater)
 			}

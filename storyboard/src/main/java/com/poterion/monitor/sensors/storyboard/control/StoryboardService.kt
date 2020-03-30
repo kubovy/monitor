@@ -138,7 +138,7 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 							" ${response?.code()} ${response?.message()}")
 					error = response
 							?.let {
-								"Code: ${response.code()} ${response.message() ?: "Failed retrieving ${project.name}"}"
+								"Code: ${response.code()} ${response.message()}"
 							}
 							?: "Failed retrieving ${project.name}"
 				}

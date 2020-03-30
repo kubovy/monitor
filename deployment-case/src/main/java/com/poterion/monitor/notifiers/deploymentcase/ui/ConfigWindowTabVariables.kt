@@ -16,17 +16,12 @@
  ******************************************************************************/
 package com.poterion.monitor.notifiers.deploymentcase.ui
 
-import com.poterion.communication.serial.toColor
-import com.poterion.communication.serial.toHex
 import com.poterion.monitor.notifiers.deploymentcase.control.findInStateMachine
-import com.poterion.monitor.notifiers.deploymentcase.data.Action
-import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
-import com.poterion.monitor.notifiers.deploymentcase.data.LightPattern
-import com.poterion.monitor.notifiers.deploymentcase.data.SharedUiData
-import com.poterion.monitor.notifiers.deploymentcase.data.Variable
-import com.poterion.monitor.notifiers.deploymentcase.data.VariableType
+import com.poterion.monitor.notifiers.deploymentcase.data.*
 import com.poterion.monitor.notifiers.deploymentcase.getDisplayString
 import com.poterion.utils.javafx.autoFitTable
+import com.poterion.utils.javafx.toColor
+import com.poterion.utils.javafx.toHex
 import com.poterion.utils.javafx.toObservableList
 import com.poterion.utils.kotlin.noop
 import javafx.beans.InvalidationListener
@@ -35,18 +30,7 @@ import javafx.collections.ListChangeListener
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
-import javafx.scene.control.Alert
-import javafx.scene.control.Button
-import javafx.scene.control.ButtonType
-import javafx.scene.control.CheckBox
-import javafx.scene.control.ColorPicker
-import javafx.scene.control.ComboBox
-import javafx.scene.control.Label
-import javafx.scene.control.Slider
-import javafx.scene.control.TableCell
-import javafx.scene.control.TableColumn
-import javafx.scene.control.TableView
-import javafx.scene.control.TextField
+import javafx.scene.control.*
 import javafx.scene.control.cell.PropertyValueFactory
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
@@ -203,7 +187,7 @@ class ConfigWindowTabVariables {
 				override fun startEdit() {
 					super.startEdit()
 					val entry = tableView.items[index]
-					if (!isEmpty && !isReadOnly(tableRow.item as? Variable)) {
+					if (!isEmpty && !isReadOnly(tableRow.item)) {
 						text = null
 						graphic = when (entry.type) {
 							VariableType.BOOLEAN -> createCheckBox()
@@ -422,7 +406,7 @@ class ConfigWindowTabVariables {
 				override fun startEdit() {
 					super.startEdit()
 					@Suppress("UNCHECKED_CAST")
-					if (!isEmpty && !isReadOnly(tableRow.item as? Entry)) {
+					if (!isEmpty && !isReadOnly(tableRow.item)) {
 						text = null
 						graphic = createComboBox()
 					}

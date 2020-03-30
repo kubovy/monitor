@@ -212,9 +212,9 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 			} else {
 				LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
 						" ${response?.code()} ${response?.message()}")
-				error = response?.let { "Code: ${it.code()} ${it.message() ?: ""}" } ?: "Service error"
+				error = response?.let { "Code: ${it.code()} ${it.message()}" } ?: "Service error"
 				updater(getStatusItems("Service error", Status.SERVICE_ERROR,
-						response?.let { "Code: ${it.code()} ${it.message() ?: ""}" }))
+						response?.let { "Code: ${it.code()} ${it.message()}" }))
 			}
 		} catch (e: IOException) {
 			LOGGER.error(e.message)

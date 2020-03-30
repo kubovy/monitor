@@ -129,7 +129,7 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 			} else {
 				LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
 						" ${response?.code()} ${response?.message()}")
-				error = response?.let { "Code: ${it.code()} ${it.message() ?: "Service error"}" } ?: "Service error"
+				error = response?.let { "Code: ${it.code()} ${it.message()}" } ?: "Service error"
 				lastFoundJobNames
 						.mapNotNull { jobs[it] }
 						.map { jobConfig ->

@@ -28,12 +28,7 @@ import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.sensors.jira.JiraModule
-import com.poterion.monitor.sensors.jira.data.JiraConfig
-import com.poterion.monitor.sensors.jira.data.JiraErrorResponse
-import com.poterion.monitor.sensors.jira.data.JiraIssue
-import com.poterion.monitor.sensors.jira.data.JiraIssueFieldProgress
-import com.poterion.monitor.sensors.jira.data.JiraQueryConfig
-import com.poterion.monitor.sensors.jira.data.JiraSearchRequestBody
+import com.poterion.monitor.sensors.jira.data.*
 import com.poterion.utils.javafx.openInExternalApplication
 import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.toUriOrNull
@@ -186,7 +181,7 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 								?.errorMessages
 								?.firstOrNull()
 								?: response?.let {
-									"Code: ${it.code()} ${it.message() ?: "Failed retrieving ${query.name} query"}"
+									"Code: ${it.code()} ${it.message()}"
 								} ?: "Failed retrieving ${query.name} query"
 					} catch (e: Throwable) {
 						error = "Failed retrieving ${query.name} query"
