@@ -37,9 +37,11 @@ import javafx.application.Platform
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Scene
+import javafx.scene.control.Button
 import javafx.scene.control.Label
 import javafx.scene.control.TextField
 import javafx.scene.layout.HBox
+import javafx.scene.layout.Pane
 import javafx.scene.layout.StackPane
 import javafx.scene.paint.Color
 import javafx.stage.Screen
@@ -69,18 +71,19 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 	override val definition: Module<NotificationsConfig, ModuleInstanceInterface<NotificationsConfig>> = NotificationsModule
 	private val owner: Stage? = Stage(StageStyle.TRANSPARENT)
 			.apply {
+				val size = 1.0
 				val root = StackPane().apply {
 					style = "-fx-background-color: TRANSPARENT"
 				}
-				scene = Scene(root, 1.0, 1.0).apply {
+				scene = Scene(root, size, size).apply {
 					fill = Color.TRANSPARENT
 				}
 
 				val bounds = Screen.getPrimary().visualBounds
-				x = bounds.width
-				y = bounds.height
-				width = 1.0
-				height = 1.0
+				x = bounds.width - size
+				y = bounds.height - size
+				width = size
+				height = size
 				toBack()
 			}
 			.also { it.show() }
@@ -122,7 +125,26 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 							if (value == null) config.durations.remove(name) else config.durations[name] = value
 							controller.saveConfig()
 						}
-				).rowItems
+				).rowItems +
+				listOf(
+						Pane() to Button("Test")
+								.apply {
+									prefWidth = 130.0
+									setOnAction {
+										Status.values().forEach { status ->
+											Notifications.create()
+													.owner(owner)
+													.graphic(status.toIcon().toImageView(48, 48))
+													.title("${status} test")
+													.text("Suspendisse facilisis dolor odio, nec lobortis ligula pharetra in.")
+													//.threshold(5)
+													//.position(Pos.BOTTOM_RIGHT)
+													.hideAfter(Duration.seconds(5.0))
+													.show()
+										}
+									}
+								}
+				)
 
 	override fun initialize() {
 		super.initialize()
