@@ -182,7 +182,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 	override fun initialize() {
 		super.initialize()
 		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe { collector ->
-			Platform.runLater {
+			if (config.enabled) Platform.runLater {
 				val lights = if (config.combineMultipleServices) collector
 						.topStatuses(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
 								config.minStatus, config.services)
@@ -277,7 +277,7 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 	private fun StatusItem.toLightConfig(status: Status): DevOpsLightItemConfig? = config.items
 			.find { it.id == serviceId && configIds.contains(it.subId) }?.takeIf { it.toLights(status).isNotEmpty() }
 			?: config.items.find { it.id == serviceId && it.subId == null }?.takeIf { it.toLights(status).isNotEmpty() }
-			?: config.items.find { it.id == "" }?.takeIf { it.toLights(status).isNotEmpty() }
+			?: config.items.find { it.id == null || it.id == "" }?.takeIf { it.toLights(status).isNotEmpty() }
 
 	private fun DevOpsLightItemConfig.toLights(status: Status): List<RgbLightConfiguration> {
 		return when (status) {

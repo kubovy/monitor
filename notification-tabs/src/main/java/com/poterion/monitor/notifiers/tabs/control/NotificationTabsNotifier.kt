@@ -23,6 +23,7 @@ import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.utils.toIcon
 import com.poterion.monitor.data.notifiers.NotifierAction
+import com.poterion.monitor.notifiers.tabs.NotificationTabsIcon
 import com.poterion.monitor.notifiers.tabs.NotificationTabsModule
 import com.poterion.monitor.notifiers.tabs.data.NotificationTabsConfig
 import com.poterion.monitor.notifiers.tabs.ui.TabController
@@ -58,8 +59,16 @@ class NotificationTabsNotifier(override val controller: ControllerInterface, con
 
 	override fun initialize() {
 		super.initialize()
+		config.enabledProperty.addListener { _, _, enabled ->
+			if (enabled) {
+				tabController?.onRefresh()
+			} else {
+				configurationTabIcon.set(NotificationTabsIcon.TABS.toImageView())
+				tabController?.clear()
+			}
+		}
 		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe {
-			Platform.runLater {
+			if (config.enabled) Platform.runLater {
 				configurationTabIcon.set(it.maxStatus(controller.applicationConfiguration.silencedMap.keys,
 						config.minPriority, config.minStatus, config.services).toIcon().toImageView())
 				tabController?.update(it.filter(emptyList(), config.minPriority,

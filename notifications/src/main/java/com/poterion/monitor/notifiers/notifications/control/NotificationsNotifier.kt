@@ -127,7 +127,7 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 	override fun initialize() {
 		super.initialize()
 		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe {
-			Platform.runLater {
+			if (config.enabled) Platform.runLater {
 				update(it.filter(controller.applicationConfiguration.silencedMap.keys,
 						config.minPriority,
 						config.minStatus,
