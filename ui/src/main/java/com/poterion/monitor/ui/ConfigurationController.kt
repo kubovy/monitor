@@ -98,6 +98,8 @@ class ConfigurationController {
 		}
 	}
 
+	@FXML private lateinit var buttonPause: ToggleButton
+	@FXML private lateinit var buttonRefresh: Button
 	@FXML private lateinit var tabPaneMain: TabPane
 	@FXML private lateinit var tabCommon: Tab
 	@FXML private lateinit var splitPane: SplitPane
@@ -280,10 +282,23 @@ class ConfigurationController {
 		select(null)
 	}
 
+	@FXML
+	fun onRefresh() {
+		controller.services.filtered { it.config.enabled }.forEach { it.refresh = true }
+	}
+
 	private fun ControllerInterface.validModules(getter: (ControllerInterface) -> Collection<ModuleInstanceInterface<*>>) =
-		modules.filter { m -> !m.singleton || !getter(this).map { it.definition }.contains(m) }
+			modules.filter { m -> !m.singleton || !getter(this).map { it.definition }.contains(m) }
 
 	private fun load() {
+		buttonPause.selectedProperty().bindBidirectional(controller.applicationConfiguration.pausedProperty)
+		buttonPause.selectedProperty().addListener { _, _, _ -> controller.saveConfig() }
+		buttonPause.graphicProperty().bind(controller.applicationConfiguration.pausedProperty.asObject()
+				.mapped { if (it == true) CommonIcon.PLAY.toImageView() else CommonIcon.PAUSE.toImageView() })
+		buttonPause.textProperty().bind(controller.applicationConfiguration.pausedProperty.asObject()
+				.mapped { if (it == true) "Resume" else "Pause" })
+		buttonRefresh.graphic = CommonIcon.REFRESH.toImageView()
+
 		splitPane.setDividerPosition(0, controller.applicationConfiguration.commonSplit)
 		splitPane.dividers.first().positionProperty().bindBidirectional(controller.applicationConfiguration.commonSplitProperty)
 		splitPane.dividers.first().positionProperty().addListener { _, _, _ -> controller.saveConfig() }
@@ -498,8 +513,7 @@ class ConfigurationController {
 					selectedProperty().addListener { _, _, value ->
 						val module = treeItem?.value?.module
 						if (value) when (module) {
-							is Service<*> -> module.refresh = true
-							is Notifier<*> -> module.selectedServices.forEach { it.refresh = true }
+							is Notifier<*> -> module.update()
 						}
 						controller.saveConfig()
 					}

@@ -122,12 +122,13 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOf(queryTableSettingsPlugin.vbox)
 
-	override fun check(updater: (Collection<StatusItem>) -> Unit) {
+	override fun doCheck(updater: (Collection<StatusItem>) -> Unit) {
 		if (config.enabled && config.url.isNotEmpty()) {
 			var errorStatus: StatusItem? = null
 			val httpProxy = controller.applicationConfiguration.proxy
 			val proxy = httpProxy.toProxy(config.url).takeIf { it != Proxy.NO_PROXY }
 
+			checkForInterruptions()
 			val feed = config.url
 					.toUriOrNull()
 					?.toURL()
@@ -169,6 +170,7 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 							null
 						}
 					}
+			checkForInterruptions()
 
 			if (feed != null) {
 				lastFound.clear()

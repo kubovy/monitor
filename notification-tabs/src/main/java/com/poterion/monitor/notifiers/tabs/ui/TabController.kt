@@ -400,7 +400,7 @@ class TabController {
 						}
 						if (count <= 0) Platform.runLater {
 							buttonRefresh.isDisable = false
-							buttonRefresh.text = "Refresh"
+							buttonRefresh.text = "Refresh Tab"
 						}
 					}
 				})

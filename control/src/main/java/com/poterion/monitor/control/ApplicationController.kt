@@ -30,7 +30,6 @@ import com.poterion.monitor.api.save
 import com.poterion.monitor.api.workers.UpdateChecker
 import com.poterion.monitor.data.ModuleDeserializer
 import com.poterion.monitor.data.data.ApplicationConfiguration
-import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.notifiers.NotifierDeserializer
 import com.poterion.monitor.data.services.ServiceConfig
@@ -124,7 +123,7 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 
 		(services + notifiers).forEach { it.initialize() }
 
-		ControllerWorker.start(services)
+		ControllerWorker.start(applicationConfiguration, services)
 
 		stage.setOnCloseRequest { if (notifiers.map { it.exitRequest }.reduce { acc, b -> acc && b }) quit() }
 
@@ -188,7 +187,7 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 
 	override fun quit() {
 		ControllerWorker.stop()
-		notifiers.forEach { it.execute(NotifierAction.SHUTDOWN) }
+		notifiers.forEach { it.shutdown() }
 		saveConfig()
 		exitProcess(0) // not necessary if all non-daemon threads have stopped.
 	}

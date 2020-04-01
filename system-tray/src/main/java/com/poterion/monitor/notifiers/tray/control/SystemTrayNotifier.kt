@@ -28,7 +28,6 @@ import com.poterion.monitor.api.utils.toIcon
 import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.StatusItem
-import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.tray.SystemTrayIcon
 import com.poterion.monitor.notifiers.tray.SystemTrayModule
 import com.poterion.monitor.notifiers.tray.data.SystemTrayConfig
@@ -36,12 +35,8 @@ import com.poterion.monitor.ui.ConfigurationController
 import com.poterion.utils.javafx.Icon
 import com.poterion.utils.javafx.openInExternalApplication
 import com.poterion.utils.javafx.toImageView
-import dorkbox.systemTray.Checkbox
-import dorkbox.systemTray.Entry
-import dorkbox.systemTray.Menu
-import dorkbox.systemTray.MenuItem
-import dorkbox.systemTray.Separator
-import dorkbox.systemTray.SystemTray
+import com.poterion.utils.kotlin.noop
+import dorkbox.systemTray.*
 import javafx.application.Platform
 import javafx.geometry.Pos
 import javafx.scene.Node
@@ -82,7 +77,10 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 			LOGGER.error(e.message, e)
 		}
 		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe {
-			Platform.runLater { update(it) }
+			Platform.runLater { update() }
+		}
+		config.enabledProperty.addListener { _, _, enabled ->
+			(if (enabled) lastStatusIcon else CommonIcon.APPLICATION)?.inputStream.use { systemTray?.setImage(it) }
 		}
 	}
 
@@ -104,37 +102,26 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 					selectedProperty().addListener { _, _, _ -> controller.saveConfig() }
 				})
 
-	override fun execute(action: NotifierAction): Unit = when (action) {
-		NotifierAction.ENABLE -> {
-			config.enabled = true
-			lastStatusIcon?.inputStream.use { systemTray?.setImage(it) }
-			controller.saveConfig()
-		}
-		NotifierAction.DISABLE -> {
-			config.enabled = false
-			CommonIcon.APPLICATION.inputStream.use { systemTray?.setImage(it) }
-			controller.saveConfig()
-		}
-		NotifierAction.TOGGLE -> execute(if (config.enabled) NotifierAction.DISABLE else NotifierAction.ENABLE)
-		else -> LOGGER.debug("Executing action ${action}")
-	}
-
-	private fun update(collector: StatusCollector) {
-		collector.items
+	override fun update() {
+		StatusCollector.items
 				.filterNot { controller.applicationConfiguration.silencedMap.keys.contains(it.id) }
 				.map { it.serviceId }
 				.distinct()
 				.map { it to serviceMenus[it] }
 				.forEach { (serviceId, serviceMenu) ->
 					serviceMenu
-							?.also { it.updateSubMenu(collector.items.filter { item -> item.serviceId == serviceId }) }
+							?.also {
+								it.updateSubMenu(StatusCollector.items.filter { item -> item.serviceId == serviceId })
+							}
 							?: LOGGER.error("Unknown service ${serviceId} - no menu for it")
 				}
 
-		lastStatusIcon = collector.maxStatus(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
-				config.minStatus, config.services).toIcon()
+		lastStatusIcon = StatusCollector.maxStatus(controller.applicationConfiguration.silencedMap.keys,
+				config.minPriority, config.minStatus, config.services).toIcon()
 		lastStatusIcon?.inputStream?.use { systemTray?.setImage(it) }
 	}
+
+	override fun shutdown() = noop()
 
 	private fun createMenu() {
 		if (systemTray != null && (systemTray?.menu?.first == null || config.refresh)) try {

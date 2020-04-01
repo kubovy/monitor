@@ -21,7 +21,6 @@ import com.poterion.monitor.api.ui.TableSettingsPlugin
 import com.poterion.monitor.api.utils.toIcon
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
-import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.notifiers.NotifierServiceReference
 import com.poterion.monitor.data.services.ServiceConfig
@@ -50,10 +49,7 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 						NavigationItem(
 								title = "Enabled",
 								checkedProperty = config.enabledProperty.asObject(),
-								action = {
-									execute(NotifierAction.TOGGLE)
-									if (!config.enabled) execute(NotifierAction.SHUTDOWN)
-								})
+								action = { config.enabled = !config.enabled })
 				))
 
 	private val String.getService: ServiceConfig<out ServiceSubConfig>?
@@ -138,14 +134,12 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 			while (change.next()) if (change.wasRemoved()) config.services
 					.removeAll { service -> change.removed.map { it.uuid }.contains(service.uuid) }
 		})
+		config.enabledProperty.addListener { _, _, _ -> controller.saveConfig() }
 	}
 
 	open fun onServicesChanged() = noop()
 
-	/**
-	 * Action execution.
-	 *
-	 * @param action Notifier action to execute.
-	 */
-	abstract fun execute(action: NotifierAction)
+	abstract fun update()
+
+	abstract fun shutdown()
 }

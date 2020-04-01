@@ -33,7 +33,6 @@ import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
-import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.devopslight.DevOpsLight
 import com.poterion.monitor.notifiers.devopslight.DevOpsLightIcon
 import com.poterion.monitor.notifiers.devopslight.data.DevOpsLightConfig
@@ -181,29 +180,8 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 
 	override fun initialize() {
 		super.initialize()
-		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe { collector ->
-			if (config.enabled) Platform.runLater {
-				val lights = if (config.combineMultipleServices) collector
-						.topStatuses(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
-								config.minStatus, config.services)
-						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
-						.mapNotNull { item -> item.toLightConfig(item.status)?.let { it to item.status } }
-						.distinctBy { (config, _) -> config.id to config.subId }
-						.map { (config, status) -> config.toLights(status) }
-						.flatten()
-						.takeIf { it.isNotEmpty() }
-						?: config.items.firstOrNull { it.id == "" }?.statusOk
-				else collector
-						.topStatus(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
-								config.minStatus, config.services)
-						.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
-						?.let { it.toLightConfig(it.status)?.toLights(it.status) }
-						?: config.items.firstOrNull { it.id == "" }?.statusOk
-
-				lights?.also { lastState = it }
-						?.takeIf { config.enabled }
-						?.also { changeLights(it) }
-			}
+		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe {
+			if (config.enabled) Platform.runLater { update() }
 		}
 
 		updateSerialPorts(SerialPortList.getPortNames().map { USBCommunicator.Descriptor(it) })
@@ -224,6 +202,19 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 			bluetoothCommunicator.connect()
 			usbCommunicator.connect()
 		}
+		config.enabledProperty.addListener { _, _, enabled ->
+			if (enabled) {
+				if (!config.onDemandConnection) {
+					bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
+					usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
+				}
+				changeLights(lastState)
+			} else {
+				bluetoothCommunicator.disconnect()
+				usbCommunicator.disconnect()
+				changeLights(listOf(RgbLightConfiguration()))
+			}
+		}
 	}
 
 	/**
@@ -238,25 +229,30 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 		}
 	}
 
-	override fun execute(action: NotifierAction): Unit = when (action) {
-		NotifierAction.ENABLE -> {
-			config.enabled = true
-			if (!config.onDemandConnection) {
-				bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
-				usbCommunicator.connect(USBCommunicator.Descriptor(config.usbPort))
-			}
-			changeLights(lastState)
-			controller.saveConfig()
-		}
-		NotifierAction.DISABLE -> {
-			config.enabled = false
-			bluetoothCommunicator.disconnect()
-			usbCommunicator.disconnect()
-			controller.saveConfig()
-		}
-		NotifierAction.TOGGLE -> execute(if (config.enabled) NotifierAction.DISABLE else NotifierAction.ENABLE)
-		NotifierAction.SHUTDOWN -> changeLights(listOf(RgbLightConfiguration()))
+	override fun update() {
+		val lights = if (config.combineMultipleServices) StatusCollector
+				.topStatuses(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
+						config.minStatus, config.services)
+				.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
+				.mapNotNull { item -> item.toLightConfig(item.status)?.let { it to item.status } }
+				.distinctBy { (config, _) -> config.id to config.subId }
+				.map { (config, status) -> config.toLights(status) }
+				.flatten()
+				.takeIf { it.isNotEmpty() }
+				?: config.items.firstOrNull { it.id == "" }?.statusOk
+		else StatusCollector
+				.topStatus(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
+						config.minStatus, config.services)
+				.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
+				?.let { it.toLightConfig(it.status)?.toLights(it.status) }
+				?: config.items.firstOrNull { it.id == "" }?.statusOk
+
+		lights?.also { lastState = it }
+				?.takeIf { config.enabled }
+				?.also { changeLights(it) }
 	}
+
+	override fun shutdown() = changeLights(listOf(RgbLightConfiguration()))
 
 	private fun updateSerialPorts(devices: Collection<USBCommunicator.Descriptor>) {
 		val portNames = (listOf("") + devices.map { it.portName }).toMutableList()

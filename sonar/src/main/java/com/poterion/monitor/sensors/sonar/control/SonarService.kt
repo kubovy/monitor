@@ -105,13 +105,16 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOf(projectTableSettingsPlugin.vbox)
 
-	override fun check(updater: (Collection<StatusItem>) -> Unit) {
+	override fun doCheck(updater: (Collection<StatusItem>) -> Unit) {
 		var error: String? = null
 		if (config.enabled && config.url.isNotBlank()) try {
 			val call = service?.check()
 			val response = call?.execute()
+			checkForInterruptions()
+
 			LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
 					" ${response?.code()} ${response?.message()}")
+
 			if (response?.isSuccessful == true) {
 				val foundProjects = response.body()
 						?.filter { project -> config.filter?.let { project.name.matches(it.toRegex()) } != false }

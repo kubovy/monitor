@@ -117,18 +117,24 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOf(queryTableSettingsPlugin.vbox)
 
-	override fun check(updater: (Collection<StatusItem>) -> Unit) {
+	override fun doCheck(updater: (Collection<StatusItem>) -> Unit) {
 		lastFound.keys
 				.filterNot { key -> config.subConfig.map { it.name }.contains(key) }
 				.forEach { lastFound.remove(it) }
 		var error: String? = null
+
 		if (config.enabled && config.url.isNotBlank()) try {
 			val queries = config.subConfig.mapNotNull { q -> service?.check(q.query)?.let { q to it } }
 			val statuses = mutableMapOf<String, StatusItem>()
 			for ((query, call) in queries) try {
+
+				checkForInterruptions()
 				val response = call.execute()
+				checkForInterruptions()
+
 				LOGGER.info("${call.request().method()} ${call.request().url()}:" +
 						" ${response.code()} ${response.message()}")
+
 				if (response.isSuccessful) {
 					val body = response.body() ?: ""
 					val startIndex = body.indexOf('[')

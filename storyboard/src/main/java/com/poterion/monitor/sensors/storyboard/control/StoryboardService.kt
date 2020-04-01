@@ -100,7 +100,7 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOf(projectTableSettingsPlugin.vbox)
 
-	override fun check(updater: (Collection<StatusItem>) -> Unit) {
+	override fun doCheck(updater: (Collection<StatusItem>) -> Unit) {
 		lastFound.keys
 				.filterNot { key -> config.subConfig.map { it.name }.contains(key) }
 				.forEach { lastFound.remove(it) }
@@ -109,18 +109,28 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 			for (project in config.subConfig) try {
 				val alerts = mutableListOf<StatusItem>()
 				val call = service?.projects(project.name)
+
+				checkForInterruptions()
 				val response = call?.execute()
+				checkForInterruptions()
+
 				LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
 						" ${response?.code()} ${response?.message()}")
 
 				if (response?.isSuccessful == true) {
 					val projectId = response.body()?.find { it.name == project.name }?.id
 					if (projectId != null) {
+
+						checkForInterruptions()
 						val storiesResponse = service?.stories(projectId)?.execute()
+						checkForInterruptions()
+
 						if (storiesResponse?.isSuccessful == true) {
 							val stories = storiesResponse.body() ?: emptyList()
 							for (story in stories) if (story.id != null) {
 								alerts.add(story.toStatusItem(project))
+
+								checkForInterruptions()
 								val taskAlerts = service
 										?.tasks(story.id!!)
 										?.execute()
@@ -128,6 +138,8 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 										?.body()
 										?.map { task -> task.toStatusItem(project, story) }
 										?: emptyList()
+								checkForInterruptions()
+
 								alerts.addAll(taskAlerts)
 							}
 						} else error = "Failed retrieving ${project.name} stories"

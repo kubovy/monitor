@@ -20,16 +20,8 @@ import com.poterion.communication.serial.byte2Bools
 import com.poterion.communication.serial.calculateChecksum
 import com.poterion.communication.serial.communicator.BluetoothCommunicator
 import com.poterion.communication.serial.communicator.Channel
-import com.poterion.communication.serial.extensions.DataCommunicatorExtension
-import com.poterion.communication.serial.extensions.LcdCommunicatorExtension
-import com.poterion.communication.serial.extensions.RegistryCommunicatorExtension
-import com.poterion.communication.serial.extensions.RgbIndicatorCommunicatorExtension
-import com.poterion.communication.serial.extensions.StateMachineCommunicatorExtension
-import com.poterion.communication.serial.listeners.DataCommunicatorListener
-import com.poterion.communication.serial.listeners.LcdCommunicatorListener
-import com.poterion.communication.serial.listeners.RegistryCommunicatorListener
-import com.poterion.communication.serial.listeners.RgbIndicatorCommunicatorListener
-import com.poterion.communication.serial.listeners.StateMachineCommunicatorListener
+import com.poterion.communication.serial.extensions.*
+import com.poterion.communication.serial.listeners.*
 import com.poterion.communication.serial.payload.DeviceCapabilities
 import com.poterion.communication.serial.payload.LcdCommand
 import com.poterion.communication.serial.payload.RgbIndicatorConfiguration
@@ -38,18 +30,10 @@ import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.NavigationItem
-import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseIcon
 import com.poterion.monitor.notifiers.deploymentcase.DeploymentCaseModule
 import com.poterion.monitor.notifiers.deploymentcase.api.DeploymentCaseMessageListener
-import com.poterion.monitor.notifiers.deploymentcase.data.Action
-import com.poterion.monitor.notifiers.deploymentcase.data.DeploymentCaseConfig
-import com.poterion.monitor.notifiers.deploymentcase.data.Device
-import com.poterion.monitor.notifiers.deploymentcase.data.DeviceKind
-import com.poterion.monitor.notifiers.deploymentcase.data.LcdKey
-import com.poterion.monitor.notifiers.deploymentcase.data.State
-import com.poterion.monitor.notifiers.deploymentcase.data.Variable
-import com.poterion.monitor.notifiers.deploymentcase.data.VirtualKey
+import com.poterion.monitor.notifiers.deploymentcase.data.*
 import com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController
 import com.poterion.monitor.notifiers.deploymentcase.ui.StateCompareWindowController
 import com.poterion.utils.javafx.Icon
@@ -143,24 +127,15 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		if (config.enabled) {
 			bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
 		}
-	}
-
-	override fun execute(action: NotifierAction) {
-		when (action) {
-			NotifierAction.ENABLE -> {
-				config.enabled = true
-				bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
-				controller.saveConfig()
-			}
-			NotifierAction.DISABLE -> {
-				config.enabled = false
-				bluetoothCommunicator.disconnect()
-				controller.saveConfig()
-			}
-			NotifierAction.TOGGLE -> execute(if (config.enabled) NotifierAction.DISABLE else NotifierAction.ENABLE)
-			NotifierAction.SHUTDOWN -> bluetoothCommunicator.disconnect()
+		config.enabledProperty.addListener { _, _, enabled ->
+			if (enabled) bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
+			else bluetoothCommunicator.disconnect()
 		}
 	}
+
+	override fun update() = noop()
+
+	override fun shutdown() = bluetoothCommunicator.disconnect()
 
 	/**
 	 * Register deployment case message listener.

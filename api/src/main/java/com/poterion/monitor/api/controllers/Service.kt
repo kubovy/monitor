@@ -23,6 +23,7 @@ import com.poterion.monitor.data.services.ServiceSubConfig
 import javafx.beans.property.BooleanProperty
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleStringProperty
+import org.slf4j.LoggerFactory
 import retrofit2.Retrofit
 
 /**
@@ -30,6 +31,13 @@ import retrofit2.Retrofit
  */
 abstract class Service<out Config : ServiceConfig<out ServiceSubConfig>>(config: Config) :
 		AbstractModule<Config>(config) {
+
+	companion object {
+		private val LOGGER = LoggerFactory.getLogger(Service::class.java)
+	}
+
+	private var interruptReason: String? = null
+	private var lastChecked = 0L
 
 	override val navigationRoot: NavigationItem
 		get() = NavigationItem(
@@ -52,6 +60,13 @@ abstract class Service<out Config : ServiceConfig<out ServiceSubConfig>>(config:
 
 	val lastErrorProperty = SimpleStringProperty(null)
 
+	val shouldRun: Boolean
+		get() = !controller.applicationConfiguration.paused
+				&& config.enabled
+				&& config.url.isNotBlank()
+				&& (refresh
+				|| (config.checkInterval?.let { (System.currentTimeMillis() - lastChecked) > it } ?: false))
+
 	protected val retrofit: Retrofit?
 		get() = http?.retrofit
 
@@ -60,5 +75,37 @@ abstract class Service<out Config : ServiceConfig<out ServiceSubConfig>>(config:
 	 *
 	 * @param updater Status updater callback
 	 */
-	abstract fun check(updater: (Collection<StatusItem>) -> Unit)
+	fun check(updater: (Collection<StatusItem>) -> Unit) {
+		interruptReason = null
+		if (shouldRun) try {
+			refresh = true
+			val checkedUpdater: (Collection<StatusItem>) -> Unit = {
+				checkForInterruptions()
+				updater(it)
+			}
+			doCheck(checkedUpdater)
+			lastChecked = System.currentTimeMillis()
+		} catch (e: InterruptedException) {
+			LOGGER.info("${this.javaClass.simpleName} ${e.message}")
+		} catch (e: Throwable) {
+			LOGGER.error(e.message, e)
+		} finally {
+			refresh = false
+		} else {
+			refresh = false
+		}
+	}
+
+	fun interrupt(reason: String = "interrupted") {
+		interruptReason = reason
+	}
+
+	protected abstract fun doCheck(updater: (Collection<StatusItem>) -> Unit)
+
+	protected fun checkForInterruptions() {
+		if (controller.applicationConfiguration.paused) throw InterruptedException("paused")
+		if (!config.enabled) throw InterruptedException("disabled")
+		if (interruptReason != null) throw InterruptedException(interruptReason)
+		interruptReason = null
+	}
 }

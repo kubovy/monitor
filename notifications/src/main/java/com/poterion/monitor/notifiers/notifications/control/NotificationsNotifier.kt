@@ -24,14 +24,13 @@ import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.CollectionSettingsPlugin
 import com.poterion.monitor.api.utils.toIcon
 import com.poterion.monitor.data.Status
-import com.poterion.monitor.data.StatusItem
-import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.notifications.NotificationsModule
 import com.poterion.monitor.notifiers.notifications.data.LastUpdatedConfig
 import com.poterion.monitor.notifiers.notifications.data.NotificationsConfig
 import com.poterion.utils.javafx.openInExternalApplication
 import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.cutLastWords
+import com.poterion.utils.kotlin.noop
 import com.poterion.utils.kotlin.toUriOrNull
 import javafx.application.Platform
 import javafx.geometry.Pos
@@ -149,29 +148,15 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 	override fun initialize() {
 		super.initialize()
 		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe {
-			if (config.enabled) Platform.runLater {
-				update(it.filter(controller.applicationConfiguration.silencedMap.keys,
-						config.minPriority,
-						config.minStatus,
-						config.services))
-			}
+			if (config.enabled) Platform.runLater { update() }
 		}
 	}
 
-	override fun execute(action: NotifierAction): Unit = when (action) {
-		NotifierAction.ENABLE -> {
-			config.enabled = true
-			controller.saveConfig()
-		}
-		NotifierAction.DISABLE -> {
-			config.enabled = false
-			controller.saveConfig()
-		}
-		NotifierAction.TOGGLE -> execute(if (config.enabled) NotifierAction.DISABLE else NotifierAction.ENABLE)
-		else -> LOGGER.debug("Executing action ${action}")
-	}
-
-	private fun update(statusItems: Collection<StatusItem>) {
+	override fun update() {
+		val statusItems = StatusCollector.filter(controller.applicationConfiguration.silencedMap.keys,
+				config.minPriority,
+				config.minStatus,
+				config.services)
 		statusItems.groupBy { it.serviceId } // Remove missing from last updated cache
 				.map { (serviceId, statusItems) -> serviceId to statusItems.map { it.id } }
 				.map { (serviceId, itemIds) -> serviceId to config.lastUpdated[serviceId]?.keys?.filterNot { itemIds.contains(it) } }
@@ -221,4 +206,6 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 			}
 		}
 	}
+
+	override fun shutdown() = noop()
 }

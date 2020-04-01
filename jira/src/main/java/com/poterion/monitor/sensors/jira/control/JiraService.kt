@@ -38,6 +38,7 @@ import javafx.scene.control.Button
 import javafx.scene.layout.Region
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.IOException
 import java.net.URLEncoder
 import java.time.Instant
 import java.time.format.DateTimeFormatterBuilder
@@ -140,7 +141,7 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 		get() = super.configurationAddition + listOf(queryTableSettingsPlugin.vbox)
 
 
-	override fun check(updater: (Collection<StatusItem>) -> Unit) {
+	override fun doCheck(updater: (Collection<StatusItem>) -> Unit) {
 		if (config.enabled && config.url.isNotBlank()) {
 			val alerts = cache.map { (k, v) -> k to v }.toMap().toMutableMap()
 			var error: String? = null
@@ -157,7 +158,11 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 							?.let { "${query.jql} AND updated >= '-${it}m' ORDER BY updated DESC" }
 							?: "${query.jql} ORDER BY updated DESC"
 					val call = service?.search(JiraSearchRequestBody(jql = jql, startAt = offset, maxResults = limit))
+
+					checkForInterruptions()
 					val response = call?.execute()
+					checkForInterruptions()
+
 					LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
 							" ${response?.code()} ${response?.message()}")
 
@@ -188,7 +193,7 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 					}
 
 					if (error != null) alerts.addErrorStatus(query, "Service error", Status.SERVICE_ERROR, error)
-				} catch (e: Exception) {
+				} catch (e: IOException) {
 					LOGGER.error("${config.url} with ${query.jql}: ${e.message}")
 					error = e.message ?: "Connection error"
 					alerts.addErrorStatus(query, "Connection error", Status.CONNECTION_ERROR, e.message)

@@ -173,11 +173,13 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOf(labelTableSettingsPlugin.vbox)
 
-	override fun check(updater: (Collection<StatusItem>) -> Unit) {
+	override fun doCheck(updater: (Collection<StatusItem>) -> Unit) {
 		var error: String? = null
 		if (config.enabled && config.url.isNotBlank()) try {
 			val call = service?.check()
 			val response = call?.execute()
+			checkForInterruptions()
+
 			LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
 					" ${response?.code()} ${response?.message()}")
 			if (response?.isSuccessful == true) {
@@ -208,6 +210,8 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 								status = Status.OK,
 								title = "No alerts",
 								isRepeatable = false))
+
+				checkForInterruptions()
 				updater(alerts)
 			} else {
 				LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +

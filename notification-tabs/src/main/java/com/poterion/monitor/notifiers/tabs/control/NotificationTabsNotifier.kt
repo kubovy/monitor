@@ -22,12 +22,12 @@ import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.utils.toIcon
-import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.tabs.NotificationTabsIcon
 import com.poterion.monitor.notifiers.tabs.NotificationTabsModule
 import com.poterion.monitor.notifiers.tabs.data.NotificationTabsConfig
 import com.poterion.monitor.notifiers.tabs.ui.TabController
 import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.kotlin.noop
 import javafx.application.Platform
 import javafx.scene.Parent
 import org.slf4j.Logger
@@ -60,20 +60,13 @@ class NotificationTabsNotifier(override val controller: ControllerInterface, con
 	override fun initialize() {
 		super.initialize()
 		config.enabledProperty.addListener { _, _, enabled ->
-			if (enabled) {
-				tabController?.onRefresh()
-			} else {
+			if (!enabled) {
 				configurationTabIcon.set(NotificationTabsIcon.TABS.toImageView())
 				tabController?.clear()
 			}
 		}
 		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe {
-			if (config.enabled) Platform.runLater {
-				configurationTabIcon.set(it.maxStatus(controller.applicationConfiguration.silencedMap.keys,
-						config.minPriority, config.minStatus, config.services).toIcon().toImageView())
-				tabController?.update(it.filter(emptyList(), config.minPriority,
-						config.minStatus, config.services, includingChildren = true))
-			}
+			if (config.enabled) Platform.runLater { update() }
 		}
 	}
 
@@ -81,20 +74,16 @@ class NotificationTabsNotifier(override val controller: ControllerInterface, con
 		super.onServicesChanged()
 		if (!config.services.any { it.uuid == config.selectedServiceId }) {
 			config.selectedServiceId = null
-			selectedServices.forEach { it.refresh = true }
+			update()
 		}
 	}
 
-	override fun execute(action: NotifierAction): Unit = when (action) {
-		NotifierAction.ENABLE -> {
-			config.enabled = true
-			controller.saveConfig()
-		}
-		NotifierAction.DISABLE -> {
-			config.enabled = false
-			controller.saveConfig()
-		}
-		NotifierAction.TOGGLE -> execute(if (config.enabled) NotifierAction.DISABLE else NotifierAction.ENABLE)
-		else -> LOGGER.debug("Executing action ${action}")
+	override fun update() {
+		configurationTabIcon.set(StatusCollector.maxStatus(controller.applicationConfiguration.silencedMap.keys,
+				config.minPriority, config.minStatus, config.services).toIcon().toImageView())
+		tabController?.update(StatusCollector.filter(emptyList(), config.minPriority,
+				config.minStatus, config.services, includingChildren = true))
 	}
+
+	override fun shutdown() = noop()
 }
