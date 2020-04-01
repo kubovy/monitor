@@ -20,6 +20,7 @@ import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
+import com.poterion.monitor.api.filter
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.CollectionSettingsPlugin
 import com.poterion.monitor.api.utils.toIcon
@@ -32,7 +33,6 @@ import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.cutLastWords
 import com.poterion.utils.kotlin.noop
 import com.poterion.utils.kotlin.toUriOrNull
-import javafx.application.Platform
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Scene
@@ -56,7 +56,6 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoField
-import java.util.concurrent.TimeUnit
 
 
 /**
@@ -145,15 +144,8 @@ class NotificationsNotifier(override val controller: ControllerInterface, config
 								}
 				)
 
-	override fun initialize() {
-		super.initialize()
-		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe {
-			if (config.enabled) Platform.runLater { update() }
-		}
-	}
-
 	override fun update() {
-		val statusItems = StatusCollector.filter(controller.applicationConfiguration.silencedMap.keys,
+		val statusItems = StatusCollector.items.filter(controller.applicationConfiguration.silencedMap.keys,
 				config.minPriority,
 				config.minStatus,
 				config.services)

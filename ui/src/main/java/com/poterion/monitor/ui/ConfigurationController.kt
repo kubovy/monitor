@@ -33,6 +33,7 @@ import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.monitor.data.auth.BasicAuthConfig
 import com.poterion.monitor.data.auth.TokenAuthConfig
 import com.poterion.monitor.data.data.SilencedStatusItem
+import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.utils.javafx.*
 import com.poterion.utils.kotlin.noop
 import javafx.application.Platform
@@ -243,7 +244,7 @@ class ConfigurationController {
 					"Application" -> null
 					"Services" -> controller
 							.validModules { it.services }
-							.mapNotNull { it as? ServiceModule<*, *> }
+							.mapNotNull { it as? ServiceModule<*, *, *> }
 							.map { module ->
 								MenuItem("Add ${module.title} service", module.icon.toImageView()).apply {
 									setOnAction {
@@ -284,7 +285,7 @@ class ConfigurationController {
 
 	@FXML
 	fun onRefresh() {
-		controller.services.filtered { it.config.enabled }.forEach { it.refresh = true }
+		controller.services.filter { it.config.enabled }.forEach { it.refresh = true }
 	}
 
 	private fun ControllerInterface.validModules(getter: (ControllerInterface) -> Collection<ModuleInstanceInterface<*>>) =
@@ -519,7 +520,7 @@ class ConfigurationController {
 					}
 				})
 
-		row = treeItem?.value?.module?.let { it as? Service }?.initializeServiceModule(row) ?: row
+		row = treeItem?.value?.module?.let { it as? Service<*, *> }?.initializeServiceModule(row) ?: row
 		row = treeItem?.value?.module?.let { it as? Notifier }?.initializeNotifierModule(row) ?: row
 
 		treeItem?.value?.module?.configurationRows?.forEach { (label, content) ->
@@ -537,7 +538,7 @@ class ConfigurationController {
 		return row
 	}
 
-	private fun Service<*>.initializeServiceModule(rowIndex: Int): Int = gridPane.run {
+	private fun Service<*, ServiceConfig<*>>.initializeServiceModule(rowIndex: Int): Int = gridPane.run {
 		var row = rowIndex
 		addRow(row++,
 				Label("Default priority").apply {
@@ -607,7 +608,7 @@ class ConfigurationController {
 		return initializeHttpService(row)
 	}
 
-	private fun Service<*>.initializeHttpService(rowIndex: Int): Int = gridPane.run {
+	private fun Service<*, ServiceConfig<*>>.initializeHttpService(rowIndex: Int): Int = gridPane.run {
 		var row = rowIndex
 		addRow(row++,
 				Label("URL").apply {

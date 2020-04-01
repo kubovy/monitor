@@ -31,6 +31,7 @@ import com.poterion.monitor.sensors.feed.SyndicationFeedModule
 import com.poterion.monitor.sensors.feed.data.SyndicationFeedConfig
 import com.poterion.monitor.sensors.feed.data.SyndicationFeedFilterConfig
 import com.poterion.utils.javafx.factory
+import com.poterion.utils.javafx.openInExternalApplication
 import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.javafx.toObservableList
 import com.poterion.utils.kotlin.toUriOrNull
@@ -48,15 +49,15 @@ import java.net.Proxy
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class SyndicationFeedService(override val controller: ControllerInterface, config: SyndicationFeedConfig):
-		Service<SyndicationFeedConfig>(config) {
+class SyndicationFeedService(override val controller: ControllerInterface, config: SyndicationFeedConfig) :
+		Service<SyndicationFeedFilterConfig, SyndicationFeedConfig>(config) {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(SyndicationFeedService::class.java)
 	}
 
 	override val definition: Module<SyndicationFeedConfig, ModuleInstanceInterface<SyndicationFeedConfig>> =
-		SyndicationFeedModule
+			SyndicationFeedModule
 	private val lastFound = mutableListOf<StatusItem>()
 
 	private val queryTableSettingsPlugin = TableSettingsPlugin(
@@ -122,90 +123,92 @@ class SyndicationFeedService(override val controller: ControllerInterface, confi
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOf(queryTableSettingsPlugin.vbox)
 
-	override fun doCheck(updater: (Collection<StatusItem>) -> Unit) {
-		if (config.enabled && config.url.isNotEmpty()) {
-			var errorStatus: StatusItem? = null
-			val httpProxy = controller.applicationConfiguration.proxy
-			val proxy = httpProxy.toProxy(config.url).takeIf { it != Proxy.NO_PROXY }
+	override fun gotoSubConfig(subConfig: SyndicationFeedFilterConfig) {
+		config.url.toUriOrNull()?.openInExternalApplication()
+	}
 
-			checkForInterruptions()
-			val feed = config.url
-					.toUriOrNull()
-					?.toURL()
-					?.let {
-						try {
-							if (proxy != null) it.openConnection(proxy) else it.openConnection()
-						} catch (e: Exception) {
-							LOGGER.error(e.message, e)
-							errorStatus = getErrorStatus("Connection error", Status.CONNECTION_ERROR, e.message)
-							null
-						}
+	override fun doCheck(): List<StatusItem> {
+		var errorStatus: StatusItem? = null
+		val httpProxy = controller.applicationConfiguration.proxy
+		val proxy = httpProxy.toProxy(config.url).takeIf { it != Proxy.NO_PROXY }
+
+		checkForInterruptions()
+		val feed = config.url
+				.toUriOrNull()
+				?.toURL()
+				?.let {
+					try {
+						if (proxy != null) it.openConnection(proxy) else it.openConnection()
+					} catch (e: Exception) {
+						LOGGER.error(e.message, e)
+						errorStatus = getErrorStatus("Connection error", Status.CONNECTION_ERROR, e.message)
+						null
 					}
-					?.let { connection ->
-						try {
-							config.auth?.toHeaderString()?.also { connection.setRequestProperty("Authorization", it) }
-
-							if (proxy != null) {
-								connection.setRequestProperty("Proxy-Connection", "Keep-Alive")
-								httpProxy?.auth?.toHeaderString()
-										?.also { connection.setRequestProperty("Proxy-Authorization", it) }
-							}
-
-							config.connectTimeout?.toInt()?.also { connection.connectTimeout = it }
-							config.readTimeout?.toInt()?.also { connection.readTimeout = it }
-							connection
-						} catch (e: Exception) {
-							LOGGER.error(e.message, e)
-							errorStatus = getErrorStatus("Header error", Status.CONNECTION_ERROR, e.message)
-							null
-						}
-					}
-					?.let {
-						try {
-							LOGGER.info("GET ${it.url} ...")
-							SyndFeedInput().build(XmlReader(it))
-						} catch (e: Exception) {
-							LOGGER.error(e.message, e)
-							errorStatus = getErrorStatus("Parsing error", Status.SERVICE_ERROR, e.message)
-							null
-						}
-					}
-			checkForInterruptions()
-
-			if (feed != null) {
-				lastFound.clear()
-				for (entry in feed.entries) {
-					val (title, priority, status) = config.subConfig
-							.asSequence()
-							.filter { it.titleFilter.toRegex().containsMatchIn(entry.title) }
-							.filter { it.summaryFilter.toRegex().containsMatchIn(entry.description.value) }
-							.firstOrNull()
-							?.let { Triple(it.configTitle, it.priority, it.status) }
-							?: Triple(null, config.priority, config.status)
-
-					val statusItem = StatusItem(
-							id = "${config.uuid}|${entry.title}",
-							serviceId = config.uuid,
-							configIds = listOfNotNull(title).toMutableList(),
-							priority = priority,
-							status = status,
-							title = "[${feed.title ?: config.name}] ${entry.title}",
-							group = null,
-							detail = entry.description?.value
-									?: entry.contents?.mapNotNull { it.value }?.firstOrNull()
-									?: "",
-							labels = (entry.categories.map { it.name to "" } +
-									entry.authors.map { a -> "Author" to "${a.name}${a.email?.let { " (${it})" }}" } +
-									entry.contributors.map { a -> "Contributor" to "${a.name}${a.email?.let { " (${it})" }}" })
-									.toMap(),
-							link = entry.link,
-							startedAt = entry.updatedDate?.toInstant() ?: entry.publishedDate?.toInstant())
-					lastFound.add(statusItem)
 				}
-				lastErrorProperty.set(errorStatus?.let { it.detail ?: it.title })
-				updater(lastFound + listOfNotNull(errorStatus))
+				?.let { connection ->
+					try {
+						config.auth?.toHeaderString()?.also { connection.setRequestProperty("Authorization", it) }
+
+						if (proxy != null) {
+							connection.setRequestProperty("Proxy-Connection", "Keep-Alive")
+							httpProxy?.auth?.toHeaderString()
+									?.also { connection.setRequestProperty("Proxy-Authorization", it) }
+						}
+
+						config.connectTimeout?.toInt()?.also { connection.connectTimeout = it }
+						config.readTimeout?.toInt()?.also { connection.readTimeout = it }
+						connection
+					} catch (e: Exception) {
+						LOGGER.error(e.message, e)
+						errorStatus = getErrorStatus("Header error", Status.CONNECTION_ERROR, e.message)
+						null
+					}
+				}
+				?.let {
+					try {
+						LOGGER.info("GET ${it.url} ...")
+						SyndFeedInput().build(XmlReader(it))
+					} catch (e: Exception) {
+						LOGGER.error(e.message, e)
+						errorStatus = getErrorStatus("Parsing error", Status.SERVICE_ERROR, e.message)
+						null
+					}
+				}
+		checkForInterruptions()
+
+		if (feed != null) {
+			lastFound.clear()
+			for (entry in feed.entries) {
+				val (title, priority, status) = config.subConfig
+						.asSequence()
+						.filter { it.titleFilter.toRegex().containsMatchIn(entry.title) }
+						.filter { it.summaryFilter.toRegex().containsMatchIn(entry.description.value) }
+						.firstOrNull()
+						?.let { Triple(it.configTitle, it.priority, it.status) }
+						?: Triple(null, config.priority, config.status)
+
+				val statusItem = StatusItem(
+						id = "${config.uuid}|${entry.title}",
+						serviceId = config.uuid,
+						configIds = listOfNotNull(title).toMutableList(),
+						priority = priority,
+						status = status,
+						title = "[${feed.title ?: config.name}] ${entry.title}",
+						group = null,
+						detail = entry.description?.value
+								?: entry.contents?.mapNotNull { it.value }?.firstOrNull()
+								?: "",
+						labels = (entry.categories.map { it.name to "" } +
+								entry.authors.map { a -> "Author" to "${a.name}${a.email?.let { " (${it})" }}" } +
+								entry.contributors.map { a -> "Contributor" to "${a.name}${a.email?.let { " (${it})" }}" })
+								.toMap(),
+						link = entry.link,
+						startedAt = entry.updatedDate?.toInstant() ?: entry.publishedDate?.toInstant())
+				lastFound.add(statusItem)
 			}
-		}
+			lastErrorProperty.set(errorStatus?.let { it.detail ?: it.title })
+			return lastFound + listOfNotNull(errorStatus)
+		} else return emptyList()
 	}
 
 	private fun getErrorStatus(error: String, status: Status, detail: String?) = StatusItem(

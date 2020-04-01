@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.services.ServiceSubConfig
 import javafx.beans.property.SimpleStringProperty
 import javafx.beans.property.StringProperty
+import java.util.*
 
 /**
  * JIRA JQL query configuration item.
@@ -28,7 +29,8 @@ import javafx.beans.property.StringProperty
  * @param jql JQL query
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class JiraQueryConfig(name: String = "",
+class JiraQueryConfig(override val uuid: String = UUID.randomUUID().toString(),
+					  name: String = "",
 					  jql: String = "") : ServiceSubConfig {
 
 	/**

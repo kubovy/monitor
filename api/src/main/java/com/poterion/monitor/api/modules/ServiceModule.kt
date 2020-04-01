@@ -25,7 +25,7 @@ import com.poterion.monitor.data.services.ServiceSubConfig
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-interface ServiceModule<out Conf : ServiceConfig<out ServiceSubConfig>, out Ctrl : Service<Conf>> : Module<Conf, Ctrl> {
+interface ServiceModule<SubConf : ServiceSubConfig, out Conf : ServiceConfig<out SubConf>, out Ctrl : Service<SubConf, Conf>> : Module<Conf, Ctrl> {
 	/**
 	 * Weather the notification set is static.
 	 *

@@ -151,14 +151,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 	private val selectedLightConfigs = SimpleObjectProperty<ObservableList<RgbLightConfiguration>?>(null)
 
 	private val configComparator: Comparator<TreeItem<StateConfig>> = Comparator { i1, i2 ->
-		val n1 = i1.value.title
-		val n2 = i2.value.title
-
-		when {
-			n1 == "Default" && n2 != "Default" -> -1
-			n1 != "Default" && n2 == "Default" -> 1
-			else -> compareValues(n1, n2)
-		}
+		notifier.titleComparator.compare(i1.value.title, i2.value.title)
 	}
 
 	private val ServiceConfig<*>.icon: Icon?

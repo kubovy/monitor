@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
+import kotlin.reflect.KClass
 import kotlin.system.exitProcess
 
 /**
@@ -63,16 +64,13 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 	override val modules = mutableListOf<Module<*, *>>()
 
 	// TODO Make read-only and react on applicationConfiguration.services/notifiers changes
-	override val services: ObservableList<Service<ServiceConfig<out ServiceSubConfig>>> = FXCollections
+	override val services: ObservableList<Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>> = FXCollections
 			.observableArrayList()
 	override val notifiers: ObservableList<Notifier<NotifierConfig>> = FXCollections.observableArrayList()
 
 	override var applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration()
 		private set
 	private val configuration: BehaviorSubject<Boolean> = BehaviorSubject.create()
-
-	@Deprecated("Use properties in config")
-	private val configListeners = mutableListOf<(ApplicationConfiguration) -> Unit>()
 
 	init {
 		LOGGER.info("Initializing with ${Shared.configFile.absolutePath} config file")
@@ -103,7 +101,7 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 		modules.add(module)
 		ModuleDeserializer.register(module.configClass)
 		when (module) {
-			is ServiceModule<*, *> -> ServiceDeserializer.register(module.configClass)
+			is ServiceModule<out ServiceSubConfig, *, *> -> ServiceDeserializer.register(module.configClass as KClass<out ServiceConfig<out ServiceSubConfig>>)
 			is NotifierModule<*, *> -> NotifierDeserializer.register(module.configClass)
 		}
 	}
@@ -115,7 +113,7 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 			LOGGER.info("Loading ${module.title} module...")
 			module.loadControllers(this, applicationConfiguration).forEach { ctrl ->
 				when (ctrl) {
-					is Service<*> -> services.add(ctrl as Service<ServiceConfig<out ServiceSubConfig>>)
+					is Service<*, *> -> services.add(ctrl as Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>)
 					is Notifier<*> -> notifiers.add(ctrl as Notifier<NotifierConfig>)
 				}
 			}
@@ -146,7 +144,6 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 		}
 
 		configuration.sample(1, TimeUnit.SECONDS, true).subscribe {
-			configListeners.forEach { it.invoke(applicationConfiguration) }
 			applicationConfiguration.save()
 		}
 
@@ -170,9 +167,9 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 
 	override fun add(controller: ModuleInstanceInterface<*>): ModuleInstanceInterface<*>? {
 		when (controller) {
-			is Service<*> -> {
-				applicationConfiguration.serviceMap[controller.config.uuid] = controller.config
-				services.add(controller as Service<ServiceConfig<out ServiceSubConfig>>)
+			is Service<*, *> -> {
+				applicationConfiguration.serviceMap[controller.config.uuid] = controller.config as ServiceConfig<out ServiceSubConfig>?
+				services.add(controller as Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>)
 			}
 			is Notifier<*> -> {
 				applicationConfiguration.notifierMap[controller.config.uuid] = controller.config
@@ -190,10 +187,6 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 		notifiers.forEach { it.shutdown() }
 		saveConfig()
 		exitProcess(0) // not necessary if all non-daemon threads have stopped.
-	}
-
-	override fun registerForConfigUpdates(listener: (ApplicationConfiguration) -> Unit) {
-		configListeners.add(listener)
 	}
 
 	override fun saveConfig() {

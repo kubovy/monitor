@@ -16,6 +16,7 @@
  ******************************************************************************/
 package com.poterion.monitor.sensors.sonar.control
 
+import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Service
@@ -29,21 +30,27 @@ import com.poterion.monitor.sensors.sonar.SonarModule
 import com.poterion.monitor.sensors.sonar.data.SonarConfig
 import com.poterion.monitor.sensors.sonar.data.SonarProjectConfig
 import com.poterion.monitor.sensors.sonar.data.SonarProjectResponse
+import com.poterion.utils.javafx.openInExternalApplication
+import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.javafx.toObservableList
 import com.poterion.utils.kotlin.setAll
+import com.poterion.utils.kotlin.toUriOrNull
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
+import javafx.scene.control.Button
 import javafx.scene.control.Label
 import javafx.scene.control.TextField
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.IOException
+import java.net.URLEncoder
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class SonarService(override val controller: ControllerInterface, config: SonarConfig) : Service<SonarConfig>(config) {
+class SonarService(override val controller: ControllerInterface, config: SonarConfig) :
+		Service<SonarProjectConfig, SonarConfig>(config) {
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(SonarService::class.java)
 	}
@@ -80,15 +87,10 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 							isEditable = true,
 							icon = { toIcon() },
 							options = Priority.values().toObservableList())),
-			comparator = compareBy({ -it.priority.ordinal }, { it.name })//,
-			//actions = listOf { item ->
-			//	item.let { URLEncoder.encode(it.name, Charsets.UTF_8.name()) }
-			//			.let { "/#!/project/${it}" }
-			//			.let { path -> config.url.toUriOrNull()?.resolve(path) }
-			//			?.let { uri -> Button("", com.poterion.monitor.api.CommonIcon.LINK.toImageView()) to uri }
-			//			?.also { (btn, uri) -> btn.setOnAction { Desktop.getDesktop().browse(uri) } }
-			//			?.first
-			//}
+			comparator = compareBy({ -it.priority.ordinal }, { it.name }),
+			actions = listOf { item ->
+				Button("", CommonIcon.LINK.toImageView()).apply { setOnAction { gotoSubConfig(item) } }
+			}
 	)
 
 	override val configurationRows: List<Pair<Node, Node>>
@@ -105,9 +107,17 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOf(projectTableSettingsPlugin.vbox)
 
-	override fun doCheck(updater: (Collection<StatusItem>) -> Unit) {
+	override fun gotoSubConfig(subConfig: SonarProjectConfig) {
+		subConfig
+				.let { URLEncoder.encode(it.name, Charsets.UTF_8.name()) }
+				.let { "/#!/project/${it}" }
+				.let { path -> config.url.toUriOrNull()?.resolve(path) }
+				?.openInExternalApplication()
+	}
+
+	override fun doCheck(): List<StatusItem> {
 		var error: String? = null
-		if (config.enabled && config.url.isNotBlank()) try {
+		try {
 			val call = service?.check()
 			val response = call?.execute()
 			checkForInterruptions()
@@ -121,7 +131,7 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 
 				lastFoundProjectIds.setAll(foundProjects?.map { it.id } ?: config.subConfig.map { it.id })
 
-				foundProjects
+				return foundProjects
 						?.mapNotNull { entity -> config.subConfig.find { it.id == entity.id }?.let { entity to it } }
 						?.map { (entity, projectConfig) ->
 							StatusItem(
@@ -134,28 +144,27 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 									link = "${config.url}dashboard/index/${entity.id}",
 									isRepeatable = false)
 						}
-						?.also(updater)
+						?: emptyList()
 			} else {
 				LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
 						" ${response?.code()} ${response?.message()}")
 				error = response?.let { "Code: ${it.code()} ${it.message()}" } ?: "Service error"
-				lastFoundProjectIds
+				return lastFoundProjectIds
 						.mapNotNull { id -> config.subConfig.find { it.id == id } }
 						.map { projectConfig ->
 							projectConfig.toStatusItem(Status.SERVICE_ERROR,
 									response?.let { "Code: ${it.code()} ${it.message()}" })
 						}
-						.also(updater)
 			}
 		} catch (e: IOException) {
 			LOGGER.error(e.message)
 			error = e.message ?: "Connection error"
-			lastFoundProjectIds
+			return lastFoundProjectIds
 					.mapNotNull { id -> config.subConfig.find { it.id == id } }
 					.map { projectConfig -> projectConfig.toStatusItem(Status.CONNECTION_ERROR, e.message) }
-					.also(updater)
+		} finally {
+			lastErrorProperty.set(error)
 		}
-		lastErrorProperty.set(error)
 	}
 
 	private val SonarProjectResponse.severity
@@ -169,7 +178,7 @@ class SonarService(override val controller: ControllerInterface, config: SonarCo
 		}
 
 	private fun SonarProjectConfig.toStatusItem(status: Status, detail: String?) = StatusItem(
-			id = "${config.uuid}-${id}",
+			id = "${config.uuid}-${uuid}",
 			serviceId = config.uuid,
 			configIds = mutableListOf(configTitle),
 			priority = priority,

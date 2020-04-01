@@ -33,7 +33,7 @@ import kotlin.math.max
  */
 class ControllerWorker private constructor(
 		private val config: ApplicationConfiguration,
-		private val services: Collection<Service<ServiceConfig<out ServiceSubConfig>>>) :
+		private val services: Collection<Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>>) :
 
 		Callable<Boolean> {
 
@@ -42,7 +42,7 @@ class ControllerWorker private constructor(
 		private var instance: ControllerWorker? = null
 		private val executor = Executors.newSingleThreadExecutor()
 
-		fun start(config: ApplicationConfiguration, services: Collection<Service<ServiceConfig<out ServiceSubConfig>>>) {
+		fun start(config: ApplicationConfiguration, services: Collection<Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>>) {
 			if (instance == null || instance?.running == false) {
 				instance = instance ?: ControllerWorker(config, services)
 				instance?.running = true
@@ -69,7 +69,7 @@ class ControllerWorker private constructor(
 						if (!config.paused && service.config.enabled) try {
 							service.check {
 								StatusCollector.update(it,
-										(service.definition as? ServiceModule)?.staticNotificationSet != false)
+										(service.definition as? ServiceModule<*, *, *>)?.staticNotificationSet != false)
 							}
 						} catch (t: Throwable) {
 							LOGGER.error(t.message, t)

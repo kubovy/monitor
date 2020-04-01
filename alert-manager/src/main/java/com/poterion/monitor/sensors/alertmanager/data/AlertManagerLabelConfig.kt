@@ -24,6 +24,7 @@ import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
 import javafx.beans.property.StringProperty
+import java.util.*
 
 /**
  * Alert manager label or annotation and value to [Priority]/[Status] mapping item.
@@ -34,7 +35,8 @@ import javafx.beans.property.StringProperty
  * @param status [Status]
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class AlertManagerLabelConfig(name: String = "",
+class AlertManagerLabelConfig(override val uuid: String = UUID.randomUUID().toString(),
+							  name: String = "",
 							  value: String = "",
 							  priority: Priority = Priority.NONE,
 							  status: Status = Status.NONE) : ServiceSubConfig {

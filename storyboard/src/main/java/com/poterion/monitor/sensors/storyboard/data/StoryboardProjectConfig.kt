@@ -23,6 +23,7 @@ import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
 import javafx.beans.property.StringProperty
+import java.util.*
 
 /**
  * Storyboard project name / [Priority] mapping configuration item.
@@ -31,7 +32,8 @@ import javafx.beans.property.StringProperty
  * @param priority [Priority]
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class StoryboardProjectConfig(name: String = "",
+class StoryboardProjectConfig(override val uuid: String = UUID.randomUUID().toString(),
+							  name: String = "",
 							  priority: Priority = Priority.NONE) : ServiceSubConfig {
 	/**
 	 * Project name.

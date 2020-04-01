@@ -23,13 +23,14 @@ import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.sonar.control.SonarService
 import com.poterion.monitor.sensors.sonar.data.SonarConfig
+import com.poterion.monitor.sensors.sonar.data.SonarProjectConfig
 import com.poterion.utils.javafx.Icon
 import kotlin.reflect.KClass
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-object SonarModule : ServiceModule<SonarConfig, SonarService> {
+object SonarModule : ServiceModule<SonarProjectConfig, SonarConfig, SonarService> {
 	override val configClass: KClass<SonarConfig> = SonarConfig::class
 
 	override val title: String

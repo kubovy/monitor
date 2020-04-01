@@ -19,10 +19,7 @@ package com.poterion.monitor.api.ui
 import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.data.ModuleConfig
-import com.poterion.utils.javafx.Icon
-import com.poterion.utils.javafx.cell
-import com.poterion.utils.javafx.factory
-import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.javafx.*
 import com.poterion.utils.kotlin.noop
 import javafx.beans.property.StringProperty
 import javafx.beans.value.WritableValue
@@ -229,7 +226,7 @@ class TableSettingsPlugin<S>(private val tableName: String,
 						actions.mapNotNull { it(bean).apply { maxHeight = Double.MAX_VALUE } } +
 								listOf(Button("", CommonIcon.TRASH.toImageView()).apply {
 									maxHeight = Double.MAX_VALUE
-									setOnAction { item.also { removeItem(it) } }
+									setOnAction { ensureApplicationThread { removeItem(item) } }
 								})
 					}
 					?.let { HBox(*it.toTypedArray()) }

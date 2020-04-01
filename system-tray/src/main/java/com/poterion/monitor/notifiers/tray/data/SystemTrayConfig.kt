@@ -16,13 +16,10 @@
  ******************************************************************************/
 package com.poterion.monitor.notifiers.tray.data
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.notifiers.AbstractNotifierConfig
 import com.poterion.monitor.data.notifiers.NotifierServiceReference
-import javafx.beans.property.BooleanProperty
-import javafx.beans.property.SimpleBooleanProperty
 import java.util.*
 
 /**
@@ -39,7 +36,6 @@ import java.util.*
  *        that all [services][com.poterion.monitor.api.controllers.Service] are contributing with their
  *        [status items][com.poterion.monitor.data.StatusItem] to this notifier)
  * @param tableColumnWidths Saved UI table column widths (column name -> width)
- * @param refresh
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 class SystemTrayConfig(override var type: String = SystemTrayConfig::class.java.simpleName,
@@ -49,14 +45,5 @@ class SystemTrayConfig(override var type: String = SystemTrayConfig::class.java.
 					   minPriority: Priority = Priority.LOW,
 					   minStatus: Status = Status.NONE,
 					   services: List<NotifierServiceReference> = emptyList(),
-					   tableColumnWidths: Map<String, Int> = emptyMap(),
-					   refresh: Boolean = false) :
-		AbstractNotifierConfig(name, enabled, minPriority, minStatus, services, tableColumnWidths) {
-
-	var refresh: Boolean
-		get() = refreshProperty.get()
-		set(value) = refreshProperty.set(value)
-
-	val refreshProperty: BooleanProperty = SimpleBooleanProperty(refresh)
-		@JsonIgnore get
-}
+					   tableColumnWidths: Map<String, Int> = emptyMap()) :
+		AbstractNotifierConfig(name, enabled, minPriority, minStatus, services, tableColumnWidths)

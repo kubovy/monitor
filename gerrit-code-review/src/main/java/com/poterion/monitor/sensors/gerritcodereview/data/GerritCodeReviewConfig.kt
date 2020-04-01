@@ -54,7 +54,6 @@ class GerritCodeReviewConfig(override val type: String = GerritCodeReviewConfig:
 							 url: String = "",
 							 trustCertificate: Boolean = false,
 							 auth: AuthConfig? = null,
-							 order: Int = Int.MAX_VALUE,
 							 priority: Priority = Priority.NONE,
 							 checkInterval: Long? = null,
 							 connectTimeout: Long? = null,
@@ -62,7 +61,7 @@ class GerritCodeReviewConfig(override val type: String = GerritCodeReviewConfig:
 							 writeTimeout: Long? = null,
 							 tableColumnWidths: Map<String, Int> = emptyMap(),
 							 queries: List<GerritCodeReviewQueryConfig> = emptyList()) :
-		AbstractServiceConfig<GerritCodeReviewQueryConfig>(name, enabled, url, trustCertificate, auth, order, priority,
+		AbstractServiceConfig<GerritCodeReviewQueryConfig>(name, enabled, url, trustCertificate, auth, priority,
 				checkInterval, connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
 
 	@Suppress("unused")

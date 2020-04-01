@@ -24,6 +24,7 @@ import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
 import javafx.beans.property.StringProperty
+import java.util.*
 
 /**
  * Syndication feed title/summary - [Priority]/[Status] mapping configuration item.
@@ -35,7 +36,8 @@ import javafx.beans.property.StringProperty
  * @param status [Status]
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class SyndicationFeedFilterConfig(name: String = "",
+class SyndicationFeedFilterConfig(override val uuid: String = UUID.randomUUID().toString(),
+								  name: String = "",
 								  titleFilter: String = "",
 								  summaryFilter: String = "",
 								  priority: Priority = Priority.NONE,

@@ -56,7 +56,6 @@ class SonarConfig(override val type: String = SonarConfig::class.java.simpleName
 				  url: String = "",
 				  trustCertificate: Boolean = false,
 				  auth: AuthConfig? = null,
-				  order: Int = Int.MAX_VALUE,
 				  priority: Priority = Priority.NONE,
 				  checkInterval: Long? = null,
 				  connectTimeout: Long? = null,
@@ -65,7 +64,7 @@ class SonarConfig(override val type: String = SonarConfig::class.java.simpleName
 				  tableColumnWidths: Map<String, Int> = emptyMap(),
 				  projects: List<SonarProjectConfig> = emptyList(),
 				  filter: String? = null) :
-		AbstractServiceConfig<SonarProjectConfig>(name, enabled, url, trustCertificate, auth, order, priority,
+		AbstractServiceConfig<SonarProjectConfig>(name, enabled, url, trustCertificate, auth, priority,
 				checkInterval, connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
 
 	@Suppress("unused")

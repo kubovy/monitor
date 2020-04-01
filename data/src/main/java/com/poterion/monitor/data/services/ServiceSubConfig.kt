@@ -22,6 +22,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 interface ServiceSubConfig {
+	val uuid: String
+
 	/** Title */
 	val configTitle: String
 		@JsonIgnore get

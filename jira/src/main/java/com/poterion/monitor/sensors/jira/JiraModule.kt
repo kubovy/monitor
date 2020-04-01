@@ -23,13 +23,14 @@ import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.jira.control.JiraService
 import com.poterion.monitor.sensors.jira.data.JiraConfig
+import com.poterion.monitor.sensors.jira.data.JiraQueryConfig
 import com.poterion.utils.javafx.Icon
 import kotlin.reflect.KClass
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-object JiraModule : ServiceModule<JiraConfig, JiraService> {
+object JiraModule : ServiceModule<JiraQueryConfig, JiraConfig, JiraService> {
 	override val configClass: KClass<JiraConfig> = JiraConfig::class
 
 	override val title: String

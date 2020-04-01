@@ -18,8 +18,8 @@ package com.poterion.monitor.api.controllers
 
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.NavigationItem
-import com.poterion.utils.kotlin.noop
 import com.poterion.monitor.data.ModuleConfig
+import com.poterion.utils.kotlin.noop
 import javafx.beans.property.ObjectProperty
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -39,7 +39,6 @@ interface ModuleInstanceInterface<out Config : ModuleConfig> {
 
 	/** Navigation root of the sub menu in the tray */
 	val navigationRoot: NavigationItem?
-		get() = null
 
 	/** Configuration rows for the module if any. */
 	val configurationRows: List<Pair<Node, Node>>

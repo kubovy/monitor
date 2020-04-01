@@ -37,10 +37,13 @@ import com.poterion.monitor.notifiers.deploymentcase.data.*
 import com.poterion.monitor.notifiers.deploymentcase.ui.ConfigWindowController
 import com.poterion.monitor.notifiers.deploymentcase.ui.StateCompareWindowController
 import com.poterion.utils.javafx.Icon
+import com.poterion.utils.javafx.mapped
 import com.poterion.utils.kotlin.noop
 import javafx.application.Platform
-import javafx.beans.property.ObjectProperty
+import javafx.beans.property.BooleanProperty
+import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
@@ -61,8 +64,8 @@ import java.io.FileWriter
  */
 class DeploymentCaseNotifier(override val controller: ControllerInterface, config: DeploymentCaseConfig) :
 		Notifier<DeploymentCaseConfig>(config),
-	DataCommunicatorListener, LcdCommunicatorListener,
-	RegistryCommunicatorListener, RgbIndicatorCommunicatorListener, StateMachineCommunicatorListener {
+		DataCommunicatorListener, LcdCommunicatorListener,
+		RegistryCommunicatorListener, RgbIndicatorCommunicatorListener, StateMachineCommunicatorListener {
 
 	companion object {
 		private val LOGGER: Logger = LoggerFactory.getLogger(DeploymentCaseNotifier::class.java)
@@ -70,6 +73,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		private val BUTTON_UPLOAD = ButtonType("Upload")
 		private val BUTTON_REPAIR = ButtonType("Repair")
 		private const val SM_DATA_PART = 1
+
 		// Chunk contains 2 bytes SM size, 2 bytes address and data
 		private val lcdCache = mutableListOf("", "", "", "")
 	}
@@ -92,16 +96,37 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	private var repairStateMachine = false
 	private var lastStateMachineConfigurationCheck = 0L
 
-	private val connectedIconProperty: ObjectProperty<Icon?> = SimpleObjectProperty(
-			if (bluetoothCommunicator.isConnected) DeploymentCaseIcon.CONNECTED else DeploymentCaseIcon.DISCONNECTED)
+	private val connectedProperty: BooleanProperty = SimpleBooleanProperty(bluetoothCommunicator.isConnected)
 
+	private var _navigationRoot: NavigationItem? = null
 	override val navigationRoot: NavigationItem
-		get() = super.navigationRoot.apply {
-			sub?.add(NavigationItem(
-					title = "Reconnect",
-					iconProperty = connectedIconProperty,
-					action = { bluetoothCommunicator.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6)) }))
-		}
+		get() = _navigationRoot ?: NavigationItem(
+				uuid = config.uuid,
+				titleProperty = config.nameProperty,
+				icon = definition.icon,
+				sub = listOf(
+						NavigationItem(
+								title = "Enabled",
+								checkedProperty = config.enabledProperty.asObject()),
+						NavigationItem(
+								titleProperty = SimpleStringProperty().also { property ->
+									property.bind(connectedProperty.asObject()
+											.mapped { if (it == true) "Disconnect" else "Connect" })
+								},
+								checkedProperty = connectedProperty.asObject(),
+								iconProperty = SimpleObjectProperty<Icon?>().also { property ->
+									property.bind(connectedProperty.asObject().mapped {
+										if (it == true) DeploymentCaseIcon.CONNECTED else DeploymentCaseIcon.DISCONNECTED
+									})
+								},
+								action = {
+									if (connectedProperty.get()) bluetoothCommunicator.disconnect()
+									else bluetoothCommunicator
+											.connect(BluetoothCommunicator.Descriptor(config.deviceAddress, 6))
+								})
+				))
+				.also { _navigationRoot = it }
+
 
 	override val configurationRows: List<Pair<Node, Node>>
 		get() = super.configurationRows + listOf(
@@ -146,14 +171,14 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 
 	override fun onConnecting(channel: Channel) {
 		if (channel == Channel.BLUETOOTH) {
-			connectedIconProperty.set(DeploymentCaseIcon.DISCONNECTED)
+			connectedProperty.set(false)
 		}
 	}
 
 	override fun onConnect(channel: Channel) = Platform.runLater {
 		if (channel == Channel.BLUETOOTH) {
 			LOGGER.info("${channel} Connected")
-			connectedIconProperty.set(DeploymentCaseIcon.CONNECTED)
+			connectedProperty.set(true)
 			listeners.forEach { it.onProgress(-1, 1, false) }
 		}
 	}
@@ -165,7 +190,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	override fun onDisconnect(channel: Channel) = Platform.runLater {
 		if (channel == Channel.BLUETOOTH) {
 			LOGGER.info("${channel} Disconnected")
-			connectedIconProperty.set(DeploymentCaseIcon.DISCONNECTED)
+			connectedProperty.set(false)
 			stateMachineTransfer = false
 		}
 	}
@@ -175,14 +200,14 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	override fun onMessagePrepare(channel: Channel) = noop()
 
 	override fun onMessageSent(channel: Channel, message: IntArray, remaining: Int) = Platform.runLater {
-			if (stateMachineChunks > 0) {
-				if (remaining == 0 || remaining > stateMachineChunks) stateMachineChunks = remaining
-				listeners.forEach { it.onProgress(stateMachineChunks - remaining, stateMachineChunks, false) }
-				if (remaining == 0) {
-					if (stateMachineTransfer) synchronizeStateMachine()
-					stateMachineTransfer = false
-					synchronizeStateMachine()
-				}
+		if (stateMachineChunks > 0) {
+			if (remaining == 0 || remaining > stateMachineChunks) stateMachineChunks = remaining
+			listeners.forEach { it.onProgress(stateMachineChunks - remaining, stateMachineChunks, false) }
+			if (remaining == 0) {
+				if (stateMachineTransfer) synchronizeStateMachine()
+				stateMachineTransfer = false
+				synchronizeStateMachine()
+			}
 		}
 	}
 
@@ -193,15 +218,15 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	override fun onConsistencyCheckReceived(channel: Channel, part: Int, checksum: Int) = Platform.runLater {
 		if (part == SM_DATA_PART) {
 			val calculatedChecksum = config.configurations
-				.find { it.isActive }
-				?.toData()
-				?.toByteArray()
-				?.calculateChecksum()
+					.find { it.isActive }
+					?.toData()
+					?.toByteArray()
+					?.calculateChecksum()
 			LOGGER.info("SM CHKSUM: received=0x%02X, calculated=0x%02X".format(checksum, calculatedChecksum))
 			listeners.forEach { it.onProgress(0, 0, true) }
 			if (calculatedChecksum == null) { // No state machine selected
 				val activeConfig = config.configurations
-					.find { it.toData().toByteArray().calculateChecksum() == checksum }
+						.find { it.toData().toByteArray().calculateChecksum() == checksum }
 				activeConfig?.isActive = true
 				controller.saveConfig()
 				listeners.forEach { it.onVerification(activeConfig != null) }
@@ -214,7 +239,7 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 							title = "Wrong State Machine"
 							headerText = "State machine configuration does not match deployment football's ones!"
 							contentText = "Do you want to upload the \"%s\" state machine to the deployment football?"
-								.format(conf.name)
+									.format(conf.name)
 							//contentText = "Do you want to download the state machine from the deployment football or upload it there?"
 							//buttonTypes.setAll(BUTTON_DOWNLOAD, BUTTON_UPLOAD, BUTTON_REPAIR, ButtonType.CANCEL)
 							buttonTypes.setAll(BUTTON_UPLOAD, ButtonType.CANCEL)
@@ -232,104 +257,104 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	}
 
 	override fun onDataReceived(channel: Channel, part: Int, address: Int, length: Int, data: IntArray) =
-		Platform.runLater {
-			if (part == SM_DATA_PART) {
-				if (address == 0) stateMachineBuffer.indices.forEach { stateMachineBuffer[it] = 0xFF.toByte() }
+			Platform.runLater {
+				if (part == SM_DATA_PART) {
+					if (address == 0) stateMachineBuffer.indices.forEach { stateMachineBuffer[it] = 0xFF.toByte() }
 
-				(0 until (data.size)).forEach {
-					stateMachineBuffer[it + address] = data[it].toByte()
-				}
+					(0 until (data.size)).forEach {
+						stateMachineBuffer[it + address] = data[it].toByte()
+					}
 
-				listeners.forEach { it.onProgress(address + data.size, length, true) }
-				LOGGER.debug("State Machine address: 0x%02X - 0x%02X, size: %d bytes, transferred: %d bytes, total: %d bytes"
-					.format(address, address + data.size - 1, data.size, address + data.size, length))
+					listeners.forEach { it.onProgress(address + data.size, length, true) }
+					LOGGER.debug("State Machine address: 0x%02X - 0x%02X, size: %d bytes, transferred: %d bytes, total: %d bytes"
+							.format(address, address + data.size - 1, data.size, address + data.size, length))
 
-				if (address + data.size == length) {
-					stateMachineTransfer = false
-					val conf = (config.configurations.find { it.isActive } ?: config.configurations.firstOrNull())
-					val currentStateMachine = conf?.toData()?.toByteArray()
-					val matches = currentStateMachine?.contentEquals(stateMachineBuffer) ?: false
+					if (address + data.size == length) {
+						stateMachineTransfer = false
+						val conf = (config.configurations.find { it.isActive } ?: config.configurations.firstOrNull())
+						val currentStateMachine = conf?.toData()?.toByteArray()
+						val matches = currentStateMachine?.contentEquals(stateMachineBuffer) ?: false
 
-					if (!matches && repairStateMachine) {
-						repairStateMachine = false
-						stateMachineChunks = 0
-						if (currentStateMachine != null && currentStateMachine.isNotEmpty()) currentStateMachine
-							.indices
-							.map { Triple(it, currentStateMachine[it], stateMachineBuffer.getOrNull(it)) }
-							.filter { (_, current, received) -> current != received }
-							//.intermediate { (reg, current, received) -> LOGGER.debug("%04X: 0x%02X != 0x%02X".format(reg, current, received)) }
-							.map { (reg, current, _) -> reg to current }
-							.let { diff ->
-								val map = mutableMapOf<Int, ByteArray>()
-								val buffer = mutableListOf<Byte>()
-								var start = 0
-								var seq = 0
-								diff.forEach { (reg, byte) ->
-									if (reg - seq != start) {
-										if (buffer.isNotEmpty()) map[start] = buffer.toByteArray()
-										start = reg
-										seq = 0
+						if (!matches && repairStateMachine) {
+							repairStateMachine = false
+							stateMachineChunks = 0
+							if (currentStateMachine != null && currentStateMachine.isNotEmpty()) currentStateMachine
+									.indices
+									.map { Triple(it, currentStateMachine[it], stateMachineBuffer.getOrNull(it)) }
+									.filter { (_, current, received) -> current != received }
+									//.intermediate { (reg, current, received) -> LOGGER.debug("%04X: 0x%02X != 0x%02X".format(reg, current, received)) }
+									.map { (reg, current, _) -> reg to current }
+									.let { diff ->
+										val map = mutableMapOf<Int, ByteArray>()
+										val buffer = mutableListOf<Byte>()
+										var start = 0
+										var seq = 0
+										diff.forEach { (reg, byte) ->
+											if (reg - seq != start) {
+												if (buffer.isNotEmpty()) map[start] = buffer.toByteArray()
+												start = reg
+												seq = 0
+											}
+											if (seq == 0) {
+												buffer.clear()
+											}
+											buffer.add(byte)
+											seq++
+										}
+										if (start > 0) map[start] = buffer.toByteArray()
+										map
 									}
-									if (seq == 0) {
-										buffer.clear()
+									//.intermediate { (address, bytes) -> LOGGER.debug("%04X: ${bytes.joinToString(" ") { "0x%02X".format(it) }}".format(address)) }
+									.map { (address, bytes) -> address to bytes.toList() }
+									.map { (address, bytes) ->
+										bytes.chunked(channel.maxPacketSize)
+												.also { stateMachineChunks += it.size }
+												.mapIndexed { index, data -> (index * channel.maxPacketSize) to data }
+												.map { (shift, data) -> (currentStateMachine.size.to2Byte() + (address + shift).to2Byte() + data) }
+												.map { it.toByteArray() }
 									}
-									buffer.add(byte)
-									seq++
+									.flatten()
+									.let { chunks ->
+										// Add last byte as last chunk
+										chunks + listOf((currentStateMachine.size.to2ByteArray()
+												+ (currentStateMachine.size - 1).to2ByteArray()
+												+ listOf(currentStateMachine.last()).toByteArray()))
+									}
+									//.intermediate { chunk -> LOGGER.debug("CHUNK: ${chunk.joinToString(" ") { "0x%02X".format(it) }}") }
+									.takeIf { it.isNotEmpty() }
+									?.also {
+										stateMachineTransfer = true
+										listeners.forEach { it.onProgress(-1, 1, true) }
+									}
+									?.forEach { dataCommunicator.sendData(SM_DATA_PART, it) }
+						} else {
+							conf?.also {
+								StateCompareWindowController.popup(
+										it.stateMachine,
+										stateMachineBuffer.toIntList().toStateMachine(it.stateMachine, it.devices, it.variables))
+							}
+						}
+					}
+
+					if (config.debug) {
+						BufferedWriter(FileWriter("sm-in.txt")).use { writer ->
+							var chars = ""
+							stateMachineBuffer.forEachIndexed { i, b ->
+								if (i % 8 == 0) writer.write("%04x: ".format(i))
+								chars += if (b in 32..126) b.toChar() else '.'
+								writer.write("0x%02X%s".format(b, if (b > 255) "!" else " "))
+								if (i % 8 == 7) {
+									writer.write(" ${chars} |\n")
+									chars = ""
 								}
-								if (start > 0) map[start] = buffer.toByteArray()
-								map
-							}
-							//.intermediate { (address, bytes) -> LOGGER.debug("%04X: ${bytes.joinToString(" ") { "0x%02X".format(it) }}".format(address)) }
-							.map { (address, bytes) -> address to bytes.toList() }
-							.map { (address, bytes) ->
-								bytes.chunked(channel.maxPacketSize)
-									.also { stateMachineChunks += it.size }
-									.mapIndexed { index, data -> (index * channel.maxPacketSize) to data }
-									.map { (shift, data) -> (currentStateMachine.size.to2Byte() + (address + shift).to2Byte() + data) }
-									.map { it.toByteArray() }
-							}
-							.flatten()
-							.let { chunks ->
-								// Add last byte as last chunk
-								chunks + listOf((currentStateMachine.size.to2ByteArray()
-										+ (currentStateMachine.size - 1).to2ByteArray()
-										+ listOf(currentStateMachine.last()).toByteArray()))
-							}
-							//.intermediate { chunk -> LOGGER.debug("CHUNK: ${chunk.joinToString(" ") { "0x%02X".format(it) }}") }
-							.takeIf { it.isNotEmpty() }
-							?.also {
-								stateMachineTransfer = true
-								listeners.forEach { it.onProgress(-1, 1, true) }
-							}
-							?.forEach { dataCommunicator.sendData(SM_DATA_PART, it) }
-					} else {
-						conf?.also {
-							StateCompareWindowController.popup(
-								it.stateMachine,
-								stateMachineBuffer.toIntList().toStateMachine(it.stateMachine, it.devices, it.variables))
-						}
-					}
-				}
-
-				if (config.debug) {
-					BufferedWriter(FileWriter("sm-in.txt")).use { writer ->
-						var chars = ""
-						stateMachineBuffer.forEachIndexed { i, b ->
-							if (i % 8 == 0) writer.write("%04x: ".format(i))
-							chars += if (b in 32..126) b.toChar() else '.'
-							writer.write("0x%02X%s".format(b, if (b > 255) "!" else " "))
-							if (i % 8 == 7) {
-								writer.write(" ${chars} |\n")
-								chars = ""
 							}
 						}
-					}
-					FileOutputStream("sm-in.bin").use { out ->
-						out.write(stateMachineBuffer)
+						FileOutputStream("sm-in.bin").use { out ->
+							out.write(stateMachineBuffer)
+						}
 					}
 				}
 			}
-		}
 
 	override fun onLcdCountReceived(channel: Channel, count: Int) = noop()
 
@@ -338,24 +363,24 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 	}
 
 	override fun onLcdContentChanged(channel: Channel, num: Int, backlight: Boolean, line: Int, content: String) =
-		Platform.runLater {
-			if (num == 0) { // only one LCD
-				lcdCache[line] = content
-				val device = Device(kind = DeviceKind.LCD, key = "${LcdKey.MESSAGE.key}")
-				val value = lcdCache.joinToString("\n")
-				listeners.forEach { it.onAction(device, value) }
+			Platform.runLater {
+				if (num == 0) { // only one LCD
+					lcdCache[line] = content
+					val device = Device(kind = DeviceKind.LCD, key = "${LcdKey.MESSAGE.key}")
+					val value = lcdCache.joinToString("\n")
+					listeners.forEach { it.onAction(device, value) }
+				}
 			}
-		}
 
 	override fun onRegistryValue(channel: Channel, address: Int, registry: Int, vararg values: Int) =
-		Platform.runLater {
-			values
-				.mapIndexed { index, byte -> (index * 8) to byte2Bools(byte) }
-				.flatMap { (offset, bools) -> bools.mapIndexed { i, b -> (offset + i) to b } }
-				.map { (i, b) -> ((address - 0x20) * 16 + i) to (if (b) "true" else "false") }
-				.map { (key, value) -> Device(kind = DeviceKind.MCP23017, key = "${key}") to value }
-				.forEach { (d, v) -> listeners.forEach { it.onAction(d, v) } }
-		}
+			Platform.runLater {
+				values
+						.mapIndexed { index, byte -> (index * 8) to byte2Bools(byte) }
+						.flatMap { (offset, bools) -> bools.mapIndexed { i, b -> (offset + i) to b } }
+						.map { (i, b) -> ((address - 0x20) * 16 + i) to (if (b) "true" else "false") }
+						.map { (key, value) -> Device(kind = DeviceKind.MCP23017, key = "${key}") to value }
+						.forEach { (d, v) -> listeners.forEach { it.onAction(d, v) } }
+			}
 
 	override fun onRgbIndicatorCountChanged(channel: Channel, count: Int) {
 		LOGGER.debug("RGB Indicator count: ${count}")
@@ -366,34 +391,34 @@ class DeploymentCaseNotifier(override val controller: ControllerInterface, confi
 		if (num == 0) { // only one indicator
 			val device = Device(kind = DeviceKind.WS281x, key = "${index}")
 			val value = listOf(configuration.pattern.code, configuration.color.red, configuration.color.green,
-				configuration.color.blue, configuration.delay, configuration.minimum, configuration.maximum)
-				.joinToString(",")
+					configuration.color.blue, configuration.delay, configuration.minimum, configuration.maximum)
+					.joinToString(",")
 			listeners.forEach { it.onAction(device, value) }
 		}
 	}
 
 	override fun onStateMachineActionReceived(channel: Channel, actions: List<Pair<Int, IntArray>>) =
-		Platform.runLater {
-			val configuration = config.configurations.find { it.isActive }
-			val states: List<State> = configuration?.stateMachine ?: emptyList()
-			val devices: List<Device> = configuration?.devices ?: emptyList()
-			val variables: List<Variable> = configuration?.variables ?: emptyList()
-			actions.asSequence()
-					.map { (device, v) -> Triple((device and 0x80) == 0x80, (device and 0x7F).toDevice(devices), v) }
-					.map { (e, d, v) -> Triple(e, d, v.toList().toVariableWhole(states, d, variables)) }
-					.map { (e, d, v) -> Action(d.toData(), v.name, e) }
-					.map { it.device?.toDevice(devices) to it.value }
-					.filter { (d, v) -> d != null && v != null }
-					.map { (d, v) -> d!! to v!! }
-					.forEach { (d, v) -> listeners.forEach { it.onAction(d, v) } }
-			//message.copyOfRange(2, message.size)
-			//	.toList()
-			//	.toActions(states, devices, variables)
-			//	.map { it.device?.toDevice(devices) to it.value }
-			//	.filter { (d, v) -> d != null && v != null }
-			//	.map { (d, v) -> d!! to v!! }
-			//	.forEach { (d, v) -> listeners.forEach { it.onAction(d, v) } }
-		}
+			Platform.runLater {
+				val configuration = config.configurations.find { it.isActive }
+				val states: List<State> = configuration?.stateMachine ?: emptyList()
+				val devices: List<Device> = configuration?.devices ?: emptyList()
+				val variables: List<Variable> = configuration?.variables ?: emptyList()
+				actions.asSequence()
+						.map { (device, v) -> Triple((device and 0x80) == 0x80, (device and 0x7F).toDevice(devices), v) }
+						.map { (e, d, v) -> Triple(e, d, v.toList().toVariableWhole(states, d, variables)) }
+						.map { (e, d, v) -> Action(d.toData(), v.name, e) }
+						.map { it.device?.toDevice(devices) to it.value }
+						.filter { (d, v) -> d != null && v != null }
+						.map { (d, v) -> d!! to v!! }
+						.forEach { (d, v) -> listeners.forEach { it.onAction(d, v) } }
+				//message.copyOfRange(2, message.size)
+				//	.toList()
+				//	.toActions(states, devices, variables)
+				//	.map { it.device?.toDevice(devices) to it.value }
+				//	.filter { (d, v) -> d != null && v != null }
+				//	.map { (d, v) -> d!! to v!! }
+				//	.forEach { (d, v) -> listeners.forEach { it.onAction(d, v) } }
+			}
 
 	override fun onStateMachineInputReceived(channel: Channel, num: Int, value: String) = Platform.runLater {
 		val device = Device(kind = DeviceKind.VIRTUAL, key = VirtualKey.ENTER.key)

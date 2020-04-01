@@ -21,7 +21,6 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.poterion.monitor.data.HttpConfigInterface
 import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.Priority
-import javafx.beans.property.IntegerProperty
 import javafx.beans.property.ObjectProperty
 import javafx.collections.ObservableList
 
@@ -31,20 +30,6 @@ import javafx.collections.ObservableList
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 interface ServiceConfig<SC> : ModuleConfig, HttpConfigInterface {
-	/**
-	 * Order of the service in which it will be evaluated.
-	 * @see orderProperty
-	 */
-	var order: Int
-		@JsonInclude(value = JsonInclude.Include.ALWAYS) get
-
-	/**
-	 * Order property.
-	 * @see order
-	 */
-	val orderProperty: IntegerProperty
-		@JsonIgnore get
-
 	/**
 	 * Priority of the service used for [items][com.poterion.monitor.data.StatusItem] yield by it unless otherwise
 	 * additionally configured.

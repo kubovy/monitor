@@ -23,10 +23,11 @@ import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.feed.control.SyndicationFeedService
 import com.poterion.monitor.sensors.feed.data.SyndicationFeedConfig
+import com.poterion.monitor.sensors.feed.data.SyndicationFeedFilterConfig
 import com.poterion.utils.javafx.Icon
 import kotlin.reflect.KClass
 
-object SyndicationFeedModule : ServiceModule<SyndicationFeedConfig, SyndicationFeedService> {
+object SyndicationFeedModule : ServiceModule<SyndicationFeedFilterConfig, SyndicationFeedConfig, SyndicationFeedService> {
 	override val configClass: KClass<SyndicationFeedConfig> = SyndicationFeedConfig::class
 
 	override val title: String
@@ -36,7 +37,7 @@ object SyndicationFeedModule : ServiceModule<SyndicationFeedConfig, SyndicationF
 
 	override fun createController(controller: ControllerInterface, applicationConfiguration: ApplicationConfiguration):
 			SyndicationFeedService =
-		SyndicationFeedService(controller,
+			SyndicationFeedService(controller,
 				SyndicationFeedConfig(uuid = applicationConfiguration.serviceMap.nextUUID(),
 						name = title))
 

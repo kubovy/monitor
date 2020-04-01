@@ -20,6 +20,8 @@ import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
+import com.poterion.monitor.api.filter
+import com.poterion.monitor.api.maxStatus
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.utils.toIcon
 import com.poterion.monitor.notifiers.tabs.NotificationTabsIcon
@@ -28,11 +30,9 @@ import com.poterion.monitor.notifiers.tabs.data.NotificationTabsConfig
 import com.poterion.monitor.notifiers.tabs.ui.TabController
 import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.noop
-import javafx.application.Platform
 import javafx.scene.Parent
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.util.concurrent.TimeUnit
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
@@ -65,9 +65,6 @@ class NotificationTabsNotifier(override val controller: ControllerInterface, con
 				tabController?.clear()
 			}
 		}
-		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe {
-			if (config.enabled) Platform.runLater { update() }
-		}
 	}
 
 	override fun onServicesChanged() {
@@ -79,9 +76,9 @@ class NotificationTabsNotifier(override val controller: ControllerInterface, con
 	}
 
 	override fun update() {
-		configurationTabIcon.set(StatusCollector.maxStatus(controller.applicationConfiguration.silencedMap.keys,
+		configurationTabIcon.set(StatusCollector.items.maxStatus(controller.applicationConfiguration.silencedMap.keys,
 				config.minPriority, config.minStatus, config.services).toIcon().toImageView())
-		tabController?.update(StatusCollector.filter(emptyList(), config.minPriority,
+		tabController?.update(StatusCollector.items.filter(emptyList(), config.minPriority,
 				config.minStatus, config.services, includingChildren = true))
 	}
 
