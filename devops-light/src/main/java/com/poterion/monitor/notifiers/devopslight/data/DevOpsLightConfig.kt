@@ -26,12 +26,7 @@ import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.notifiers.AbstractNotifierConfig
 import com.poterion.monitor.data.notifiers.NotifierServiceReference
 import com.poterion.utils.javafx.toObservableList
-import javafx.beans.property.BooleanProperty
-import javafx.beans.property.DoubleProperty
-import javafx.beans.property.SimpleBooleanProperty
-import javafx.beans.property.SimpleDoubleProperty
-import javafx.beans.property.SimpleStringProperty
-import javafx.beans.property.StringProperty
+import javafx.beans.property.*
 import javafx.collections.ObservableList
 import java.util.*
 
@@ -70,6 +65,7 @@ class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.jav
 						onDemandConnection: Boolean = false,
 						combineMultipleServices: Boolean = true,
 						split: Double = 0.2,
+						selectedItemId: String = "",
 						items: List<DevOpsLightItemConfig> = emptyList(),
 						customColors: List<RgbColor> = emptyList(),
 						expanded: List<String> = emptyList()) :
@@ -108,6 +104,13 @@ class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.jav
 		set(value) = splitProperty.set(value)
 
 	val splitProperty: DoubleProperty = SimpleDoubleProperty(split)
+		@JsonIgnore get
+
+	var selectedItemId: String
+		get() = selectedItemIdProperty.get()
+		set(value) = selectedItemIdProperty.set(value)
+
+	val selectedItemIdProperty: StringProperty = SimpleStringProperty(selectedItemId)
 		@JsonIgnore get
 
 	@Suppress("unused")

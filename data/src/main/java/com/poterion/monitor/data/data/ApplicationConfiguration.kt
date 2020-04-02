@@ -46,6 +46,7 @@ class ApplicationConfiguration(var version: String = "",
 							   startMinimized: Boolean = false,
 							   windowWidth: Double = 1200.0,
 							   windowHeight: Double = 1000.0,
+							   selectedItemId: String? = null,
 							   commonSplit: Double = 0.3,
 							   selectedTab: String? = null,
 							   previousTab: String? = null,
@@ -94,6 +95,13 @@ class ApplicationConfiguration(var version: String = "",
 		set(value) = windowHeightProperty.set(value)
 
 	val windowHeightProperty: DoubleProperty = SimpleDoubleProperty(windowHeight)
+		@JsonIgnore get
+
+	var selectedItemId: String?
+		get() = selectedItemIdProperty.get()
+		set(value) = selectedItemIdProperty.set(value)
+
+	val selectedItemIdProperty: StringProperty = SimpleStringProperty(selectedItemId)
 		@JsonIgnore get
 
 	var commonSplit: Double

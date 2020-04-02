@@ -145,10 +145,9 @@ class ConfigurationController {
 		minWidth = 150.0
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Double.MAX_VALUE
-		cell("serviceId") { item, _, empty ->
-			val service = item
+		cell("item") { _, value, empty ->
+			val service = value
 					.takeUnless { empty }
-					?.item
 					?.let { controller.applicationConfiguration.serviceMap[it.serviceId] }
 			if (service != null) {
 				graphic = controller
@@ -317,6 +316,26 @@ class ConfigurationController {
 					},
 					TreeItem(ModuleItem(SimpleStringProperty("About"), CommonIcon.APPLICATION)))
 		}
+		tree.selectionModel.select(
+				tree.root.find { it?.module?.config?.uuid == controller.applicationConfiguration.selectedItemId }
+						?: tree.root.find { it?.title?.get() == controller.applicationConfiguration.selectedItemId }
+						?: tree.root.children.firstOrNull())
+		tree.selectionModel.selectedItemProperty().addListener { _, _, selected ->
+			controller.applicationConfiguration.selectedItemId = selected.value?.module?.config?.uuid
+					?: selected?.value?.title?.get()
+			controller.saveConfig()
+		}
+
+		// must be after above due to ObservableList<TreeItem<ModuleItem>>.addItem call
+		tabPaneMain.selectionModel.select(tabPaneMain.tabs.find {
+			(it?.userData as? ModuleInstanceInterface<*>)
+					?.config?.uuid == controller.applicationConfiguration.selectedTab
+		})
+		tabPaneMain.selectionModel.selectedItemProperty().addListener { _, _, selected ->
+			controller.applicationConfiguration.selectedTab = (selected?.userData as? ModuleInstanceInterface<*>)
+					?.config?.uuid
+			controller.saveConfig()
+		}
 
 		tableSilencedStatusItems.columns.addAll(tableColumnServiceName, tableColumnTitle, tableColumnSilencedAt,
 				tableColumnLastChange, tableColumnUntil, tableColumnAction)
@@ -339,7 +358,7 @@ class ConfigurationController {
 					tab.graphicProperty().bind(module.configurationTabIcon)
 					tab.textProperty().bind(item.value.title)
 					tabPaneMain.tabs.add(tab)
-					FXCollections.sort<Tab>(tabPaneMain.tabs, tabPaneMainComparator)
+					FXCollections.sort(tabPaneMain.tabs, tabPaneMainComparator)
 				}
 		controller.saveConfig()
 	}

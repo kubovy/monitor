@@ -371,7 +371,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 		buttonDeleteLight.disableProperty().bind(tableLightConfigs.selectionModel.selectedItemProperty().isNull)
 
 		buttonDeleteConfig.disableProperty().bind(treeConfigs.selectionModel.selectedItemProperty()
-				.matches { it?.value?.serviceId != null })
+				.matches { it?.value?.serviceId == null })
 
 		treeConfigs.selectionModel.clearSelection()
 		selectLightConfig(null)
@@ -390,6 +390,26 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 		treeConfigs.root = TreeItem(StateConfig("Configurations")).apply {
 			children.addAll(config.items.map { it.toTreeItem() })
 			children.sortWith(configComparator)
+		}
+
+		treeConfigs.selectionModel.select(config
+				.selectedItemId
+				.split(";")
+				.takeIf { it.size >= 3 }
+				?.map { it.takeIf { it.isNotBlank() } }
+				?.let { (id, subId, status) ->
+					val parent = treeConfigs.root.find { it?.serviceId == id && it?.subConfigId == subId }
+					if (status == null) parent else parent?.find { it?.status?.name == status }
+				}
+				?: treeConfigs.root.children.firstOrNull())
+		treeConfigs.selectionModel.selectedItemProperty().addListener { _, _, selected ->
+			config.selectedItemId = (if (selected?.value?.status != null) selected.parent else selected)
+					?.value
+					?.let { it.serviceId to it.subConfigId }
+					?.let { (serviceId, subId) -> Triple(serviceId, subId, selected?.value?.status?.name) }
+					?.let { (serviceId, subId, status) -> "${serviceId ?: ""};${subId ?: ""};${status ?: ""}" }
+					?: ";;"
+			notifier.controller.saveConfig()
 		}
 		config.items.addListener(ListChangeListener { change ->
 			while (change.next()) when {
