@@ -69,4 +69,4 @@ fun Collection<StatusItem>.topStatus(silencedIds: Collection<String>,
 									 serviceReferences: Collection<NotifierServiceReference> = emptySet(),
 									 includingChildren: Boolean = false) =
 		filter(silencedIds, minPriority, minStatus, serviceReferences, includingChildren)
-				.maxBy { it.status.ordinal * 100 + it.priority.ordinal }
+			.maxByOrNull { it.status.ordinal * 100 + it.priority.ordinal }

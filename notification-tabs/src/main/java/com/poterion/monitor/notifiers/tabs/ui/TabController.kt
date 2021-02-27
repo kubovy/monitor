@@ -226,9 +226,7 @@ class TabController {
 		columnAlertsTitle.widthProperty().addListener { _, _, _ -> controller.saveConfig() }
 
 		columnAlertsService.prefWidthProperty().bindBidirectional(config.alertServiceWidthProperty)
-		columnAlertsService.widthProperty().addListener { _, _, value ->
-			controller.saveConfig()
-		}
+		columnAlertsService.widthProperty().addListener { _, _, _ -> controller.saveConfig() }
 
 		columnAlertsConfig.prefWidthProperty().bindBidirectional(config.alertConfigWidthProperty)
 		columnAlertsConfig.widthProperty().addListener { _, _, _ -> controller.saveConfig() }

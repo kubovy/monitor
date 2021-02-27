@@ -228,10 +228,10 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 
 	private val JiraIssue.status: Status
 		get() = fields?.status
-				?.let { listOf(it.name) + it.statusCategory.let { c -> listOf(c?.key, c?.name, c?.colorName) } }
-				?.filterNotNull()
-				?.mapNotNull { config.statusMapping[it] }
-				?.maxBy { it.ordinal }
+			?.let { listOf(it.name) + it.statusCategory.let { c -> listOf(c?.key, c?.name, c?.colorName) } }
+			?.filterNotNull()
+			?.mapNotNull { config.statusMapping[it] }
+			?.maxByOrNull { it.ordinal }
 				?: fields?.issuetype?.name?.let { config.statusMapping[it] }
 				?: Status.UNKNOWN
 

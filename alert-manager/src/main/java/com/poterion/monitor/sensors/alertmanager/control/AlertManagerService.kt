@@ -250,37 +250,38 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 								 response: AlertManagerResponse,
 								 labelConfigs: Collection<AlertManagerLabelConfig>,
 								 status: Status? = null) = StatusItem(
-			id = "${config.uuid}-${response.fingerprint}",
-			serviceId = config.uuid,
-			configIds = labelConfigs.map { it.configTitle }.toMutableList(),
-			priority = labelConfigs.maxBy { it.priority }?.priority ?: config.priority,
-			status = status ?: labelConfigs.maxBy { it.status }?.status ?: Status.UNKNOWN,
-			title = title,
-			detail = config.descriptionRefs.mapNotNull { response.annotations[it] ?: response.labels[it] }.firstOrNull()
-					?: "Annotations:"
-					+ response.annotations.map { (k, v) -> "\t${k}: ${v}" }.joinToString("\n", "\n", "\n")
-					+ "Labels:"
-					+ response.labels.map { (k, v) -> "\t${k}: ${v}" }.joinToString("\n", "\n"),
-			labels = (response.labels + response.annotations)
-					.filterNot { (k, _) -> config.nameRefs.contains(k) }
-					.filterNot { (k, _) -> config.descriptionRefs.contains(k) }
-					.filter { (k, _) ->
-						config.labelFilter
-								.filterNot { it.startsWith("!") }
-								.let { it.isEmpty() || it.contains(k) }
-					}
-					.filter { (k, _) ->
-						config.labelFilter
-								.filter { it.startsWith("!") }
-								.map { it.removePrefix("!") }
-								.let { it.isEmpty() || !it.contains(k) }
-					},
-			link = response.generatorURL,
-			isRepeatable = true,
-			startedAt = try {
-				Instant.parse(response.startsAt)
-			} catch (e: DateTimeParseException) {
-				LOGGER.error(e.message, e)
-				Instant.now()
-			})
+		id = "${config.uuid}-${response.fingerprint}",
+		serviceId = config.uuid,
+		configIds = labelConfigs.map { it.configTitle }.toMutableList(),
+		priority = labelConfigs.maxByOrNull { it.priority }?.priority ?: config.priority,
+		status = status ?: labelConfigs.maxByOrNull { it.status }?.status ?: Status.UNKNOWN,
+		title = title,
+		detail = config.descriptionRefs.mapNotNull { response.annotations[it] ?: response.labels[it] }.firstOrNull()
+			?: "Annotations:"
+			+ response.annotations.map { (k, v) -> "\t${k}: ${v}" }.joinToString("\n", "\n", "\n")
+			+ "Labels:"
+			+ response.labels.map { (k, v) -> "\t${k}: ${v}" }.joinToString("\n", "\n"),
+		labels = (response.labels + response.annotations)
+			.filterNot { (k, _) -> config.nameRefs.contains(k) }
+			.filterNot { (k, _) -> config.descriptionRefs.contains(k) }
+			.filter { (k, _) ->
+				config.labelFilter
+					.filterNot { it.startsWith("!") }
+					.let { it.isEmpty() || it.contains(k) }
+			}
+			.filter { (k, _) ->
+				config.labelFilter
+					.filter { it.startsWith("!") }
+					.map { it.removePrefix("!") }
+					.let { it.isEmpty() || !it.contains(k) }
+			},
+		link = response.generatorURL,
+		isRepeatable = true,
+		startedAt = try {
+			Instant.parse(response.startsAt)
+		} catch (e: DateTimeParseException) {
+			LOGGER.error(e.message, e)
+			Instant.now()
+		}
+	)
 }
