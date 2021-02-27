@@ -1,4 +1,11 @@
+pluginManagement {
+    plugins {
+        id 'org.jetbrains.kotlin.jvm' version "1.4.10"
+    }
+}
+
 rootProject.name = 'poterion-monitor'
+
 // Libs
 include 'kotlin-utils'
 include 'javafx-utils'
