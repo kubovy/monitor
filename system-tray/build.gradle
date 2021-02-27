@@ -2,5 +2,6 @@ dependencies {
     api project(':api')
     api project(':ui')
     // Tray
+    //implementation project(':system-tray-dorkbox')
     implementation "com.dorkbox:SystemTray:3.17"
 }

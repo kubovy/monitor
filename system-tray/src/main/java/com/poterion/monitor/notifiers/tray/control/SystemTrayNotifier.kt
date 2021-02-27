@@ -58,6 +58,12 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 	private var menus = mutableMapOf<String?, MutableMap<String, Entry?>>()
 	private var lastStatusIcon: Icon? = null
 
+	init {
+		SystemTray.FORCE_GTK2 = true
+		//SystemTray.PREFER_GTK3 = false
+		SystemTray.DEBUG = true
+	}
+
 	override fun initialize() {
 		super.initialize()
 		try {

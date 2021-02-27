@@ -3,6 +3,7 @@ rootProject.name = 'poterion-monitor'
 include 'kotlin-utils'
 include 'javafx-utils'
 include 'serial-communication'
+//include 'system-tray-dorkbox'
 // Common
 include 'data'
 include 'api'
