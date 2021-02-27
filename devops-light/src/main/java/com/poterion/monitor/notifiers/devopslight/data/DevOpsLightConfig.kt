@@ -18,6 +18,7 @@ package com.poterion.monitor.notifiers.devopslight.data
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.poterion.communication.serial.payload.ColorOrder
 import com.poterion.communication.serial.payload.RgbColor
 import com.poterion.communication.serial.toHex
 import com.poterion.communication.serial.toRGBColor
@@ -52,24 +53,27 @@ import java.util.*
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 @Suppress("MemberVisibilityCanBePrivate")
-class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.java.simpleName,
-						override var uuid: String = UUID.randomUUID().toString(),
-						name: String = "",
-						enabled: Boolean = false,
-						minPriority: Priority = Priority.LOW,
-						minStatus: Status = Status.NONE,
-						services: List<NotifierServiceReference> = emptyList(),
-						tableColumnWidths: Map<String, Int> = emptyMap(),
-						deviceAddress: String = "",
-						usbPort: String = "",
-						onDemandConnection: Boolean = false,
-						combineMultipleServices: Boolean = true,
-						split: Double = 0.2,
-						selectedItemId: String = "",
-						items: List<DevOpsLightItemConfig> = emptyList(),
-						customColors: List<RgbColor> = emptyList(),
-						expanded: List<String> = emptyList()) :
-		AbstractNotifierConfig(name, enabled, minPriority, minStatus, services, tableColumnWidths) {
+class DevOpsLightConfig(
+	override var type: String = DevOpsLightConfig::class.java.simpleName,
+	override var uuid: String = UUID.randomUUID().toString(),
+	name: String = "",
+	enabled: Boolean = false,
+	minPriority: Priority = Priority.LOW,
+	minStatus: Status = Status.NONE,
+	services: List<NotifierServiceReference> = emptyList(),
+	tableColumnWidths: Map<String, Int> = emptyMap(),
+	deviceAddress: String = "",
+	usbPort: String = "",
+	colorOrder: ColorOrder = ColorOrder.RGB,
+	onDemandConnection: Boolean = false,
+	combineMultipleServices: Boolean = true,
+	split: Double = 0.2,
+	selectedItemId: String = "",
+	items: List<DevOpsLightItemConfig> = emptyList(),
+	customColors: List<RgbColor> = emptyList(),
+	expanded: List<String> = emptyList()
+) :
+	AbstractNotifierConfig(name, enabled, minPriority, minStatus, services, tableColumnWidths) {
 
 	var deviceAddress: String
 		get() = deviceAddressProperty.get()
@@ -83,6 +87,13 @@ class DevOpsLightConfig(override var type: String = DevOpsLightConfig::class.jav
 		set(value) = usbPortProperty.set(value)
 
 	val usbPortProperty: StringProperty = SimpleStringProperty(usbPort)
+		@JsonIgnore get
+
+	var colorOrder: ColorOrder
+		get() = colorOrderProperty.get()
+		set(value) = colorOrderProperty.set(value)
+
+	val colorOrderProperty: ObjectProperty<ColorOrder> = SimpleObjectProperty(colorOrder)
 		@JsonIgnore get
 
 	var onDemandConnection: Boolean

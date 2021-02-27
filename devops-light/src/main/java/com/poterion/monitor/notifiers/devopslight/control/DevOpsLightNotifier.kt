@@ -22,6 +22,7 @@ import com.poterion.communication.serial.communicator.Channel
 import com.poterion.communication.serial.communicator.USBCommunicator
 import com.poterion.communication.serial.extensions.RgbLightCommunicatorExtension
 import com.poterion.communication.serial.listeners.CommunicatorListener
+import com.poterion.communication.serial.payload.ColorOrder
 import com.poterion.communication.serial.payload.DeviceCapabilities
 import com.poterion.communication.serial.payload.RgbLightConfiguration
 import com.poterion.communication.serial.scanner.ScannerListener
@@ -55,10 +56,8 @@ import javafx.collections.FXCollections
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.Parent
-import javafx.scene.control.CheckBox
-import javafx.scene.control.ChoiceBox
-import javafx.scene.control.Label
-import javafx.scene.control.TextField
+import javafx.scene.control.*
+import javafx.scene.layout.HBox
 import javafx.util.StringConverter
 import jssc.SerialPortList
 import org.slf4j.Logger
@@ -75,8 +74,8 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 	}
 
 	override val definition: Module<DevOpsLightConfig, ModuleInstanceInterface<DevOpsLightConfig>> = DevOpsLight
-	val bluetoothCommunicator = RgbLightCommunicatorExtension(BluetoothCommunicator())
-	val usbCommunicator = RgbLightCommunicatorExtension(USBCommunicator())
+	val bluetoothCommunicator = RgbLightCommunicatorExtension(BluetoothCommunicator()) { config.colorOrder }
+	val usbCommunicator = RgbLightCommunicatorExtension(USBCommunicator()) { config.colorOrder }
 	private val communicator: RgbLightCommunicatorExtension<*>?
 		get() = when {
 			usbCommunicator.isConnected -> usbCommunicator
@@ -96,7 +95,9 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 	private val usbPortConnectedMap = mutableMapOf<String, Boolean>()
 	private var lastState = emptyList<RgbLightConfiguration>()
 
-	private val connectedProperty: BooleanProperty = SimpleBooleanProperty(bluetoothCommunicator.isConnected)
+	private val connectedProperty: BooleanProperty = SimpleBooleanProperty(
+		usbCommunicator.isConnected || bluetoothCommunicator.isConnected
+	)
 
 	internal val titleComparator: Comparator<String> = Comparator { n1, n2 ->
 		when {
@@ -180,28 +181,47 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 					alignment = Pos.CENTER_RIGHT
 				} to ChoiceBox(usbPortList.sorted()).apply {
 					converter = object : StringConverter<String>() {
-						override fun toString(port: String?): String? = usbPortConnectedMap.getOrDefault(port, false)
-								.let { connected -> "${port}${if (!connected) " (disconnected)" else ""}" }
+						override fun toString(port: String?): String = usbPortConnectedMap
+							.getOrDefault(port, false)
+							.let { connected -> "${port}${if (!connected) " (disconnected)" else ""}" }
 
 						override fun fromString(string: String?): String? = string
-								?.let { "(.*)( \\(disconnected\\))?".toRegex() }
-								?.matchEntire(string)
-								?.groupValues
-								?.takeIf { it.isNotEmpty() }
-								?.get(0)
+							?.let { "(.*)( \\(disconnected\\))?".toRegex() }
+							?.matchEntire(string)
+							?.groupValues
+							?.takeIf { it.isNotEmpty() }
+							?.get(0)
 					}
 					valueProperty().bindBidirectional(config.usbPortProperty)
 					selectionModel.selectedItemProperty().addListener { _, _, _ -> controller.saveConfig() }
 				},
-				Label("On demand connection").apply {
-					maxWidth = Double.MAX_VALUE
-					maxHeight = Double.MAX_VALUE
-					alignment = Pos.CENTER_RIGHT
-				} to CheckBox().apply {
-					maxHeight = Double.MAX_VALUE
-					selectedProperty().bindBidirectional(config.onDemandConnectionProperty)
-					selectedProperty().addListener { _, _, _ -> controller.saveConfig() }
+			Label("On demand connection").apply {
+				maxWidth = Double.MAX_VALUE
+				maxHeight = Double.MAX_VALUE
+				alignment = Pos.CENTER_RIGHT
+			} to CheckBox().apply {
+				maxHeight = Double.MAX_VALUE
+				selectedProperty().bindBidirectional(config.onDemandConnectionProperty)
+				selectedProperty().addListener { _, _, _ -> controller.saveConfig() }
+			},
+			Label("Color order").apply {
+				maxWidth = Double.MAX_VALUE
+				maxHeight = Double.MAX_VALUE
+				alignment = Pos.CENTER_RIGHT
+			} to HBox().apply {
+				val toggleGroup = ToggleGroup()
+				maxHeight = Double.MAX_VALUE
+				children.addAll(ColorOrder.values().map { colorOrder ->
+					RadioButton(colorOrder.name).also { btn ->
+						btn.toggleGroup = toggleGroup
+						btn.isSelected = config.colorOrder == colorOrder
+						btn.selectedProperty().addListener { _, _, selected ->
+							if (selected) config.colorOrder = colorOrder
+							controller.saveConfig()
+						}
+					}
 				})
+			})
 
 	private var _configurationTab: Pair<Parent, ConfigWindowController>? = null
 		get() {
@@ -238,8 +258,8 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 		}
 
 		if (config.enabled && !config.onDemandConnection) {
-			bluetoothCommunicator.connect()
 			usbCommunicator.connect()
+			bluetoothCommunicator.connect()
 		}
 
 		config.enabledProperty.addListener { _, _, enabled ->
@@ -295,9 +315,11 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 
 	override fun update() {
 		val lights = if (config.combineMultipleServices) StatusCollector.items
-				.topStatuses(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
-						config.minStatus, config.services)
-				.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
+			.topStatuses(
+				controller.applicationConfiguration.silencedMap.keys, config.minPriority,
+				config.minStatus, config.services
+			)
+			.also { LOGGER.log(*it.toTypedArray()) }
 				.mapNotNull { item -> item.toLightConfig(item.status)?.let { it to item.status } }
 				.distinctBy { (config, _) -> config.id to config.subId }
 				.map { (config, status) -> config.toLights(status) }
@@ -305,9 +327,11 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 				.takeIf { it.isNotEmpty() }
 				?: config.items.firstOrNull { it.id == "" }?.statusOk
 		else StatusCollector.items
-				.topStatus(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
-						config.minStatus, config.services)
-				.also { LOGGER.debug("${if (config.enabled) "Changing" else "Skipping"}: ${it}") }
+			.topStatus(
+				controller.applicationConfiguration.silencedMap.keys, config.minPriority,
+				config.minStatus, config.services
+			)
+			?.also { LOGGER.log(it) }
 				?.let { it.toLightConfig(it.status)?.toLights(it.status) }
 				?: config.items.firstOrNull { it.id == "" }?.statusOk
 
