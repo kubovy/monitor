@@ -783,42 +783,45 @@ class ConfigurationController {
 		val basicAuth = (authProperty.get() as? BasicAuthConfig) ?: BasicAuthConfig()
 		val tokenAuth = (authProperty.get() as? TokenAuthConfig) ?: TokenAuthConfig()
 
-		val updateBasicAuth = {
-			val filled = basicAuth.username.isNotBlank() && basicAuth.password.isNotBlank()
-			authProperty.set(if (filled) basicAuth else null)
-			controller.saveConfig()
-		}
-
-		val updateTokenAuth = {
-			authProperty.set(if (tokenAuth.token.isNotBlank()) tokenAuth else null)
-			controller.saveConfig()
-		}
-
 		val toggleGroupAuth = ToggleGroup()
-		val radioBasicAuth = RadioButton().apply {
+		val radioBasicAuth = RadioButton()
+		val radioTokenAuth = RadioButton()
+
+		val updateAuth = {
+			when {
+				radioBasicAuth.isSelected -> authProperty.set(
+					if (basicAuth.username.isNotBlank() && basicAuth.password.isNotBlank()) basicAuth else null
+				)
+				radioTokenAuth.isSelected -> authProperty.set(if (tokenAuth.token.isNotBlank()) tokenAuth else null)
+				else -> authProperty.set(null)
+			}
+			controller.saveConfig()
+		}
+
+		radioBasicAuth.apply {
 			toggleGroup = toggleGroupAuth
 			isSelected = authProperty.get() is BasicAuthConfig
-			selectedProperty().addListener { _, _, value -> if (value) updateBasicAuth() }
+			selectedProperty().addListener { _, _, value -> if (value) updateAuth() }
 		}
 		val textFieldUsername = TextField().apply {
 			promptText = "No username"
 			textProperty().bindBidirectional(basicAuth.usernameProperty)
-			focusedProperty().addListener { _, _, focused -> if (!focused) updateBasicAuth() }
+			focusedProperty().addListener { _, _, focused -> if (!focused) updateAuth() }
 		}
 		val textFieldPassword = PasswordField().apply {
 			promptText = "No password"
 			textProperty().bindBidirectional(basicAuth.passwordProperty)
-			focusedProperty().addListener { _, _, focused -> if (!focused) updateBasicAuth() }
+			focusedProperty().addListener { _, _, focused -> if (!focused) updateAuth() }
 		}
-		val radioTokenAuth = RadioButton().apply {
+		radioTokenAuth.apply {
 			toggleGroup = toggleGroupAuth
 			isSelected = authProperty.get() is TokenAuthConfig
-			selectedProperty().addListener { _, _, focused -> if (focused) updateTokenAuth() }
+			selectedProperty().addListener { _, _, focused -> if (focused) updateAuth() }
 		}
 		val textFieldToken = TextField().apply {
 			promptText = "No token"
 			textProperty().bindBidirectional(tokenAuth.tokenProperty)
-			focusedProperty().addListener { _, _, focused -> if (!focused) updateTokenAuth() }
+			focusedProperty().addListener { _, _, focused -> if (!focused) updateAuth() }
 		}
 
 		addRow(row++,
