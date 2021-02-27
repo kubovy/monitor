@@ -19,10 +19,7 @@ package com.poterion.monitor.api.ui
 import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.data.ModuleConfig
-import com.poterion.utils.javafx.Icon
-import com.poterion.utils.javafx.cell
-import com.poterion.utils.javafx.factory
-import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.javafx.*
 import com.poterion.utils.kotlin.noop
 import javafx.beans.property.StringProperty
 import javafx.beans.value.WritableValue
@@ -55,20 +52,19 @@ class TableSettingsPlugin<S>(private val tableName: String,
 							 private val onSave: () -> Unit = {},
 							 private val fieldSizes: Array<Double> = emptyArray()) {
 
-	data class ColumnDefinition<S, T>(val name: String,
-									  val shortName: String? = null,
-									  val property: S.() -> WritableValue<T>? = { null },
-									  var getter: S.() -> T? = { property()?.value },
-									  var setter: S.(T) -> Unit = { property()?.value = it },
-									  val mutator: S.(T) -> S = {
-										  setter(it)
-										  this
-									  },
-									  val initialValue: T,
-									  val isEditable: Boolean = false,
-									  val title: T.() -> String = { toString() },
-									  val options: ObservableList<T>? = null,
-									  val icon: T.() -> Icon? = { null })
+	data class ColumnDefinition<S, T>(
+		val name: String,
+		val shortName: String? = null,
+		val property: S.() -> WritableValue<T>? = { null },
+		var getter: S.() -> T? = { property()?.value },
+		var setter: S.(T) -> Unit = { property()?.value = it },
+		val mutator: S.(T) -> S = { apply { setter(it) } },
+		val initialValue: T,
+		val isEditable: Boolean = false,
+		val title: T.() -> String = { toString() },
+		val options: ObservableList<T>? = null,
+		val icon: T.() -> Icon? = { null }
+	)
 
 	private var newItem: S = createItem()
 	private val changeListener: MutableCollection<() -> Unit> = mutableListOf()
@@ -229,7 +225,7 @@ class TableSettingsPlugin<S>(private val tableName: String,
 						actions.mapNotNull { it(bean).apply { maxHeight = Double.MAX_VALUE } } +
 								listOf(Button("", CommonIcon.TRASH.toImageView()).apply {
 									maxHeight = Double.MAX_VALUE
-									setOnAction { item.also { removeItem(it) } }
+									setOnAction { ensureApplicationThread { removeItem(item) } }
 								})
 					}
 					?.let { HBox(*it.toTypedArray()) }

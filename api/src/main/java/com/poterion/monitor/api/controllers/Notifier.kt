@@ -16,12 +16,12 @@
  ******************************************************************************/
 package com.poterion.monitor.api.controllers
 
+import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.api.ui.TableSettingsPlugin
 import com.poterion.monitor.api.utils.toIcon
 import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
-import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.notifiers.NotifierServiceReference
 import com.poterion.monitor.data.services.ServiceConfig
@@ -31,30 +31,27 @@ import com.poterion.utils.javafx.bindFiltered
 import com.poterion.utils.javafx.mapped
 import com.poterion.utils.javafx.toObservableList
 import com.poterion.utils.kotlin.noop
+import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
 import javafx.scene.Node
 import javafx.scene.Parent
+import java.util.concurrent.TimeUnit
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractModule<Config>(config) {
 
+	private var _navigationRoot: NavigationItem? = null
 	override val navigationRoot: NavigationItem
-		get() = NavigationItem(
+		get() = _navigationRoot ?: NavigationItem(
+				uuid = config.uuid,
 				titleProperty = config.nameProperty,
 				icon = definition.icon,
-				sub = listOf(
-						NavigationItem(
-								title = "Enabled",
-								checkedProperty = config.enabledProperty.asObject(),
-								action = {
-									execute(NotifierAction.TOGGLE)
-									if (!config.enabled) execute(NotifierAction.SHUTDOWN)
-								})
-				))
+				checkedProperty = config.enabledProperty.asObject())
+				.also { _navigationRoot = it }
 
 	private val String.getService: ServiceConfig<out ServiceSubConfig>?
 		get() = controller.applicationConfiguration.serviceMap[this]
@@ -64,10 +61,10 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 				.let { conf -> controller.modules.find { module -> module.configClass == conf?.let { it::class } } }
 				?.icon
 
-	var selectedServices: ObservableList<Service<ServiceConfig<out ServiceSubConfig>>> = FXCollections
+	var selectedServices: ObservableList<Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>> = FXCollections
 			.emptyObservableList()
 		get() {
-			if (field == FXCollections.emptyObservableList<Service<ServiceConfig<out ServiceSubConfig>>>()) {
+			if (field == FXCollections.emptyObservableList<Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>>()) {
 				field = controller
 						.services
 						.bindFiltered(config.services) { service ->
@@ -138,14 +135,15 @@ abstract class Notifier<out Config : NotifierConfig>(config: Config) : AbstractM
 			while (change.next()) if (change.wasRemoved()) config.services
 					.removeAll { service -> change.removed.map { it.uuid }.contains(service.uuid) }
 		})
+		config.enabledProperty.addListener { _, _, _ -> controller.saveConfig() }
+		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe {
+			if (config.enabled) Platform.runLater { update() }
+		}
 	}
 
 	open fun onServicesChanged() = noop()
 
-	/**
-	 * Action execution.
-	 *
-	 * @param action Notifier action to execute.
-	 */
-	abstract fun execute(action: NotifierAction)
+	abstract fun update()
+
+	abstract fun shutdown()
 }

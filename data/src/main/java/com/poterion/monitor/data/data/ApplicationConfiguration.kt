@@ -26,14 +26,7 @@ import com.poterion.monitor.data.services.ServiceSubConfig
 import com.poterion.utils.javafx.ReadOnlyObservableList
 import com.poterion.utils.javafx.toObservableMap
 import com.poterion.utils.kotlin.setAll
-import javafx.beans.property.BooleanProperty
-import javafx.beans.property.DoubleProperty
-import javafx.beans.property.ObjectProperty
-import javafx.beans.property.SimpleBooleanProperty
-import javafx.beans.property.SimpleDoubleProperty
-import javafx.beans.property.SimpleObjectProperty
-import javafx.beans.property.SimpleStringProperty
-import javafx.beans.property.StringProperty
+import javafx.beans.property.*
 import javafx.collections.FXCollections
 import javafx.collections.MapChangeListener
 import javafx.collections.ObservableList
@@ -47,11 +40,13 @@ import javafx.collections.ObservableMap
 @Suppress("unused", "MemberVisibilityCanBePrivate")
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)
 class ApplicationConfiguration(var version: String = "",
+							   paused: Boolean = false,
 							   btDiscovery: Boolean = false,
 							   showOnStartup: Boolean = true,
 							   startMinimized: Boolean = false,
 							   windowWidth: Double = 1200.0,
 							   windowHeight: Double = 1000.0,
+							   selectedItemId: String? = null,
 							   commonSplit: Double = 0.3,
 							   selectedTab: String? = null,
 							   previousTab: String? = null,
@@ -59,6 +54,13 @@ class ApplicationConfiguration(var version: String = "",
 							   services: Map<String, ServiceConfig<out ServiceSubConfig>> = emptyMap(),
 							   notifiers: Map<String, NotifierConfig> = emptyMap(),
 							   silenced: Map<String, SilencedStatusItem> = emptyMap()) {
+
+	var paused: Boolean
+		get() = pausedProperty.get()
+		set(value) = pausedProperty.set(value)
+
+	val pausedProperty: BooleanProperty = SimpleBooleanProperty(paused)
+		@JsonIgnore get
 
 	var btDiscovery: Boolean
 		get() = btDiscoveryProperty.get()
@@ -93,6 +95,13 @@ class ApplicationConfiguration(var version: String = "",
 		set(value) = windowHeightProperty.set(value)
 
 	val windowHeightProperty: DoubleProperty = SimpleDoubleProperty(windowHeight)
+		@JsonIgnore get
+
+	var selectedItemId: String?
+		get() = selectedItemIdProperty.get()
+		set(value) = selectedItemIdProperty.set(value)
+
+	val selectedItemIdProperty: StringProperty = SimpleStringProperty(selectedItemId)
 		@JsonIgnore get
 
 	var commonSplit: Double

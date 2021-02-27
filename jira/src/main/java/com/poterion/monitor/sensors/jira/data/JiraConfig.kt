@@ -59,7 +59,6 @@ class JiraConfig(override var type: String = JiraConfig::class.java.simpleName,
 				 url: String = "",
 				 trustCertificate: Boolean = false,
 				 auth: AuthConfig? = null,
-				 order: Int = Int.MAX_VALUE,
 				 priority: Priority = Priority.NONE,
 				 checkInterval: Long? = null,
 				 connectTimeout: Long? = null,
@@ -88,7 +87,7 @@ class JiraConfig(override var type: String = JiraConfig::class.java.simpleName,
 						 "Canceled" to Status.OK,
 						 "Closed" to Status.NONE),
 				 queries: List<JiraQueryConfig> = emptyList()) :
-		AbstractServiceConfig<JiraQueryConfig>(name, enabled, url, trustCertificate, auth, order, priority,
+		AbstractServiceConfig<JiraQueryConfig>(name, enabled, url, trustCertificate, auth, priority,
 				checkInterval, connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
 
 	@Suppress("unused")

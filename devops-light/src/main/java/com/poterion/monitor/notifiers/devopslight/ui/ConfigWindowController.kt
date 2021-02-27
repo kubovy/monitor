@@ -23,9 +23,9 @@ import com.poterion.communication.serial.listeners.RgbLightCommunicatorListener
 import com.poterion.communication.serial.payload.RgbColor
 import com.poterion.communication.serial.payload.RgbLightConfiguration
 import com.poterion.communication.serial.payload.RgbLightPattern
-import com.poterion.communication.serial.toColor
-import com.poterion.communication.serial.toRGBColor
 import com.poterion.monitor.api.CommonIcon
+import com.poterion.monitor.api.toColor
+import com.poterion.monitor.api.toRGBColor
 import com.poterion.monitor.api.utils.title
 import com.poterion.monitor.api.utils.toIcon
 import com.poterion.monitor.data.Status
@@ -37,15 +37,7 @@ import com.poterion.monitor.notifiers.devopslight.data.DevOpsLightConfig
 import com.poterion.monitor.notifiers.devopslight.data.DevOpsLightItemConfig
 import com.poterion.monitor.notifiers.devopslight.data.StateConfig
 import com.poterion.monitor.notifiers.devopslight.deepCopy
-import com.poterion.utils.javafx.Icon
-import com.poterion.utils.javafx.cell
-import com.poterion.utils.javafx.factory
-import com.poterion.utils.javafx.mapped
-import com.poterion.utils.javafx.matches
-import com.poterion.utils.javafx.monitorExpansion
-import com.poterion.utils.javafx.toImage
-import com.poterion.utils.javafx.toImageView
-import com.poterion.utils.javafx.toObservableList
+import com.poterion.utils.javafx.*
 import com.poterion.utils.kotlin.ensureSuffix
 import com.poterion.utils.kotlin.noop
 import javafx.application.Platform
@@ -61,25 +53,8 @@ import javafx.fxml.FXMLLoader
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Parent
-import javafx.scene.control.Alert
+import javafx.scene.control.*
 import javafx.scene.control.Alert.AlertType
-import javafx.scene.control.Button
-import javafx.scene.control.ButtonType
-import javafx.scene.control.ChoiceBox
-import javafx.scene.control.ColorPicker
-import javafx.scene.control.ComboBox
-import javafx.scene.control.ContextMenu
-import javafx.scene.control.Label
-import javafx.scene.control.MenuItem
-import javafx.scene.control.SelectionMode
-import javafx.scene.control.SeparatorMenuItem
-import javafx.scene.control.Slider
-import javafx.scene.control.SplitPane
-import javafx.scene.control.TableColumn
-import javafx.scene.control.TableView
-import javafx.scene.control.TextField
-import javafx.scene.control.TreeItem
-import javafx.scene.control.TreeView
 import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.input.KeyEvent
@@ -176,14 +151,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 	private val selectedLightConfigs = SimpleObjectProperty<ObservableList<RgbLightConfiguration>?>(null)
 
 	private val configComparator: Comparator<TreeItem<StateConfig>> = Comparator { i1, i2 ->
-		val n1 = i1.value.title
-		val n2 = i2.value.title
-
-		when {
-			n1 == "Default" && n2 != "Default" -> -1
-			n1 != "Default" && n2 == "Default" -> 1
-			else -> compareValues(n1, n2)
-		}
+		notifier.titleComparator.compare(i1.value.title, i2.value.title)
 	}
 
 	private val ServiceConfig<*>.icon: Icon?
@@ -403,7 +371,7 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 		buttonDeleteLight.disableProperty().bind(tableLightConfigs.selectionModel.selectedItemProperty().isNull)
 
 		buttonDeleteConfig.disableProperty().bind(treeConfigs.selectionModel.selectedItemProperty()
-				.matches { it?.value?.serviceId != null })
+				.matches { it?.value?.serviceId == null })
 
 		treeConfigs.selectionModel.clearSelection()
 		selectLightConfig(null)
@@ -422,6 +390,26 @@ class ConfigWindowController : RgbLightCommunicatorListener {
 		treeConfigs.root = TreeItem(StateConfig("Configurations")).apply {
 			children.addAll(config.items.map { it.toTreeItem() })
 			children.sortWith(configComparator)
+		}
+
+		treeConfigs.selectionModel.select(config
+				.selectedItemId
+				.split(";")
+				.takeIf { it.size >= 3 }
+				?.map { it.takeIf { it.isNotBlank() } }
+				?.let { (id, subId, status) ->
+					val parent = treeConfigs.root.find { it?.serviceId == id && it?.subConfigId == subId }
+					if (status == null) parent else parent?.find { it?.status?.name == status }
+				}
+				?: treeConfigs.root.children.firstOrNull())
+		treeConfigs.selectionModel.selectedItemProperty().addListener { _, _, selected ->
+			config.selectedItemId = (if (selected?.value?.status != null) selected.parent else selected)
+					?.value
+					?.let { it.serviceId to it.subConfigId }
+					?.let { (serviceId, subId) -> Triple(serviceId, subId, selected?.value?.status?.name) }
+					?.let { (serviceId, subId, status) -> "${serviceId ?: ""};${subId ?: ""};${status ?: ""}" }
+					?: ";;"
+			notifier.controller.saveConfig()
 		}
 		config.items.addListener(ListChangeListener { change ->
 			while (change.next()) when {

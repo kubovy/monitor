@@ -53,7 +53,6 @@ class StoryboardConfig(override var type: String = StoryboardConfig::class.java.
 					   url: String = "",
 					   trustCertificate: Boolean = false,
 					   auth: AuthConfig? = null,
-					   order: Int = Int.MAX_VALUE,
 					   priority: Priority = Priority.NONE,
 					   checkInterval: Long? = null,
 					   connectTimeout: Long? = null,
@@ -61,7 +60,7 @@ class StoryboardConfig(override var type: String = StoryboardConfig::class.java.
 					   writeTimeout: Long? = null,
 					   tableColumnWidths: Map<String, Int> = emptyMap(),
 					   projects: List<StoryboardProjectConfig> = emptyList()) :
-		AbstractServiceConfig<StoryboardProjectConfig>(name, enabled, url, trustCertificate, auth, order, priority,
+		AbstractServiceConfig<StoryboardProjectConfig>(name, enabled, url, trustCertificate, auth, priority,
 				checkInterval, connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
 
 	@Suppress("unused")

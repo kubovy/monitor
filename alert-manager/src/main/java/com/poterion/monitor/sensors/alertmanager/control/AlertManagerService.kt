@@ -16,6 +16,7 @@
  ******************************************************************************/
 package com.poterion.monitor.sensors.alertmanager.control
 
+import com.poterion.monitor.api.CommonIcon
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Service
@@ -53,8 +54,8 @@ import java.time.format.DateTimeParseException
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class AlertManagerService(override val controller: ControllerInterface, config: AlertManagerConfig):
-		Service<AlertManagerConfig>(config) {
+class AlertManagerService(override val controller: ControllerInterface, config: AlertManagerConfig) :
+		Service<AlertManagerLabelConfig, AlertManagerConfig>(config) {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(AlertManagerService::class.java)
@@ -106,12 +107,7 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 					{ it.name },
 					{ it.value }),
 			actions = listOf { item ->
-				item.let { URLEncoder.encode("{${it.name}=\"${it.value}\"}", Charsets.UTF_8.name()) }
-						.let { "/#/alerts?silenced=true&inhibited=true&active=true&filter=${it}" }
-						.let { path -> config.url.toUriOrNull()?.resolve(path) }
-						?.let { uri -> Button("", com.poterion.monitor.api.CommonIcon.LINK.toImageView()) to uri }
-						?.also { (btn, uri) -> btn.setOnAction { uri.openInExternalApplication() } }
-						?.first
+				Button("", CommonIcon.LINK.toImageView()).apply { setOnAction { gotoSubConfig(item) } }
 			},
 			fieldSizes = arrayOf(150.0))
 
@@ -173,11 +169,20 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOf(labelTableSettingsPlugin.vbox)
 
-	override fun check(updater: (Collection<StatusItem>) -> Unit) {
+	override fun gotoSubConfig(subConfig: AlertManagerLabelConfig) {
+		subConfig.let { URLEncoder.encode("{${it.name}=\"${it.value}\"}", Charsets.UTF_8.name()) }
+				.let { "/#/alerts?silenced=true&inhibited=true&active=true&filter=${it}" }
+				.let { path -> config.url.toUriOrNull()?.resolve(path) }
+				?.openInExternalApplication()
+	}
+
+	override fun doCheck(): List<StatusItem> {
 		var error: String? = null
-		if (config.enabled && config.url.isNotBlank()) try {
+		try {
 			val call = service?.check()
 			val response = call?.execute()
+			checkForInterruptions()
+
 			LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
 					" ${response?.code()} ${response?.message()}")
 			if (response?.isSuccessful == true) {
@@ -208,25 +213,28 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 								status = Status.OK,
 								title = "No alerts",
 								isRepeatable = false))
-				updater(alerts)
+
+				checkForInterruptions()
+				return alerts
 			} else {
 				LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
 						" ${response?.code()} ${response?.message()}")
-				error = response?.let { "Code: ${it.code()} ${it.message() ?: ""}" } ?: "Service error"
-				updater(getStatusItems("Service error", Status.SERVICE_ERROR,
-						response?.let { "Code: ${it.code()} ${it.message() ?: ""}" }))
+				error = response?.let { "Code: ${it.code()} ${it.message()}" } ?: "Service error"
+				return getStatusItems("Service error", Status.SERVICE_ERROR,
+						response?.let { "Code: ${it.code()} ${it.message()}" })
 			}
 		} catch (e: IOException) {
 			LOGGER.error(e.message)
 			error = e.message ?: "Connection error"
-			updater(getStatusItems("Connection error", Status.CONNECTION_ERROR, e.message))
+			return getStatusItems("Connection error", Status.CONNECTION_ERROR, e.message)
+		} finally {
+			lastErrorProperty.set(error)
 		}
-		lastErrorProperty.set(error)
 	}
 
 	private fun getStatusItems(defaultTitle: String,
 							   rewriteStatus: Status,
-							   detail: String?): Collection<StatusItem> = lastFound
+							   detail: String?): List<StatusItem> = lastFound
 			.map { (name, item, configs) -> createStatusItem(name, item, configs, rewriteStatus) }
 			.takeIf { it.isNotEmpty() }
 			?: listOf(StatusItem(
@@ -242,37 +250,38 @@ class AlertManagerService(override val controller: ControllerInterface, config: 
 								 response: AlertManagerResponse,
 								 labelConfigs: Collection<AlertManagerLabelConfig>,
 								 status: Status? = null) = StatusItem(
-			id = "${config.uuid}-${response.fingerprint}",
-			serviceId = config.uuid,
-			configIds = labelConfigs.map { it.configTitle }.toMutableList(),
-			priority = labelConfigs.maxBy { it.priority }?.priority ?: config.priority,
-			status = status ?: labelConfigs.maxBy { it.status }?.status ?: Status.UNKNOWN,
-			title = title,
-			detail = config.descriptionRefs.mapNotNull { response.annotations[it] ?: response.labels[it] }.firstOrNull()
-					?: "Annotations:"
-					+ response.annotations.map { (k, v) -> "\t${k}: ${v}" }.joinToString("\n", "\n", "\n")
-					+ "Labels:"
-					+ response.labels.map { (k, v) -> "\t${k}: ${v}" }.joinToString("\n", "\n"),
-			labels = (response.labels + response.annotations)
-					.filterNot { (k, _) -> config.nameRefs.contains(k) }
-					.filterNot { (k, _) -> config.descriptionRefs.contains(k) }
-					.filter { (k, _) ->
-						config.labelFilter
-								.filterNot { it.startsWith("!") }
-								.let { it.isEmpty() || it.contains(k) }
-					}
-					.filter { (k, _) ->
-						config.labelFilter
-								.filter { it.startsWith("!") }
-								.map { it.removePrefix("!") }
-								.let { it.isEmpty() || !it.contains(k) }
-					},
-			link = response.generatorURL,
-			isRepeatable = true,
-			startedAt = try {
-				Instant.parse(response.startsAt)
-			} catch (e: DateTimeParseException) {
-				LOGGER.error(e.message, e)
-				Instant.now()
-			})
+		id = "${config.uuid}-${response.fingerprint}",
+		serviceId = config.uuid,
+		configIds = labelConfigs.map { it.configTitle }.toMutableList(),
+		priority = labelConfigs.maxByOrNull { it.priority }?.priority ?: config.priority,
+		status = status ?: labelConfigs.maxByOrNull { it.status }?.status ?: Status.UNKNOWN,
+		title = title,
+		detail = config.descriptionRefs.mapNotNull { response.annotations[it] ?: response.labels[it] }.firstOrNull()
+			?: "Annotations:"
+			+ response.annotations.map { (k, v) -> "\t${k}: ${v}" }.joinToString("\n", "\n", "\n")
+			+ "Labels:"
+			+ response.labels.map { (k, v) -> "\t${k}: ${v}" }.joinToString("\n", "\n"),
+		labels = (response.labels + response.annotations)
+			.filterNot { (k, _) -> config.nameRefs.contains(k) }
+			.filterNot { (k, _) -> config.descriptionRefs.contains(k) }
+			.filter { (k, _) ->
+				config.labelFilter
+					.filterNot { it.startsWith("!") }
+					.let { it.isEmpty() || it.contains(k) }
+			}
+			.filter { (k, _) ->
+				config.labelFilter
+					.filter { it.startsWith("!") }
+					.map { it.removePrefix("!") }
+					.let { it.isEmpty() || !it.contains(k) }
+			},
+		link = response.generatorURL,
+		isRepeatable = true,
+		startedAt = try {
+			Instant.parse(response.startsAt)
+		} catch (e: DateTimeParseException) {
+			LOGGER.error(e.message, e)
+			Instant.now()
+		}
+	)
 }

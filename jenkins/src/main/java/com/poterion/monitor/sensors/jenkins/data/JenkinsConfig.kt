@@ -56,7 +56,6 @@ class JenkinsConfig(override val type: String = JenkinsConfig::class.java.simple
 					url: String = "",
 					trustCertificate: Boolean = false,
 					auth: AuthConfig? = null,
-					order: Int = Int.MAX_VALUE,
 					priority: Priority = Priority.NONE,
 					checkInterval: Long? = null,
 					connectTimeout: Long? = null,
@@ -65,7 +64,7 @@ class JenkinsConfig(override val type: String = JenkinsConfig::class.java.simple
 					tableColumnWidths: Map<String, Int> = emptyMap(),
 					jobs: List<JenkinsJobConfig> = emptyList(),
 					filter: String? = null) :
-		AbstractServiceConfig<JenkinsJobConfig>(name, enabled, url, trustCertificate, auth, order, priority,
+		AbstractServiceConfig<JenkinsJobConfig>(name, enabled, url, trustCertificate, auth, priority,
 				checkInterval, connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
 
 	@Suppress("unused")

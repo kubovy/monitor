@@ -64,7 +64,6 @@ class AlertManagerConfig(override val type: String = AlertManagerConfig::class.j
 						 url: String = "",
 						 trustCertificate: Boolean = false,
 						 auth: AuthConfig? = null,
-						 order: Int = Int.MAX_VALUE,
 						 priority: Priority = Priority.NONE,
 						 checkInterval: Long? = null,
 						 connectTimeout: Long? = null,
@@ -76,7 +75,7 @@ class AlertManagerConfig(override val type: String = AlertManagerConfig::class.j
 						 receivers: Set<String> = emptySet(),
 						 labelFilter: Set<String> = emptySet(),
 						 labels: List<AlertManagerLabelConfig> = emptyList()) :
-		AbstractServiceConfig<AlertManagerLabelConfig>(name, enabled, url, trustCertificate, auth, order, priority,
+		AbstractServiceConfig<AlertManagerLabelConfig>(name, enabled, url, trustCertificate, auth, priority,
 				checkInterval, connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
 
 	@Suppress("unused")

@@ -16,12 +16,10 @@
  ******************************************************************************/
 package com.poterion.monitor.control
 
-import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.Service
-import com.poterion.monitor.api.modules.ServiceModule
+import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.data.services.ServiceSubConfig
-import com.poterion.utils.kotlin.parallelStreamIntermediate
 import org.slf4j.LoggerFactory
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
@@ -30,7 +28,8 @@ import java.util.concurrent.Executors
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 class ControllerWorker private constructor(
-		private val services: Collection<Service<ServiceConfig<out ServiceSubConfig>>>) :
+		private val config: ApplicationConfiguration,
+		private val services: Collection<Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>>) :
 
 		Callable<Boolean> {
 
@@ -39,11 +38,12 @@ class ControllerWorker private constructor(
 		private var instance: ControllerWorker? = null
 		private val executor = Executors.newSingleThreadExecutor()
 
-		fun start(services: Collection<Service<ServiceConfig<out ServiceSubConfig>>>) {
+		fun start(config: ApplicationConfiguration, services: Collection<Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>>) {
 			if (instance == null || instance?.running == false) {
-				instance = instance ?: ControllerWorker(services)
-				instance?.running = true
-				executor.submit(instance!!)
+				instance = (instance ?: ControllerWorker(config, services)).also {
+					it.running = true
+					executor.submit(it)
+				}
 			}
 		}
 
@@ -59,32 +59,24 @@ class ControllerWorker private constructor(
 
 	override fun call(): Boolean {
 		Thread.currentThread().name = "Controller Worker"
+		//val parallelism = max(3, Runtime.getRuntime().availableProcessors() / 2)
 		while (running) try {
-			val now = System.currentTimeMillis()
-			services.filter { it.shouldRun(now) }
-					.parallelStreamIntermediate(Runtime.getRuntime().availableProcessors()) { service ->
-						try {
-							if (service.config.enabled) service.check {
-								StatusCollector.update(it,
-										(service.definition as? ServiceModule)?.staticNotificationSet != false)
-							}
-						} catch (t: Throwable) {
-							LOGGER.error(t.message, t)
-						} finally {
-							service.refresh = false
-							serviceLastChecked[service.config.uuid] = System.currentTimeMillis()
-						}
-					}
+			if (!config.paused) services.filter { it.shouldRun }.forEach { service ->
+				//.parallelStreamIntermediate(parallelism) { service ->
+				try {
+					service.check()
+				} catch (t: Throwable) {
+					LOGGER.error(t.message, t)
+				} finally {
+					serviceLastChecked[service.config.uuid] = System.currentTimeMillis()
+				}
+			}
 			Thread.sleep(1_000L)
 		} catch (e: InterruptedException) {
 			running = false
+		} catch (e: Exception) {
+			LOGGER.error(e.message, e)
 		}
 		return !running
 	}
-
-	private fun Service<ServiceConfig<out ServiceSubConfig>>.shouldRun(now: Long) = refresh || (config
-			.let { config -> config.checkInterval?.let { config.uuid to it } }
-			?.let { (uuid, checkInterval) -> (serviceLastChecked[uuid] ?: 0L) to checkInterval }
-			?.let { (lastChecked, checkInterval) -> (now - lastChecked) > checkInterval }
-			?: false)
 }

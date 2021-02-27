@@ -48,6 +48,7 @@ val objectMapper = ObjectMapper(YAMLFactory()).apply {
 	registerModule(SimpleModule("PolymorphicServiceDeserializerModule", Version.unknownVersion()).apply {
 		addDeserializer(AuthConfig::class.java, AuthDeserializer)
 	})
+
 	registerModule(SimpleModule("PolymorphicServiceDeserializerModule", Version.unknownVersion()).apply {
 		addDeserializer(ServiceConfig::class.java, ServiceDeserializer)
 	})

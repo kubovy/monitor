@@ -16,26 +16,55 @@
  ******************************************************************************/
 package com.poterion.monitor.api.controllers
 
+import com.poterion.monitor.api.StatusCollector
+import com.poterion.monitor.api.maxStatus
+import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.api.ui.NavigationItem
+import com.poterion.monitor.api.utils.toIcon
+import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.data.services.ServiceSubConfig
-import javafx.beans.property.BooleanProperty
-import javafx.beans.property.SimpleBooleanProperty
-import javafx.beans.property.SimpleStringProperty
+import com.poterion.utils.javafx.Icon
+import com.poterion.utils.javafx.mapped
+import javafx.beans.property.*
+import javafx.collections.ListChangeListener
+import org.slf4j.LoggerFactory
 import retrofit2.Retrofit
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-abstract class Service<out Config : ServiceConfig<out ServiceSubConfig>>(config: Config) :
+abstract class Service<SC : ServiceSubConfig, out Config : ServiceConfig<out SC>>(config: Config) :
 		AbstractModule<Config>(config) {
 
+	companion object {
+		private val LOGGER = LoggerFactory.getLogger(Service::class.java)
+	}
+
+	var statusProperty: ObjectProperty<Status> = SimpleObjectProperty(Status.NONE)
+	private var interruptReason: String? = null
+	private var lastChecked = 0L
+
+	private var _navigationRoot: NavigationItem? = null
 	override val navigationRoot: NavigationItem
-		get() = NavigationItem(
+		get() = _navigationRoot ?: NavigationItem(
+				uuid = config.uuid,
 				titleProperty = config.nameProperty,
-				icon = definition.icon,
-				sub = listOf())
+				iconProperty = SimpleObjectProperty<Icon?>().also { property ->
+					property.bind(statusProperty
+							.mapped { if (it == null || it == Status.NONE) definition.icon else it.toIcon() })
+				},
+				sub = listOf(
+						NavigationItem(
+								title = "Enabled",
+								checkedProperty = config.enabledProperty.asObject()),
+						NavigationItem(
+								title = "Refresh",
+								action = { refresh = true }),
+						NavigationItem()
+				))
+				.also { _navigationRoot = it }
 
 	var http: HttpServiceModule? = null
 		get() {
@@ -52,13 +81,89 @@ abstract class Service<out Config : ServiceConfig<out ServiceSubConfig>>(config:
 
 	val lastErrorProperty = SimpleStringProperty(null)
 
+	private var isRunning = false
+
+	val shouldRun: Boolean
+		get() = !controller.applicationConfiguration.paused
+				&& !isRunning
+				&& config.enabled
+				&& config.url.isNotBlank()
+				&& (refresh
+				|| (config.checkInterval?.let { (System.currentTimeMillis() - lastChecked) > it } ?: false))
+
 	protected val retrofit: Retrofit?
 		get() = http?.retrofit
 
-	/**
-	 * Check implementation.
-	 *
-	 * @param updater Status updater callback
-	 */
-	abstract fun check(updater: (Collection<StatusItem>) -> Unit)
+	override fun initialize() {
+		super.initialize()
+		config.subConfig.forEach { addToNavigation(it) }
+		config.subConfig.addListener(ListChangeListener { change ->
+			when {
+				change.wasRemoved() -> change.removed
+						.forEach { subConfig -> navigationRoot.sub?.removeIf { it.uuid == subConfig.uuid } }
+				change.wasAdded() -> change.addedSubList.forEach { addToNavigation(it) }
+			}
+		})
+	}
+
+	fun addToNavigation(subConfig: SC) {
+		navigationRoot.sub?.add(
+			NavigationItem(
+				uuid = subConfig.uuid,
+				title = subConfig.configTitle,
+				action = { gotoSubConfig(subConfig) })
+		)
+	}
+
+	abstract fun gotoSubConfig(subConfig: SC)
+
+	/** Check implementation. */
+	fun check() {
+		interruptReason = null
+
+		if (shouldRun) try {
+			refresh = true
+			isRunning = true
+			val statusItems = doCheck()
+			checkForInterruptions()
+			statusProperty.set(
+				statusItems.maxStatus(
+					controller.applicationConfiguration.silencedMap.keys,
+					config.priority, Status.NONE
+				)
+			)
+
+			StatusCollector.update(
+				statusItems,
+				(definition as? ServiceModule<*, *, *>)?.staticNotificationSet != false
+			)
+
+			lastChecked = System.currentTimeMillis()
+		} catch (e: InterruptedException) {
+			statusProperty.set(Status.NONE)
+			LOGGER.info("${this.javaClass.simpleName} ${e.message}")
+		} catch (e: Throwable) {
+			statusProperty.set(Status.SERVICE_ERROR)
+			LOGGER.error(e.message, e)
+		} finally {
+			refresh = false
+			isRunning = false
+		} else {
+			statusProperty.set(Status.NONE)
+			refresh = false
+		}
+	}
+
+	fun interrupt(reason: String = "interrupted") {
+		interruptReason = reason
+	}
+
+	protected abstract fun doCheck(): List<StatusItem>
+
+	protected fun checkForInterruptions() {
+		if (controller.applicationConfiguration.paused) throw InterruptedException("paused")
+		if (!config.enabled) throw InterruptedException("disabled")
+		if (interruptReason != null) throw InterruptedException(interruptReason)
+		interruptReason = null
+	}
 }

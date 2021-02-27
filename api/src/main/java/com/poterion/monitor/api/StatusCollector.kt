@@ -17,10 +17,7 @@
 package com.poterion.monitor.api
 
 import com.fasterxml.jackson.core.type.TypeReference
-import com.poterion.monitor.data.Priority
-import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
-import com.poterion.monitor.data.notifiers.NotifierServiceReference
 import io.reactivex.subjects.BehaviorSubject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -36,15 +33,15 @@ object StatusCollector {
 	private val LOGGER: Logger = LoggerFactory.getLogger(StatusCollector::class.java)
 
 	private val itemMap = mutableMapOf<String, Collection<StatusItem>>()
-	var items = emptyList<StatusItem>()
+	var items: List<StatusItem> = emptyList()
 		private set
 	val status: BehaviorSubject<StatusCollector> = BehaviorSubject.create()
 
 	init {
 		if (Shared.cacheFile.exists()) {
 			val statusItems = objectMapper
-					.readValue(Shared.cacheFile, object : TypeReference<List<StatusItem?>?>() {})
-					?.filterNotNull()
+				.readValue(Shared.cacheFile, object : TypeReference<List<StatusItem?>?>() {})
+				?.filterNotNull()
 			if (statusItems != null) update(statusItems, false)
 		}
 
@@ -72,64 +69,12 @@ object StatusCollector {
 		}
 	}
 
-	fun filter(silencedIds: Collection<String>,
-			   minPriority: Priority,
-			   minStatus: Status = Status.NONE,
-			   serviceReferences: Collection<NotifierServiceReference> = emptySet(),
-			   includingChildren: Boolean = false) = items
-			.asSequence()
-			.filter { it.parentId == null || includingChildren }
-			.filterNot { silencedIds.contains(it.id) }
-			.filter { it.priority >= minPriority }
-			.filter { it.status >= minStatus }
-			.filter { item ->
-				serviceReferences.isEmpty()
-						|| serviceReferences.any {
-					it.uuid == item.serviceId
-							&& it.minPriority <= item.priority
-							&& it.minStatus <= item.status
-				}
-			}
-			.toList()
-
-	fun maxStatus(silencedIds: Collection<String>,
-				  minPriority: Priority,
-				  minStatus: Status = Status.NONE,
-				  serviceReferences: Collection<NotifierServiceReference> = emptySet(),
-				  includingChildren: Boolean = false): Status =
-			topStatus(silencedIds, minPriority, minStatus, serviceReferences, includingChildren)?.status ?: Status.NONE
-
-	fun topStatusesPerService(silencedIds: Collection<String>,
-							  minPriority: Priority,
-							  minStatus: Status = Status.NONE,
-							  serviceReferences: Collection<NotifierServiceReference> = emptySet(),
-							  includingChildren: Boolean = false) =
-			topStatuses(silencedIds, minPriority, minStatus, serviceReferences, includingChildren)
-					.sortedByDescending { it.status.ordinal * 100 + it.priority.ordinal }
-					.distinctBy { it.serviceId }
-
-	fun topStatuses(silencedIds: Collection<String>,
-					minPriority: Priority,
-					minStatus: Status = Status.NONE,
-					serviceReferences: Collection<NotifierServiceReference> = emptySet(),
-					includingChildren: Boolean = false) =
-			filter(silencedIds, minPriority, minStatus, serviceReferences, includingChildren)
-					.filter { it.status == maxStatus(silencedIds, minPriority, minStatus, serviceReferences) }
-
-	fun topStatus(silencedIds: Collection<String>,
-				  minPriority: Priority,
-				  minStatus: Status = Status.NONE,
-				  serviceReferences: Collection<NotifierServiceReference> = emptySet(),
-				  includingChildren: Boolean = false) =
-			filter(silencedIds, minPriority, minStatus, serviceReferences, includingChildren)
-					.maxBy { it.status.ordinal * 100 + it.priority.ordinal }
-
 	@Synchronized
 	fun update(statusItems: Collection<StatusItem>, update: Boolean) {
 		if (!update) statusItems.map { it.serviceId }.distinct().forEach { itemMap.remove(it) }
 		val deduplicated = statusItems
-				.groupBy { it.id }
-				.mapNotNull { (_, duplicates) -> duplicates.maxBy { it.status.ordinal * 100 + it.priority.ordinal } }
+			.groupBy { it.id }
+			.mapNotNull { (_, duplicates) -> duplicates.maxByOrNull { it.status.ordinal * 100 + it.priority.ordinal } }
 				.groupBy { it.serviceId }
 		itemMap.putAll(deduplicated)
 

@@ -49,8 +49,8 @@ import java.time.format.DateTimeParseException
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class GerritCodeReviewService(override val controller: ControllerInterface, config: GerritCodeReviewConfig):
-		Service<GerritCodeReviewConfig>(config) {
+class GerritCodeReviewService(override val controller: ControllerInterface, config: GerritCodeReviewConfig) :
+		Service<GerritCodeReviewQueryConfig, GerritCodeReviewConfig>(config) {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(GerritCodeReviewService::class.java)
@@ -117,18 +117,31 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOf(queryTableSettingsPlugin.vbox)
 
-	override fun check(updater: (Collection<StatusItem>) -> Unit) {
+	override fun gotoSubConfig(subConfig: GerritCodeReviewQueryConfig) {
+		subConfig
+				.let { URLEncoder.encode(it.query, Charsets.UTF_8.name()) }
+				.let { "/#/q/${it}" }
+				.let { path -> config.url.toUriOrNull()?.resolve(path) }
+				?.openInExternalApplication()
+	}
+
+	override fun doCheck(): List<StatusItem> {
+		var error: String? = null
 		lastFound.keys
 				.filterNot { key -> config.subConfig.map { it.name }.contains(key) }
 				.forEach { lastFound.remove(it) }
-		var error: String? = null
-		if (config.enabled && config.url.isNotBlank()) try {
+		try {
 			val queries = config.subConfig.mapNotNull { q -> service?.check(q.query)?.let { q to it } }
 			val statuses = mutableMapOf<String, StatusItem>()
 			for ((query, call) in queries) try {
+
+				checkForInterruptions()
 				val response = call.execute()
+				checkForInterruptions()
+
 				LOGGER.info("${call.request().method()} ${call.request().url()}:" +
 						" ${response.code()} ${response.message()}")
+
 				if (response.isSuccessful) {
 					val body = response.body() ?: ""
 					val startIndex = body.indexOf('[')
@@ -152,7 +165,7 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 				} else {
 					LOGGER.warn("${call.request().method()} ${call.request().url()}:" +
 							" ${response.code()} ${response.message()}")
-					error = "Code: ${response.code()} ${response.message() ?: "Service error"}"
+					error = "Code: ${response.code()} ${response.message()}"
 					addErrorStatus("Service error", Status.SERVICE_ERROR, error, query)
 				}
 			} catch (e: IOException) {
@@ -160,13 +173,15 @@ class GerritCodeReviewService(override val controller: ControllerInterface, conf
 				error = e.message ?: "Connection error"
 				addErrorStatus("Connection error", Status.CONNECTION_ERROR, e.message, query)
 			}
-			updater(lastFound.values.flatten())
+			return lastFound.values.flatten()
 		} catch (e: IOException) {
 			LOGGER.error(e.message)
 			error = e.message ?: "Connection error"
 			addErrorStatus("Connection error", Status.CONNECTION_ERROR, e.message)
+			return lastFound.values.flatten()
+		} finally {
+			lastErrorProperty.set(error)
 		}
-		lastErrorProperty.set(error)
 	}
 
 	private fun addErrorStatus(error: String,

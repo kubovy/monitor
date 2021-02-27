@@ -33,6 +33,7 @@ import com.poterion.monitor.data.auth.AuthConfig
 import com.poterion.monitor.data.auth.BasicAuthConfig
 import com.poterion.monitor.data.auth.TokenAuthConfig
 import com.poterion.monitor.data.data.SilencedStatusItem
+import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.utils.javafx.*
 import com.poterion.utils.kotlin.noop
 import javafx.application.Platform
@@ -98,6 +99,8 @@ class ConfigurationController {
 		}
 	}
 
+	@FXML private lateinit var buttonPause: ToggleButton
+	@FXML private lateinit var buttonRefresh: Button
 	@FXML private lateinit var tabPaneMain: TabPane
 	@FXML private lateinit var tabCommon: Tab
 	@FXML private lateinit var splitPane: SplitPane
@@ -142,10 +145,9 @@ class ConfigurationController {
 		minWidth = 150.0
 		prefWidth = Region.USE_COMPUTED_SIZE
 		maxWidth = Double.MAX_VALUE
-		cell("serviceId") { item, _, empty ->
-			val service = item
+		cell("item") { _, value, empty ->
+			val service = value
 					.takeUnless { empty }
-					?.item
 					?.let { controller.applicationConfiguration.serviceMap[it.serviceId] }
 			if (service != null) {
 				graphic = controller
@@ -241,7 +243,7 @@ class ConfigurationController {
 					"Application" -> null
 					"Services" -> controller
 							.validModules { it.services }
-							.mapNotNull { it as? ServiceModule<*, *> }
+							.mapNotNull { it as? ServiceModule<*, *, *> }
 							.map { module ->
 								MenuItem("Add ${module.title} service", module.icon.toImageView()).apply {
 									setOnAction {
@@ -280,10 +282,23 @@ class ConfigurationController {
 		select(null)
 	}
 
+	@FXML
+	fun onRefresh() {
+		controller.services.filter { it.config.enabled }.forEach { it.refresh = true }
+	}
+
 	private fun ControllerInterface.validModules(getter: (ControllerInterface) -> Collection<ModuleInstanceInterface<*>>) =
-		modules.filter { m -> !m.singleton || !getter(this).map { it.definition }.contains(m) }
+			modules.filter { m -> !m.singleton || !getter(this).map { it.definition }.contains(m) }
 
 	private fun load() {
+		buttonPause.selectedProperty().bindBidirectional(controller.applicationConfiguration.pausedProperty)
+		buttonPause.selectedProperty().addListener { _, _, _ -> controller.saveConfig() }
+		buttonPause.graphicProperty().bind(controller.applicationConfiguration.pausedProperty.asObject()
+				.mapped { if (it == true) CommonIcon.PLAY.toImageView() else CommonIcon.PAUSE.toImageView() })
+		buttonPause.textProperty().bind(controller.applicationConfiguration.pausedProperty.asObject()
+				.mapped { if (it == true) "Resume" else "Pause" })
+		buttonRefresh.graphic = CommonIcon.REFRESH.toImageView()
+
 		splitPane.setDividerPosition(0, controller.applicationConfiguration.commonSplit)
 		splitPane.dividers.first().positionProperty().bindBidirectional(controller.applicationConfiguration.commonSplitProperty)
 		splitPane.dividers.first().positionProperty().addListener { _, _, _ -> controller.saveConfig() }
@@ -300,6 +315,26 @@ class ConfigurationController {
 						isExpanded = true
 					},
 					TreeItem(ModuleItem(SimpleStringProperty("About"), CommonIcon.APPLICATION)))
+		}
+		tree.selectionModel.select(
+				tree.root.find { it?.module?.config?.uuid == controller.applicationConfiguration.selectedItemId }
+						?: tree.root.find { it?.title?.get() == controller.applicationConfiguration.selectedItemId }
+						?: tree.root.children.firstOrNull())
+		tree.selectionModel.selectedItemProperty().addListener { _, _, selected ->
+			controller.applicationConfiguration.selectedItemId = selected.value?.module?.config?.uuid
+					?: selected?.value?.title?.get()
+			controller.saveConfig()
+		}
+
+		// must be after above due to ObservableList<TreeItem<ModuleItem>>.addItem call
+		tabPaneMain.selectionModel.select(tabPaneMain.tabs.find {
+			(it?.userData as? ModuleInstanceInterface<*>)
+					?.config?.uuid == controller.applicationConfiguration.selectedTab
+		})
+		tabPaneMain.selectionModel.selectedItemProperty().addListener { _, _, selected ->
+			controller.applicationConfiguration.selectedTab = (selected?.userData as? ModuleInstanceInterface<*>)
+					?.config?.uuid
+			controller.saveConfig()
 		}
 
 		tableSilencedStatusItems.columns.addAll(tableColumnServiceName, tableColumnTitle, tableColumnSilencedAt,
@@ -323,7 +358,7 @@ class ConfigurationController {
 					tab.graphicProperty().bind(module.configurationTabIcon)
 					tab.textProperty().bind(item.value.title)
 					tabPaneMain.tabs.add(tab)
-					FXCollections.sort<Tab>(tabPaneMain.tabs, tabPaneMainComparator)
+					FXCollections.sort(tabPaneMain.tabs, tabPaneMainComparator)
 				}
 		controller.saveConfig()
 	}
@@ -498,14 +533,13 @@ class ConfigurationController {
 					selectedProperty().addListener { _, _, value ->
 						val module = treeItem?.value?.module
 						if (value) when (module) {
-							is Service<*> -> module.refresh = true
-							is Notifier<*> -> module.selectedServices.forEach { it.refresh = true }
+							is Notifier<*> -> module.update()
 						}
 						controller.saveConfig()
 					}
 				})
 
-		row = treeItem?.value?.module?.let { it as? Service }?.initializeServiceModule(row) ?: row
+		row = treeItem?.value?.module?.let { it as? Service<*, *> }?.initializeServiceModule(row) ?: row
 		row = treeItem?.value?.module?.let { it as? Notifier }?.initializeNotifierModule(row) ?: row
 
 		treeItem?.value?.module?.configurationRows?.forEach { (label, content) ->
@@ -523,7 +557,7 @@ class ConfigurationController {
 		return row
 	}
 
-	private fun Service<*>.initializeServiceModule(rowIndex: Int): Int = gridPane.run {
+	private fun Service<*, ServiceConfig<*>>.initializeServiceModule(rowIndex: Int): Int = gridPane.run {
 		var row = rowIndex
 		addRow(row++,
 				Label("Default priority").apply {
@@ -593,7 +627,7 @@ class ConfigurationController {
 		return initializeHttpService(row)
 	}
 
-	private fun Service<*>.initializeHttpService(rowIndex: Int): Int = gridPane.run {
+	private fun Service<*, ServiceConfig<*>>.initializeHttpService(rowIndex: Int): Int = gridPane.run {
 		var row = rowIndex
 		addRow(row++,
 				Label("URL").apply {
@@ -749,42 +783,45 @@ class ConfigurationController {
 		val basicAuth = (authProperty.get() as? BasicAuthConfig) ?: BasicAuthConfig()
 		val tokenAuth = (authProperty.get() as? TokenAuthConfig) ?: TokenAuthConfig()
 
-		val updateBasicAuth = {
-			val filled = basicAuth.username.isNotBlank() && basicAuth.password.isNotBlank()
-			authProperty.set(if (filled) basicAuth else null)
-			controller.saveConfig()
-		}
-
-		val updateTokenAuth = {
-			authProperty.set(if (tokenAuth.token.isNotBlank()) tokenAuth else null)
-			controller.saveConfig()
-		}
-
 		val toggleGroupAuth = ToggleGroup()
-		val radioBasicAuth = RadioButton().apply {
+		val radioBasicAuth = RadioButton()
+		val radioTokenAuth = RadioButton()
+
+		val updateAuth = {
+			when {
+				radioBasicAuth.isSelected -> authProperty.set(
+					if (basicAuth.username.isNotBlank() && basicAuth.password.isNotBlank()) basicAuth else null
+				)
+				radioTokenAuth.isSelected -> authProperty.set(if (tokenAuth.token.isNotBlank()) tokenAuth else null)
+				else -> authProperty.set(null)
+			}
+			controller.saveConfig()
+		}
+
+		radioBasicAuth.apply {
 			toggleGroup = toggleGroupAuth
 			isSelected = authProperty.get() is BasicAuthConfig
-			selectedProperty().addListener { _, _, value -> if (value) updateBasicAuth() }
+			selectedProperty().addListener { _, _, value -> if (value) updateAuth() }
 		}
 		val textFieldUsername = TextField().apply {
 			promptText = "No username"
 			textProperty().bindBidirectional(basicAuth.usernameProperty)
-			focusedProperty().addListener { _, _, focused -> if (!focused) updateBasicAuth() }
+			focusedProperty().addListener { _, _, focused -> if (!focused) updateAuth() }
 		}
 		val textFieldPassword = PasswordField().apply {
 			promptText = "No password"
 			textProperty().bindBidirectional(basicAuth.passwordProperty)
-			focusedProperty().addListener { _, _, focused -> if (!focused) updateBasicAuth() }
+			focusedProperty().addListener { _, _, focused -> if (!focused) updateAuth() }
 		}
-		val radioTokenAuth = RadioButton().apply {
+		radioTokenAuth.apply {
 			toggleGroup = toggleGroupAuth
 			isSelected = authProperty.get() is TokenAuthConfig
-			selectedProperty().addListener { _, _, focused -> if (focused) updateTokenAuth() }
+			selectedProperty().addListener { _, _, focused -> if (focused) updateAuth() }
 		}
 		val textFieldToken = TextField().apply {
 			promptText = "No token"
 			textProperty().bindBidirectional(tokenAuth.tokenProperty)
-			focusedProperty().addListener { _, _, focused -> if (!focused) updateTokenAuth() }
+			focusedProperty().addListener { _, _, focused -> if (!focused) updateAuth() }
 		}
 
 		addRow(row++,

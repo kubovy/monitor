@@ -13,18 +13,23 @@
  * You should have received a copy of the GNU General Public License along    *
  * with this program. If not, see <https://www.gnu.org/licenses/>.            *
  ******************************************************************************/
-package com.poterion.monitor.data.services
+package com.poterion.monitor.api
 
-import com.fasterxml.jackson.annotation.JsonIgnore
+import com.poterion.communication.serial.payload.RgbColor
+import javafx.scene.paint.Color
+import kotlin.math.roundToInt
 
 /**
- * Service sub-configuration interface.
+ * Converts [RgbColor] to [Color].
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-interface ServiceSubConfig {
-	val uuid: String
+fun RgbColor.toColor() = Color.rgb(red, green, blue)
 
-	/** Title */
-	val configTitle: String
-		@JsonIgnore get
-}
+/**
+ * Converts a [Color] to [RgbColor].
+ * @author Jan Kubovy [jan@kubovy.eu]
+ */
+fun Color.toRGBColor(): RgbColor = listOf(red, green, blue)
+		.map { (it * 255.0).roundToInt() }
+		.let { (red, green, blue) -> RgbColor(red, green, blue) }
+

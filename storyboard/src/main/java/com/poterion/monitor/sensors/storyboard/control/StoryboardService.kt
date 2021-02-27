@@ -49,8 +49,8 @@ import java.time.format.DateTimeParseException
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class StoryboardService(override val controller: ControllerInterface, config: StoryboardConfig):
-		Service<StoryboardConfig>(config) {
+class StoryboardService(override val controller: ControllerInterface, config: StoryboardConfig) :
+		Service<StoryboardProjectConfig, StoryboardConfig>(config) {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(StoryboardService::class.java)
@@ -85,12 +85,7 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 							options = Priority.values().toObservableList())),
 			comparator = compareBy({ -it.priority.ordinal }, { it.name }),
 			actions = listOf { item ->
-				item.let { URLEncoder.encode(it.name, Charsets.UTF_8.name()) }
-						.let { "/#!/project/${it}" }
-						.let { path -> config.url.toUriOrNull()?.resolve(path) }
-						?.let { uri -> Button("", CommonIcon.LINK.toImageView()) to uri }
-						?.also { (btn, uri) -> btn.setOnAction { uri.openInExternalApplication() } }
-						?.first
+				Button("", CommonIcon.LINK.toImageView()).apply { setOnAction { gotoSubConfig(item) } }
 			},
 			fieldSizes = arrayOf(200.0))
 
@@ -100,58 +95,75 @@ class StoryboardService(override val controller: ControllerInterface, config: St
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOf(projectTableSettingsPlugin.vbox)
 
-	override fun check(updater: (Collection<StatusItem>) -> Unit) {
+	override fun gotoSubConfig(subConfig: StoryboardProjectConfig) {
+		subConfig.let { URLEncoder.encode(it.name, Charsets.UTF_8.name()) }
+				.let { "/#!/project/${it}" }
+				.let { path -> config.url.toUriOrNull()?.resolve(path) }
+				?.openInExternalApplication()
+	}
+
+	override fun doCheck(): List<StatusItem> {
 		lastFound.keys
 				.filterNot { key -> config.subConfig.map { it.name }.contains(key) }
 				.forEach { lastFound.remove(it) }
-		if (config.enabled && config.url.isNotBlank()) {
-			var error: String? = null
-			for (project in config.subConfig) try {
-				val alerts = mutableListOf<StatusItem>()
-				val call = service?.projects(project.name)
-				val response = call?.execute()
-				LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
-						" ${response?.code()} ${response?.message()}")
+		var error: String? = null
+		for (project in config.subConfig) try {
+			val alerts = mutableListOf<StatusItem>()
+			val call = service?.projects(project.name)
 
-				if (response?.isSuccessful == true) {
-					val projectId = response.body()?.find { it.name == project.name }?.id
-					if (projectId != null) {
-						val storiesResponse = service?.stories(projectId)?.execute()
-						if (storiesResponse?.isSuccessful == true) {
-							val stories = storiesResponse.body() ?: emptyList()
-							for (story in stories) if (story.id != null) {
-								alerts.add(story.toStatusItem(project))
-								val taskAlerts = service
-										?.tasks(story.id!!)
-										?.execute()
-										?.takeIf { it.isSuccessful }
-										?.body()
-										?.map { task -> task.toStatusItem(project, story) }
-										?: emptyList()
-								alerts.addAll(taskAlerts)
-							}
-						} else error = "Failed retrieving ${project.name} stories"
-					}
-					lastFound[project.name] = alerts
-				} else {
-					LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
-							" ${response?.code()} ${response?.message()}")
-					error = response
-							?.let {
-								"Code: ${response.code()} ${response.message() ?: "Failed retrieving ${project.name}"}"
-							}
-							?: "Failed retrieving ${project.name}"
+			checkForInterruptions()
+			val response = call?.execute()
+			checkForInterruptions()
+
+			LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+					" ${response?.code()} ${response?.message()}")
+
+			if (response?.isSuccessful == true) {
+				val projectId = response.body()?.find { it.name == project.name }?.id
+				if (projectId != null) {
+
+					checkForInterruptions()
+					val storiesResponse = service?.stories(projectId)?.execute()
+					checkForInterruptions()
+
+					if (storiesResponse?.isSuccessful == true) {
+						val stories = storiesResponse.body() ?: emptyList()
+						for (story in stories) if (story.id != null) {
+							alerts.add(story.toStatusItem(project))
+
+							checkForInterruptions()
+							val taskAlerts = service
+									?.tasks(story.id!!)
+									?.execute()
+									?.takeIf { it.isSuccessful }
+									?.body()
+									?.map { task -> task.toStatusItem(project, story) }
+									?: emptyList()
+							checkForInterruptions()
+
+							alerts.addAll(taskAlerts)
+						}
+					} else error = "Failed retrieving ${project.name} stories"
 				}
-
-				if (error != null) addErrorStatus(project, "Service error", Status.SERVICE_ERROR, error)
-			} catch (e: IOException) {
-				LOGGER.error(e.message)
-				error = e.message ?: "Connection error"
-				addErrorStatus(project, "Connection error", Status.CONNECTION_ERROR, e.message)
+				lastFound[project.name] = alerts
+			} else {
+				LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
+						" ${response?.code()} ${response?.message()}")
+				error = response
+						?.let {
+							"Code: ${response.code()} ${response.message()}"
+						}
+						?: "Failed retrieving ${project.name}"
 			}
-			lastErrorProperty.set(error)
-			updater(lastFound.values.flatten())
+
+			if (error != null) addErrorStatus(project, "Service error", Status.SERVICE_ERROR, error)
+		} catch (e: IOException) {
+			LOGGER.error(e.message)
+			error = e.message ?: "Connection error"
+			addErrorStatus(project, "Connection error", Status.CONNECTION_ERROR, e.message)
 		}
+		lastErrorProperty.set(error)
+		return lastFound.values.flatten()
 	}
 
 	private fun addErrorStatus(project: StoryboardProjectConfig,

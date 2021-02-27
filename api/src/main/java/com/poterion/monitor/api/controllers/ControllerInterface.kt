@@ -28,14 +28,11 @@ interface ControllerInterface {
 	val stage: Stage
 	val applicationConfiguration: ApplicationConfiguration
 	val modules: List<Module<*, *>>
-	val services: ObservableList<Service<ServiceConfig<out ServiceSubConfig>>>
+	val services: ObservableList<Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>>
 	val notifiers: ObservableList<Notifier<NotifierConfig>>
 
 	fun add(module: Module<*, *>): ModuleInstanceInterface<*>?
 	fun add(controller: ModuleInstanceInterface<*>): ModuleInstanceInterface<*>?
 	fun quit()
 	fun saveConfig()
-
-	@Deprecated("Use new config concept")
-	fun registerForConfigUpdates(listener: (ApplicationConfiguration) -> Unit)
 }

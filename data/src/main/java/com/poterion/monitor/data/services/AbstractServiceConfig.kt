@@ -46,7 +46,6 @@ abstract class AbstractServiceConfig<SC>(name: String = "",
 										 url: String = "",
 										 trustCertificate: Boolean = false,
 										 auth: AuthConfig? = null,
-										 order: Int = Int.MAX_VALUE,
 										 priority: Priority = Priority.NONE,
 										 checkInterval: Long? = null,
 										 connectTimeout: Long? = null,
@@ -54,13 +53,6 @@ abstract class AbstractServiceConfig<SC>(name: String = "",
 										 writeTimeout: Long? = null,
 										 tableColumnWidths: Map<String, Int> = emptyMap()) :
 		AbstractModuleConfig(name, enabled, tableColumnWidths), ServiceConfig<SC> {
-
-	final override var order: Int
-		get() = orderProperty.get()
-		set(value) = orderProperty.set(value)
-
-	final override val orderProperty: IntegerProperty = SimpleIntegerProperty(order)
-		@JsonIgnore get
 
 	final override var priority: Priority
 		get() = priorityProperty.get()

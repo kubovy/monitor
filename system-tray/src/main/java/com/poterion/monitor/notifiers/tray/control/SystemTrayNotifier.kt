@@ -17,44 +17,32 @@
 package com.poterion.monitor.notifiers.tray.control
 
 import com.poterion.monitor.api.CommonIcon
-import com.poterion.monitor.api.Props
+import com.poterion.monitor.api.Shared
 import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.ControllerInterface
 import com.poterion.monitor.api.controllers.ModuleInstanceInterface
 import com.poterion.monitor.api.controllers.Notifier
+import com.poterion.monitor.api.maxStatus
 import com.poterion.monitor.api.modules.Module
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.api.utils.toIcon
 import com.poterion.monitor.data.ModuleConfig
 import com.poterion.monitor.data.Priority
-import com.poterion.monitor.data.StatusItem
-import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.notifiers.tray.SystemTrayIcon
 import com.poterion.monitor.notifiers.tray.SystemTrayModule
 import com.poterion.monitor.notifiers.tray.data.SystemTrayConfig
 import com.poterion.monitor.ui.ConfigurationController
 import com.poterion.utils.javafx.Icon
-import com.poterion.utils.javafx.openInExternalApplication
 import com.poterion.utils.javafx.toImageView
-import dorkbox.systemTray.Checkbox
-import dorkbox.systemTray.Entry
-import dorkbox.systemTray.Menu
-import dorkbox.systemTray.MenuItem
-import dorkbox.systemTray.Separator
-import dorkbox.systemTray.SystemTray
+import com.poterion.utils.kotlin.noop
+import dorkbox.systemTray.*
 import javafx.application.Platform
-import javafx.geometry.Pos
-import javafx.scene.Node
+import javafx.collections.ListChangeListener
 import javafx.scene.control.Alert
-import javafx.scene.control.CheckBox
-import javafx.scene.control.Label
 import javafx.stage.Modality
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.IOException
-import java.net.URI
-import java.net.URISyntaxException
-import java.util.concurrent.TimeUnit
 import javax.imageio.ImageIO
 
 /**
@@ -67,22 +55,28 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 
 	override val definition: Module<SystemTrayConfig, ModuleInstanceInterface<SystemTrayConfig>> = SystemTrayModule
 	private var systemTray: SystemTray? = SystemTray.get()
-	private var serviceMenus = mutableMapOf<String, Menu>()
+	private var menus = mutableMapOf<String?, MutableMap<String, Entry?>>()
 	private var lastStatusIcon: Icon? = null
+
+	init {
+		SystemTray.FORCE_GTK2 = true
+		//SystemTray.PREFER_GTK3 = false
+		SystemTray.DEBUG = true
+	}
 
 	override fun initialize() {
 		super.initialize()
 		try {
 			LOGGER.info("Tray image size: ${systemTray?.trayImageSize}")
 			CommonIcon.APPLICATION.inputStream.use { ImageIO.read(it) }.also { systemTray?.setImage(it) }
-			systemTray?.status = "Monitor"
+			systemTray?.status = "Poterion Monitor" +
+					" ${controller.applicationConfiguration.version.takeIf { it != "0" }?.let { " (v${it})" } ?: ""}"
 			createMenu()
-			controller.registerForConfigUpdates { createMenu() }
 		} catch (e: IOException) {
 			LOGGER.error(e.message, e)
 		}
-		StatusCollector.status.sample(10, TimeUnit.SECONDS, true).subscribe {
-			Platform.runLater { update(it) }
+		config.enabledProperty.addListener { _, _, enabled ->
+			(if (enabled) lastStatusIcon else CommonIcon.APPLICATION)?.inputStream.use { systemTray?.setImage(it) }
 		}
 	}
 
@@ -92,85 +86,94 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 
 	override val exitRequest: Boolean = false
 
-	override val configurationRows: List<Pair<Node, Node>>
-		get() = super.configurationRows + listOf(
-				Label("Refresh").apply {
-					maxWidth = Double.MAX_VALUE
-					maxHeight = Double.MAX_VALUE
-					alignment = Pos.CENTER_RIGHT
-				} to CheckBox().apply {
-					maxHeight = Double.MAX_VALUE
-					selectedProperty().bindBidirectional(config.refreshProperty)
-					selectedProperty().addListener { _, _, _ -> controller.saveConfig() }
-				})
-
-	override fun execute(action: NotifierAction): Unit = when (action) {
-		NotifierAction.ENABLE -> {
-			config.enabled = true
-			lastStatusIcon?.inputStream.use { systemTray?.setImage(it) }
-			controller.saveConfig()
-		}
-		NotifierAction.DISABLE -> {
-			config.enabled = false
-			CommonIcon.APPLICATION.inputStream.use { systemTray?.setImage(it) }
-			controller.saveConfig()
-		}
-		NotifierAction.TOGGLE -> execute(if (config.enabled) NotifierAction.DISABLE else NotifierAction.ENABLE)
-		else -> LOGGER.debug("Executing action ${action}")
-	}
-
-	private fun update(collector: StatusCollector) {
-		collector.items
-				.filterNot { controller.applicationConfiguration.silencedMap.keys.contains(it.id) }
-				.map { it.serviceId }
-				.distinct()
-				.map { it to serviceMenus[it] }
-				.forEach { (serviceId, serviceMenu) ->
-					serviceMenu
-							?.also { it.updateSubMenu(collector.items.filter { item -> item.serviceId == serviceId }) }
-							?: LOGGER.error("Unknown service ${serviceId} - no menu for it")
-				}
-
-		lastStatusIcon = collector.maxStatus(controller.applicationConfiguration.silencedMap.keys, config.minPriority,
-				config.minStatus, config.services).toIcon()
+	override fun update() {
+		lastStatusIcon = StatusCollector.items.maxStatus(controller.applicationConfiguration.silencedMap.keys,
+				config.minPriority, config.minStatus, config.services).toIcon()
 		lastStatusIcon?.inputStream?.use { systemTray?.setImage(it) }
 	}
 
-	private fun createMenu() {
-		if (systemTray != null && (systemTray?.menu?.first == null || config.refresh)) try {
-			while (systemTray?.menu?.first != null) systemTray?.menu?.first?.also { systemTray?.menu?.remove(it) }
-			systemTray?.menu?.apply {
-				controller.services.sortedBy { it.config.order }.forEach { service ->
-					val menu = service.navigationRoot.toMenu(controller, service.config)
-					if (menu is Menu) {
-						serviceMenus[service.config.name] = menu
-						add(menu)
+	override fun shutdown() = noop()
+
+	private fun addMenu(menu: Menu, root: String?, index: Int, navigationItem: NavigationItem, config: ModuleConfig) {
+		val item = navigationItem.toMenu(config)
+		menus.getOrPut(root) { mutableMapOf() }[config.uuid] = item
+		if (index < 0) menu.add(item) else menu.add(item, index)
+	}
+
+	private fun updateMenu(menu: Menu, part: Int, change: ListChangeListener.Change<out ModuleInstanceInterface<ModuleConfig>>) {
+		while (change.next()) when {
+			change.wasRemoved() -> change.removed.forEach { module ->
+				menus[null]?.get(module.config.uuid)?.also { menu.remove(it) }
+				menus[null]?.remove(module.config.uuid)
+			}
+			change.wasAdded() -> change.addedSubList.forEach { module ->
+				module.navigationRoot?.also { navigationItem ->
+					var i = 0
+					(0 until part).forEach { _ ->
+						while (menu.get(i) !is Separator) i++
+						i++
 					}
+					while (menu.get(i) != menu.last
+							&& menu.get(i) !is Separator
+							&& module.config.name > (menu.get(i) as? MenuItem)?.text ?: "") i++
+					addMenu(menu, null, i, navigationItem, module.config)
 				}
-				if (controller.services.isNotEmpty()) add(Separator())
+			}
+		}
+	}
 
-				controller.notifiers.sortedBy { it.config.name }.forEach { notifier ->
-					add(notifier.navigationRoot.toMenu(controller, notifier.config))
-				}
-				if (controller.notifiers.isNotEmpty()) add(Separator())
+	private fun updateMenu(menu: Menu, change: ListChangeListener.Change<out NavigationItem>, moduleConfig: ModuleConfig) {
+		while (change.next()) when {
+			change.wasRemoved() -> change.removed.forEach { navigationItem ->
+				menus[moduleConfig.uuid]?.get(navigationItem.uuid)?.also { menu.remove(it) }
+				menus[moduleConfig.uuid]?.remove(navigationItem.uuid)
+			}
+			change.wasAdded() -> change.addedSubList.forEach { navigationItem ->
+				var i = 0
+				while (menu.get(i) != menu.last
+						&& menu.get(i) !is Separator
+						&& (navigationRoot.title ?: "") > (menu.get(i) as? MenuItem)?.text ?: "") i++
+				addMenu(menu, moduleConfig.uuid, i, navigationItem, moduleConfig)
+			}
+		}
+	}
 
-				//add(MenuItem().apply {
-				//	text = "Refresh"
-				//	shortcut = 'r'
-				//	SystemTrayIcon.REFRESH.inputStream.use { setImage(it) }
-				//	setCallback { Platform.runLater { controller.check(force = true) } }
-				//})
-				add(Separator())
+	private fun createMenu() {
+		if (systemTray != null && (systemTray?.menu?.first == null)) try {
+			systemTray?.menu?.also { menu ->
+				controller.services.sortedBy { it.config.name }
+						.forEach { service -> addMenu(menu, null, -1, service.navigationRoot, service.config) }
+				controller.services.addListener(ListChangeListener { change -> updateMenu(menu, 0, change) })
 
-				add(MenuItem().apply {
-					text = "Settings"
+				menu.add(Separator())
+
+				controller.notifiers.sortedBy { it.config.name }
+						.forEach { notifier -> addMenu(menu, null, -1, notifier.navigationRoot, notifier.config) }
+				controller.notifiers.addListener(ListChangeListener { change -> updateMenu(menu, 1, change) })
+
+				menu.add(Separator())
+				menu.add(Checkbox("Pause").apply {
+					shortcut = 'p'
+					checked = controller.applicationConfiguration.paused
+					controller.applicationConfiguration.pausedProperty.addListener { _, _, paused -> checked = paused }
+					setCallback { Platform.runLater { controller.applicationConfiguration.paused = checked } }
+				})
+				menu.add(MenuItem("Refresh").apply {
+					shortcut = 'r'
+					SystemTrayIcon.REFRESH.inputStream.use { setImage(it) }
+					setCallback {
+						Platform.runLater {
+							controller.services.filter { it.config.enabled }.forEach { it.refresh = true }
+						}
+					}
+				})
+				menu.add(Separator())
+				menu.add(MenuItem("Settings").apply {
 					shortcut = 's'
 					CommonIcon.SETTINGS.inputStream.use { setImage(it) }
 					setCallback { Platform.runLater { ConfigurationController.create(controller) } }
 				})
-
-				add(MenuItem().apply {
-					text = "About"
+				menu.add(MenuItem("About").apply {
 					shortcut = 'a'
 					SystemTrayIcon.ABOUT.inputStream.use { setImage(it) }
 					setCallback { _ ->
@@ -178,17 +181,17 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 							Alert(Alert.AlertType.INFORMATION).apply {
 								graphic = CommonIcon.APPLICATION.toImageView()
 								title = "About"
-								headerText = "${Props.APP_NAME}"
-								contentText = "Version: ${Props.VERSION}"
+								headerText = "Poterion Monitor"
+								contentText = "Version: ${Shared.properties.getProperty("version", "0")}\n" +
+										"Author: Jan Kubovy (jan@kubovy.eu)\n" +
+										"Icons: Icon8 (https://icons8.com)"
 								initModality(Modality.NONE)
 							}.showAndWait()
 						}
 					}
 				})
-				add(Separator())
-
-				add(MenuItem().apply {
-					text = "Quit"
+				menu.add(Separator())
+				menu.add(MenuItem("Quit").apply {
 					shortcut = 'q'
 					SystemTrayIcon.QUIT.inputStream.use { setImage(it) }
 					setCallback {
@@ -202,60 +205,31 @@ class SystemTrayNotifier(override val controller: ControllerInterface, config: S
 		}
 	}
 
-	private var menuItems: MutableMap<String, MenuItem> = mutableMapOf()
-
-	private fun Menu.updateSubMenu(statusItems: Collection<StatusItem>) {
-		var prioritised = true
-		statusItems
-				.sortedWith(compareByDescending(StatusItem::priority).thenBy(StatusItem::title))
-				.forEachIndexed { index, statusItem ->
-					val menuItem = menuItems[statusItem.id] ?: MenuItem().apply {
-						prioritised = separateNonePriorityItems(index, statusItem.priority, prioritised)
-						text = statusItem.title
-						setCallback { _ ->
-							statusItem.link
-									?.let {
-										try {
-											URI(it)
-										} catch (e: URISyntaxException) {
-											LOGGER.warn(e.message, e)
-											null
-										}
-									}
-									?.openInExternalApplication()
-						}
-						//menuEntries[this@updateSubMenu]?.add(this)
-						menuItems[statusItem.id] = this
-						this@updateSubMenu.add(this)
-					}
-					if (statusItem.priority == Priority.NONE) prioritised = false
-					statusItem.status.toIcon().inputStream.use { menuItem.setImage(it) }
-				}
-
-		val icon = statusItems
-				.filter { it.priority > Priority.NONE }
-				.maxBy { it.status }
-				?.status
-				?.toIcon() ?: CommonIcon.STATUS_OK
-		icon.inputStream.use { setImage(it) }
-	}
-
-	private fun NavigationItem.toMenu(controller: ControllerInterface, moduleConfig: ModuleConfig): Entry? {
+	private fun NavigationItem.toMenu(moduleConfig: ModuleConfig): Entry? {
 		return if (title != null && sub != null) { // Menu
 			Menu(title).also { menu ->
+				titleProperty.addListener { _, _, value -> menu.text = value }
 				icon?.also { icon -> icon.inputStream.use { menu.setImage(it) } }
-				sub?.forEach { subItem -> menu.add(subItem.toMenu(controller, moduleConfig)) }
+				sub?.forEach { subItem -> addMenu(menu, moduleConfig.uuid, -1, subItem, moduleConfig) }
+				sub?.addListener(ListChangeListener { change -> updateMenu(menu, change, moduleConfig) })
 			}
 		} else if (title != null && sub == null && !isCheckable) { // Menu Item
 			MenuItem(title) { Platform.runLater { action?.invoke() } }.also { menuItem ->
+				titleProperty.addListener { _, _, value -> menuItem.text = value }
 				icon?.also { icon -> icon.inputStream.use { menuItem.setImage(it) } }
 				menuItem.enabled = enabled
 			}
 		} else if (title != null && sub == null && isCheckable) { // Checkbox
 			Checkbox(title).also { checkbox ->
+				titleProperty.addListener { _, _, value -> checkbox.text = value }
 				checkbox.enabled = enabled
 				checkbox.checked = checked ?: false
-				checkbox.setCallback { Platform.runLater { action?.invoke() } }
+				checkbox.setCallback {
+					Platform.runLater {
+						checked = checkbox.checked
+						action?.invoke()
+					}
+				}
 			}
 		} else if (title == null) { // Separator
 			Separator()

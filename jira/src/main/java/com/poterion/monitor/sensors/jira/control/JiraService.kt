@@ -28,12 +28,7 @@ import com.poterion.monitor.data.Priority
 import com.poterion.monitor.data.Status
 import com.poterion.monitor.data.StatusItem
 import com.poterion.monitor.sensors.jira.JiraModule
-import com.poterion.monitor.sensors.jira.data.JiraConfig
-import com.poterion.monitor.sensors.jira.data.JiraErrorResponse
-import com.poterion.monitor.sensors.jira.data.JiraIssue
-import com.poterion.monitor.sensors.jira.data.JiraIssueFieldProgress
-import com.poterion.monitor.sensors.jira.data.JiraQueryConfig
-import com.poterion.monitor.sensors.jira.data.JiraSearchRequestBody
+import com.poterion.monitor.sensors.jira.data.*
 import com.poterion.utils.javafx.openInExternalApplication
 import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.toUriOrNull
@@ -43,6 +38,7 @@ import javafx.scene.control.Button
 import javafx.scene.layout.Region
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.IOException
 import java.net.URLEncoder
 import java.time.Instant
 import java.time.format.DateTimeFormatterBuilder
@@ -54,7 +50,8 @@ import kotlin.math.round
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class JiraService(override val controller: ControllerInterface, config: JiraConfig) : Service<JiraConfig>(config) {
+class JiraService(override val controller: ControllerInterface, config: JiraConfig) :
+		Service<JiraQueryConfig, JiraConfig>(config) {
 
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(JiraService::class.java)
@@ -88,12 +85,7 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 							isEditable = true)),
 			comparator = compareBy { it.name },
 			actions = listOf { item ->
-				item.let { URLEncoder.encode("${it.jql} ORDER BY updated DESC", Charsets.UTF_8.name()) }
-						.let { "/issues/?jql=${it}" }
-						.let { path -> config.url.toUriOrNull()?.resolve(path) }
-						?.let { uri -> Button("", CommonIcon.LINK.toImageView()) to uri }
-						?.also { (btn, uri) -> btn.setOnAction { uri.openInExternalApplication() } }
-						?.first
+				Button("", CommonIcon.LINK.toImageView()).apply { setOnAction { gotoSubConfig(item) } }
 			},
 			fieldSizes = arrayOf(150.0))
 
@@ -144,66 +136,74 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOf(queryTableSettingsPlugin.vbox)
 
+	override fun gotoSubConfig(subConfig: JiraQueryConfig) {
+		subConfig.let { URLEncoder.encode("${it.jql} ORDER BY updated DESC", Charsets.UTF_8.name()) }
+				.let { "/issues/?jql=${it}" }
+				.let { path -> config.url.toUriOrNull()?.resolve(path) }
+				?.openInExternalApplication()
+	}
 
-	override fun check(updater: (Collection<StatusItem>) -> Unit) {
-		if (config.enabled && config.url.isNotBlank()) {
-			val alerts = cache.map { (k, v) -> k to v }.toMap().toMutableMap()
-			var error: String? = null
-			for (query in config.subConfig) {
-				var count = 0
-				var total = 1
-				var offset = 0
-				val limit = 100
-				while (count < min(1000, total) && error == null && config.enabled) try {
+	override fun doCheck(): List<StatusItem> {
+		val alerts = cache.map { (k, v) -> k to v }.toMap().toMutableMap()
+		var error: String? = null
+		for (query in config.subConfig) {
+			var count = 0
+			var total = 1
+			var offset = 0
+			val limit = 100
+			while (count < min(1000, total) && error == null && config.enabled) try {
 
-					val jql = lastUpdate
-							?.let { Instant.now().toEpochMilli() - it }
-							?.let { ceil(it.toDouble() / 1000.0 / 60.0).toInt() }
-							?.let { "${query.jql} AND updated >= '-${it}m' ORDER BY updated DESC" }
-							?: "${query.jql} ORDER BY updated DESC"
-					val call = service?.search(JiraSearchRequestBody(jql = jql, startAt = offset, maxResults = limit))
-					val response = call?.execute()
-					LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+				val jql = lastUpdate
+						?.let { Instant.now().toEpochMilli() - it }
+						?.let { ceil(it.toDouble() / 1000.0 / 60.0).toInt() }
+						?.let { "${query.jql} AND updated >= '-${it}m' ORDER BY updated DESC" }
+						?: "${query.jql} ORDER BY updated DESC"
+				val call = service?.search(JiraSearchRequestBody(jql = jql, startAt = offset, maxResults = limit))
+
+				checkForInterruptions()
+				val response = call?.execute()
+				checkForInterruptions()
+
+				LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
+						" ${response?.code()} ${response?.message()}")
+
+				if (response?.isSuccessful == true) {
+					val body = response.body()
+					total = body?.total ?: 0
+					offset += limit
+
+					val issues = (body?.issues ?: emptyList())
+							.mapNotNull { it.key?.let { key -> key to it.toStatusItem(query) } }
+							.toMap()
+					cache.putAll(issues)
+					alerts.putAll(issues)
+					count += issues.size
+				} else try {
+					LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
 							" ${response?.code()} ${response?.message()}")
-
-					if (response?.isSuccessful == true) {
-						val body = response.body()
-						total = body?.total ?: 0
-						offset += limit
-
-						val issues = (body?.issues ?: emptyList())
-								.mapNotNull { it.key?.let { key -> key to it.toStatusItem(query) } }
-								.toMap()
-						cache.putAll(issues)
-						alerts.putAll(issues)
-						count += issues.size
-					} else try {
-						LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
-								" ${response?.code()} ${response?.message()}")
-						error = http
-								?.objectMapper
-								?.readValue(response?.errorBody()?.string(), JiraErrorResponse::class.java)
-								?.errorMessages
-								?.firstOrNull()
-								?: response?.let {
-									"Code: ${it.code()} ${it.message() ?: "Failed retrieving ${query.name} query"}"
-								} ?: "Failed retrieving ${query.name} query"
-					} catch (e: Throwable) {
-						error = "Failed retrieving ${query.name} query"
-					}
-
-					if (error != null) alerts.addErrorStatus(query, "Service error", Status.SERVICE_ERROR, error)
-				} catch (e: Exception) {
-					LOGGER.error("${config.url} with ${query.jql}: ${e.message}")
-					error = e.message ?: "Connection error"
-					alerts.addErrorStatus(query, "Connection error", Status.CONNECTION_ERROR, e.message)
-					count = total
+					error = http
+							?.objectMapper
+							?.readValue(response?.errorBody()?.string(), JiraErrorResponse::class.java)
+							?.errorMessages
+							?.firstOrNull()
+							?: response?.let {
+								"Code: ${it.code()} ${it.message()}"
+							} ?: "Failed retrieving ${query.name} query"
+				} catch (e: Throwable) {
+					error = "Failed retrieving ${query.name} query"
 				}
+
+				if (error != null) alerts.addErrorStatus(query, "Service error", Status.SERVICE_ERROR, error)
+			} catch (e: IOException) {
+				LOGGER.error("${config.url} with ${query.jql}: ${e.message}")
+				error = e.message ?: "Connection error"
+				alerts.addErrorStatus(query, "Connection error", Status.CONNECTION_ERROR, e.message)
+				count = total
 			}
-			lastErrorProperty.set(error)
-			lastUpdate = Instant.now().toEpochMilli()
-			updater(alerts.values)
 		}
+		lastErrorProperty.set(error)
+		lastUpdate = Instant.now().toEpochMilli()
+		return alerts.values.toList()
 	}
 
 	private fun MutableMap<String, StatusItem>.addErrorStatus(query: JiraQueryConfig,
@@ -228,10 +228,10 @@ class JiraService(override val controller: ControllerInterface, config: JiraConf
 
 	private val JiraIssue.status: Status
 		get() = fields?.status
-				?.let { listOf(it.name) + it.statusCategory.let { c -> listOf(c?.key, c?.name, c?.colorName) } }
-				?.filterNotNull()
-				?.mapNotNull { config.statusMapping[it] }
-				?.maxBy { it.ordinal }
+			?.let { listOf(it.name) + it.statusCategory.let { c -> listOf(c?.key, c?.name, c?.colorName) } }
+			?.filterNotNull()
+			?.mapNotNull { config.statusMapping[it] }
+			?.maxByOrNull { it.ordinal }
 				?: fields?.issuetype?.name?.let { config.statusMapping[it] }
 				?: Status.UNKNOWN
 

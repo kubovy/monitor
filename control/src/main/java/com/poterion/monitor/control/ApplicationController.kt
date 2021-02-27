@@ -30,7 +30,6 @@ import com.poterion.monitor.api.save
 import com.poterion.monitor.api.workers.UpdateChecker
 import com.poterion.monitor.data.ModuleDeserializer
 import com.poterion.monitor.data.data.ApplicationConfiguration
-import com.poterion.monitor.data.notifiers.NotifierAction
 import com.poterion.monitor.data.notifiers.NotifierConfig
 import com.poterion.monitor.data.notifiers.NotifierDeserializer
 import com.poterion.monitor.data.services.ServiceConfig
@@ -64,16 +63,13 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 	override val modules = mutableListOf<Module<*, *>>()
 
 	// TODO Make read-only and react on applicationConfiguration.services/notifiers changes
-	override val services: ObservableList<Service<ServiceConfig<out ServiceSubConfig>>> = FXCollections
+	override val services: ObservableList<Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>> = FXCollections
 			.observableArrayList()
 	override val notifiers: ObservableList<Notifier<NotifierConfig>> = FXCollections.observableArrayList()
 
 	override var applicationConfiguration: ApplicationConfiguration = ApplicationConfiguration()
 		private set
 	private val configuration: BehaviorSubject<Boolean> = BehaviorSubject.create()
-
-	@Deprecated("Use properties in config")
-	private val configListeners = mutableListOf<(ApplicationConfiguration) -> Unit>()
 
 	init {
 		LOGGER.info("Initializing with ${Shared.configFile.absolutePath} config file")
@@ -104,7 +100,7 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 		modules.add(module)
 		ModuleDeserializer.register(module.configClass)
 		when (module) {
-			is ServiceModule<*, *> -> ServiceDeserializer.register(module.configClass)
+			is ServiceModule<*, ServiceConfig<out ServiceSubConfig>, *> -> ServiceDeserializer.register(module.configClass)
 			is NotifierModule<*, *> -> NotifierDeserializer.register(module.configClass)
 		}
 	}
@@ -116,15 +112,15 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 			LOGGER.info("Loading ${module.title} module...")
 			module.loadControllers(this, applicationConfiguration).forEach { ctrl ->
 				when (ctrl) {
-					is Service<*> -> services.add(ctrl as Service<ServiceConfig<out ServiceSubConfig>>)
-					is Notifier<*> -> notifiers.add(ctrl as Notifier<NotifierConfig>)
+					is Service<*, *> -> services.add(ctrl as Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>)
+					is Notifier<NotifierConfig> -> notifiers.add(ctrl)
 				}
 			}
 		}
 
 		(services + notifiers).forEach { it.initialize() }
 
-		ControllerWorker.start(services)
+		ControllerWorker.start(applicationConfiguration, services)
 
 		stage.setOnCloseRequest { if (notifiers.map { it.exitRequest }.reduce { acc, b -> acc && b }) quit() }
 
@@ -147,7 +143,6 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 		}
 
 		configuration.sample(1, TimeUnit.SECONDS, true).subscribe {
-			configListeners.forEach { it.invoke(applicationConfiguration) }
 			applicationConfiguration.save()
 		}
 
@@ -171,13 +166,13 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 
 	override fun add(controller: ModuleInstanceInterface<*>): ModuleInstanceInterface<*>? {
 		when (controller) {
-			is Service<*> -> {
+			is Service<*, ServiceConfig<out ServiceSubConfig>> -> {
 				applicationConfiguration.serviceMap[controller.config.uuid] = controller.config
-				services.add(controller as Service<ServiceConfig<out ServiceSubConfig>>)
+				services.add(controller as Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>)
 			}
-			is Notifier<*> -> {
+			is Notifier<NotifierConfig> -> {
 				applicationConfiguration.notifierMap[controller.config.uuid] = controller.config
-				notifiers.add(controller as Notifier<NotifierConfig>)
+				notifiers.add(controller)
 			}
 			else -> return null
 		}
@@ -188,13 +183,9 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 
 	override fun quit() {
 		ControllerWorker.stop()
-		notifiers.forEach { it.execute(NotifierAction.SHUTDOWN) }
+		notifiers.forEach { it.shutdown() }
 		saveConfig()
 		exitProcess(0) // not necessary if all non-daemon threads have stopped.
-	}
-
-	override fun registerForConfigUpdates(listener: (ApplicationConfiguration) -> Unit) {
-		configListeners.add(listener)
 	}
 
 	override fun saveConfig() {

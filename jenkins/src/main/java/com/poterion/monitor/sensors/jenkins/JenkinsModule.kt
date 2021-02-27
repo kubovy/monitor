@@ -23,10 +23,11 @@ import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.jenkins.control.JenkinsService
 import com.poterion.monitor.sensors.jenkins.data.JenkinsConfig
+import com.poterion.monitor.sensors.jenkins.data.JenkinsJobConfig
 import com.poterion.utils.javafx.Icon
 import kotlin.reflect.KClass
 
-object JenkinsModule : ServiceModule<JenkinsConfig, JenkinsService> {
+object JenkinsModule : ServiceModule<JenkinsJobConfig, JenkinsConfig, JenkinsService> {
 	override val configClass: KClass<JenkinsConfig> = JenkinsConfig::class
 
 	override val title: String

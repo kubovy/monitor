@@ -82,13 +82,13 @@ class DeploymentTask(configuration: Configuration,
 	private val service = retrofit?.create(JenkinsRestService::class.java)
 
 	private fun getPreviousCompletedBuildNumber() = service
-			?.buildStatus(jobName)
-			?.execute()
-			?.body()
-			?.elements()
-			?.asSequence()
-			?.map { it.get("id").asInt(0) to it.get("state").asText() }
-			?.maxBy { (buildNumber, _) -> buildNumber }
+		?.buildStatus(jobName)
+		?.execute()
+		?.body()
+		?.elements()
+		?.asSequence()
+		?.map { it.get("id").asInt(0) to it.get("state").asText() }
+		?.maxByOrNull { (buildNumber, _) -> buildNumber }
 			?.let { (buildNumber, state) -> if (state == "in_progress") IN_PROGRESS else buildNumber }
 			?: NOT_RUN_YET
 
@@ -97,9 +97,9 @@ class DeploymentTask(configuration: Configuration,
 			val response = service?.buildStatus(jobName)?.execute()
 			val body = response?.body()
 			val lastBuildNumber = body?.elements()
-					?.asSequence()
-					?.map { it.get("id").asInt(0) }
-					?.max()
+				?.asSequence()
+				?.map { it.get("id").asInt(0) }
+				?.maxOrNull()
 			LOGGER.info("Last build number: ${lastBuildNumber}, previous build number: ${previousBuildNumber}")
 			if (lastBuildNumber != previousBuildNumber) {
 				triggerUpdate("in_progress")

@@ -18,7 +18,7 @@
     </appender>
 
     <logger name="com.poterion">
-        <level value="DEBUG"/>
+        <level value="WARN"/>
         <appender-ref ref="console"/>
         <appender-ref ref="file"/>
     </logger>

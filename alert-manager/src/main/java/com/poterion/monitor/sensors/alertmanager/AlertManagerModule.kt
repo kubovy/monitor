@@ -23,10 +23,11 @@ import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.nextUUID
 import com.poterion.monitor.sensors.alertmanager.control.AlertManagerService
 import com.poterion.monitor.sensors.alertmanager.data.AlertManagerConfig
+import com.poterion.monitor.sensors.alertmanager.data.AlertManagerLabelConfig
 import com.poterion.utils.javafx.Icon
 import kotlin.reflect.KClass
 
-object AlertManagerModule : ServiceModule<AlertManagerConfig, AlertManagerService> {
+object AlertManagerModule : ServiceModule<AlertManagerLabelConfig, AlertManagerConfig, AlertManagerService> {
 	override val configClass: KClass<AlertManagerConfig> = AlertManagerConfig::class
 
 	override val title: String

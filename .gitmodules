@@ -7,3 +7,6 @@
 [submodule "javafx-utils"]
 	path = javafx-utils
 	url = https://github.com/kubovy/javafx-utils.git
+[submodule "system-tray-dorkbox"]
+	path = system-tray-dorkbox
+	url = https://github.com/dorkbox/SystemTray.git

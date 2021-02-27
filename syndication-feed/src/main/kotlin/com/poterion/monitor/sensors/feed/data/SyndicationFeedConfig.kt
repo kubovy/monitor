@@ -57,7 +57,6 @@ class SyndicationFeedConfig(override var type: String = SyndicationFeedConfig::c
 							url: String = "",
 							trustCertificate: Boolean = false,
 							auth: AuthConfig? = null,
-							order: Int = Int.MAX_VALUE,
 							priority: Priority = Priority.NONE,
 							checkInterval: Long? = null,
 							connectTimeout: Long? = null,
@@ -66,7 +65,7 @@ class SyndicationFeedConfig(override var type: String = SyndicationFeedConfig::c
 							tableColumnWidths: Map<String, Int> = emptyMap(),
 							status: Status = Status.NONE,
 							filters: List<SyndicationFeedFilterConfig> = emptyList()) :
-		AbstractServiceConfig<SyndicationFeedFilterConfig>(name, enabled, url, trustCertificate, auth, order, priority,
+		AbstractServiceConfig<SyndicationFeedFilterConfig>(name, enabled, url, trustCertificate, auth, priority,
 				checkInterval, connectTimeout, readTimeout, writeTimeout, tableColumnWidths) {
 
 	/**

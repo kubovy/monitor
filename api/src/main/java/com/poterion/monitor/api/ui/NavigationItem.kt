@@ -36,7 +36,8 @@ import javafx.collections.ObservableList
  * @param sub Sub menu, `null` means no submenu. If item has not submenu but may have this should be [emptyList]
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class NavigationItem(title: String? = null,
+class NavigationItem(val uuid: String? = null,
+					 title: String? = null,
 					 titleProperty: StringProperty? = null,
 					 icon: Icon? = null,
 					 iconProperty: ObjectProperty<Icon?>? = null,

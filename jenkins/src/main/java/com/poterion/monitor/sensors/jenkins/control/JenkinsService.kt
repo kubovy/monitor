@@ -43,7 +43,8 @@ import java.io.IOException
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class JenkinsService(override val controller: ControllerInterface, config: JenkinsConfig) : Service<JenkinsConfig>(config) {
+class JenkinsService(override val controller: ControllerInterface, config: JenkinsConfig) :
+		Service<JenkinsJobConfig, JenkinsConfig>(config) {
 	companion object {
 		val LOGGER: Logger = LoggerFactory.getLogger(JenkinsService::class.java)
 	}
@@ -75,15 +76,11 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 							isEditable = true,
 							icon = { toIcon() },
 							options = Priority.values().toObservableList())),
-			comparator = compareBy({ -it.priority.ordinal }, { it.name })//,
-			//actions = listOf { item ->
-			//	item.let { URLEncoder.encode(it.name, Charsets.UTF_8.name()) }
-			//			.let { "/...TODO.../${it}" }
-			//			.let { path -> config.url.toUriOrNull()?.resolve(path) }
-			//			?.let { uri -> Button("", com.poterion.monitor.api.CommonIcon.LINK.toImageView()) to uri }
-			//			?.also { (btn, uri) -> btn.setOnAction { Desktop.getDesktop().browse(uri) } }
-			//			?.first
-			//}
+			comparator = compareBy({ -it.priority.ordinal }, { it.name }),
+			actions = listOfNotNull { _ ->
+				//Button("", CommonIcon.LINK.toImageView()).apply { setOnAction { gotoSubConfig(item) } }
+				null
+			}
 	)
 
 	override val configurationRows: List<Pair<Node, Node>>
@@ -99,13 +96,23 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 	override val configurationAddition: List<Parent>
 		get() = super.configurationAddition + listOf(jobTableSettingsPlugin.vbox)
 
-	override fun check(updater: (Collection<StatusItem>) -> Unit) {
+	override fun gotoSubConfig(subConfig: JenkinsJobConfig) {
+		//subConfig.let { URLEncoder.encode(it.name, Charsets.UTF_8.name()) }
+		//		.let { "/...TODO.../${it}" }
+		//		.let { path -> config.url.toUriOrNull()?.resolve(path) }
+		//		?.openInExternalApplication()
+	}
+
+	override fun doCheck(): List<StatusItem> {
 		var error: String? = null
-		if (config.enabled && config.url.isNotBlank()) try {
+		try {
 			val call = service?.check()
 			val response = call?.execute()
+			checkForInterruptions()
+
 			LOGGER.info("${call?.request()?.method()} ${call?.request()?.url()}:" +
 					" ${response?.code()} ${response?.message()}")
+
 			if (response?.isSuccessful == true) {
 				val foundJobs = response.body()
 						?.jobs
@@ -113,7 +120,7 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 
 				lastFoundJobNames = foundJobs?.map { it.name } ?: jobs.keys
 
-				foundJobs
+				return foundJobs
 						?.map {
 							StatusItem(
 									id = "${config.uuid}-${it.name}",
@@ -125,28 +132,27 @@ class JenkinsService(override val controller: ControllerInterface, config: Jenki
 									link = it.url,
 									isRepeatable = false)
 						}
-						?.also(updater)
+						?: emptyList()
 			} else {
 				LOGGER.warn("${call?.request()?.method()} ${call?.request()?.url()}:" +
 						" ${response?.code()} ${response?.message()}")
-				error = response?.let { "Code: ${it.code()} ${it.message() ?: "Service error"}" } ?: "Service error"
-				lastFoundJobNames
+				error = response?.let { "Code: ${it.code()} ${it.message()}" } ?: "Service error"
+				return lastFoundJobNames
 						.mapNotNull { jobs[it] }
 						.map { jobConfig ->
 							jobConfig.toStatusItem(Status.SERVICE_ERROR,
 									response?.let { "Code: ${it.code()} ${it.message()}" })
 						}
-						.also(updater)
 			}
 		} catch (e: IOException) {
 			LOGGER.error(e.message)
 			error = e.message ?: "Connection error"
-			lastFoundJobNames
+			return lastFoundJobNames
 					.mapNotNull { jobs[it] }
 					.map { it.toStatusItem(Status.CONNECTION_ERROR, e.message) }
-					.also(updater)
+		} finally {
+			lastErrorProperty.set(error)
 		}
-		lastErrorProperty.set(error)
 	}
 
 	private val JenkinsJobResponse.severity

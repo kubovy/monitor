@@ -33,6 +33,9 @@ enum class CommonIcon : Icon {
 	SETTINGS,
 	UNDER_CONSTRUCTION,
 
+	PLAY,
+	PAUSE,
+
 	ACTIVE,
 	INACTIVE,
 	UNAVAILABLE,

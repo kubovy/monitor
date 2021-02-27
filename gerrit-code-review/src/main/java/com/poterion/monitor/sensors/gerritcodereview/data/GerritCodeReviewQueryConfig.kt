@@ -24,6 +24,7 @@ import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.property.SimpleStringProperty
 import javafx.beans.property.StringProperty
+import java.util.*
 
 /**
  * Gerrit code review query to [Priority],[Status] mapping configuration item.
@@ -34,7 +35,8 @@ import javafx.beans.property.StringProperty
  * @param status [Status]
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class GerritCodeReviewQueryConfig(name: String = "",
+class GerritCodeReviewQueryConfig(override val uuid: String = UUID.randomUUID().toString(),
+								  name: String = "",
 								  query: String = "",
 								  priority: Priority = Priority.NONE,
 								  status: Status = Status.NONE) : ServiceSubConfig {

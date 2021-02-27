@@ -27,12 +27,7 @@ import com.poterion.monitor.data.services.ServiceSubConfig
 import com.poterion.monitor.notifiers.tabs.NotificationTabsIcon
 import com.poterion.monitor.notifiers.tabs.control.NotificationTabsNotifier
 import com.poterion.monitor.notifiers.tabs.data.NotificationTabsConfig
-import com.poterion.utils.javafx.cell
-import com.poterion.utils.javafx.factory
-import com.poterion.utils.javafx.monitorExpansion
-import com.poterion.utils.javafx.openInExternalApplication
-import com.poterion.utils.javafx.setOnItemClick
-import com.poterion.utils.javafx.toImageView
+import com.poterion.utils.javafx.*
 import com.poterion.utils.kotlin.containsExactly
 import com.poterion.utils.kotlin.noop
 import com.poterion.utils.kotlin.toUriOrNull
@@ -43,17 +38,7 @@ import javafx.collections.ListChangeListener
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
-import javafx.scene.control.Button
-import javafx.scene.control.CheckBox
-import javafx.scene.control.ComboBox
-import javafx.scene.control.ContextMenu
-import javafx.scene.control.Label
-import javafx.scene.control.MenuItem
-import javafx.scene.control.SelectionMode
-import javafx.scene.control.Tooltip
-import javafx.scene.control.TreeItem
-import javafx.scene.control.TreeTableColumn
-import javafx.scene.control.TreeTableView
+import javafx.scene.control.*
 import javafx.scene.input.KeyCode
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Region
@@ -151,6 +136,8 @@ class TabController {
 		}
 	}
 
+	private var cleared = false
+
 	@FXML
 	fun initialize() {
 		buttonRefresh.graphic = CommonIcon.REFRESH.toImageView()
@@ -239,9 +226,7 @@ class TabController {
 		columnAlertsTitle.widthProperty().addListener { _, _, _ -> controller.saveConfig() }
 
 		columnAlertsService.prefWidthProperty().bindBidirectional(config.alertServiceWidthProperty)
-		columnAlertsService.widthProperty().addListener { _, _, value ->
-			controller.saveConfig()
-		}
+		columnAlertsService.widthProperty().addListener { _, _, _ -> controller.saveConfig() }
 
 		columnAlertsConfig.prefWidthProperty().bindBidirectional(config.alertConfigWidthProperty)
 		columnAlertsConfig.widthProperty().addListener { _, _, _ -> controller.saveConfig() }
@@ -413,7 +398,7 @@ class TabController {
 						}
 						if (count <= 0) Platform.runLater {
 							buttonRefresh.isDisable = false
-							buttonRefresh.text = "Refresh"
+							buttonRefresh.text = "Refresh Tab"
 						}
 					}
 				})
@@ -422,8 +407,16 @@ class TabController {
 		}
 	}
 
+	fun clear() {
+		treeTableAlerts.selectionModel.clearSelection()
+		treeTableAlerts.root.children.clear()
+		treeTableAlerts.refresh()
+		cleared = true
+	}
+
 	fun update(statusItems: Collection<StatusItem>) {
-		var changed = false
+		var changed = cleared
+		cleared = false
 		for ((parentId, children) in statusItems.groupBy { it.parentId }.entries) {
 			if (statusItemCache.containsKey(parentId)) {
 				for (child in children) {
