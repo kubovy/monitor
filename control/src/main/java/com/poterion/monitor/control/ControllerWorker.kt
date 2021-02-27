@@ -16,9 +16,7 @@
  ******************************************************************************/
 package com.poterion.monitor.control
 
-import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.controllers.Service
-import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.data.services.ServiceSubConfig
@@ -65,21 +63,20 @@ class ControllerWorker private constructor(
 		while (running) try {
 			val parallelism = max(3, Runtime.getRuntime().availableProcessors() / 2)
 			if (!config.paused) services.filter { it.shouldRun }
-					.parallelStreamIntermediate(parallelism) { service ->
-						if (!config.paused && service.config.enabled) try {
-							service.check {
-								StatusCollector.update(it,
-										(service.definition as? ServiceModule<*, *, *>)?.staticNotificationSet != false)
-							}
-						} catch (t: Throwable) {
-							LOGGER.error(t.message, t)
-						} finally {
-							serviceLastChecked[service.config.uuid] = System.currentTimeMillis()
-						}
+				.parallelStreamIntermediate(parallelism) { service ->
+					try {
+						service.check()
+					} catch (t: Throwable) {
+						LOGGER.error(t.message, t)
+					} finally {
+						serviceLastChecked[service.config.uuid] = System.currentTimeMillis()
 					}
+				}
 			Thread.sleep(1_000L)
 		} catch (e: InterruptedException) {
 			running = false
+		} catch (e: Exception) {
+			LOGGER.error(e.message, e)
 		}
 		return !running
 	}

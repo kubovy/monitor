@@ -16,7 +16,9 @@
  ******************************************************************************/
 package com.poterion.monitor.api.controllers
 
+import com.poterion.monitor.api.StatusCollector
 import com.poterion.monitor.api.maxStatus
+import com.poterion.monitor.api.modules.ServiceModule
 import com.poterion.monitor.api.ui.NavigationItem
 import com.poterion.monitor.api.utils.toIcon
 import com.poterion.monitor.data.Status
@@ -79,8 +81,11 @@ abstract class Service<SC : ServiceSubConfig, out Config : ServiceConfig<out SC>
 
 	val lastErrorProperty = SimpleStringProperty(null)
 
+	private var isRunning = false
+
 	val shouldRun: Boolean
 		get() = !controller.applicationConfiguration.paused
+				&& !isRunning
 				&& config.enabled
 				&& config.url.isNotBlank()
 				&& (refresh
@@ -102,29 +107,37 @@ abstract class Service<SC : ServiceSubConfig, out Config : ServiceConfig<out SC>
 	}
 
 	fun addToNavigation(subConfig: SC) {
-		navigationRoot.sub?.add(NavigationItem(
+		navigationRoot.sub?.add(
+			NavigationItem(
 				uuid = subConfig.uuid,
 				title = subConfig.configTitle,
-				action = { gotoSubConfig(subConfig) }))
+				action = { gotoSubConfig(subConfig) })
+		)
 	}
 
 	abstract fun gotoSubConfig(subConfig: SC)
 
-	/**
-	 * Check implementation.
-	 *
-	 * @param updater Status updater callback
-	 */
-	fun check(updater: (Collection<StatusItem>) -> Unit) {
+	/** Check implementation. */
+	fun check() {
 		interruptReason = null
 
 		if (shouldRun) try {
 			refresh = true
+			isRunning = true
 			val statusItems = doCheck()
 			checkForInterruptions()
-			statusProperty.set(statusItems.maxStatus(controller.applicationConfiguration.silencedMap.keys,
-					config.priority, Status.NONE))
-			updater(statusItems)
+			statusProperty.set(
+				statusItems.maxStatus(
+					controller.applicationConfiguration.silencedMap.keys,
+					config.priority, Status.NONE
+				)
+			)
+
+			StatusCollector.update(
+				statusItems,
+				(definition as? ServiceModule<*, *, *>)?.staticNotificationSet != false
+			)
+
 			lastChecked = System.currentTimeMillis()
 		} catch (e: InterruptedException) {
 			statusProperty.set(Status.NONE)
@@ -134,6 +147,7 @@ abstract class Service<SC : ServiceSubConfig, out Config : ServiceConfig<out SC>
 			LOGGER.error(e.message, e)
 		} finally {
 			refresh = false
+			isRunning = false
 		} else {
 			statusProperty.set(Status.NONE)
 			refresh = false
