@@ -52,20 +52,19 @@ class TableSettingsPlugin<S>(private val tableName: String,
 							 private val onSave: () -> Unit = {},
 							 private val fieldSizes: Array<Double> = emptyArray()) {
 
-	data class ColumnDefinition<S, T>(val name: String,
-									  val shortName: String? = null,
-									  val property: S.() -> WritableValue<T>? = { null },
-									  var getter: S.() -> T? = { property()?.value },
-									  var setter: S.(T) -> Unit = { property()?.value = it },
-									  val mutator: S.(T) -> S = {
-										  setter(it)
-										  this
-									  },
-									  val initialValue: T,
-									  val isEditable: Boolean = false,
-									  val title: T.() -> String = { toString() },
-									  val options: ObservableList<T>? = null,
-									  val icon: T.() -> Icon? = { null })
+	data class ColumnDefinition<S, T>(
+		val name: String,
+		val shortName: String? = null,
+		val property: S.() -> WritableValue<T>? = { null },
+		var getter: S.() -> T? = { property()?.value },
+		var setter: S.(T) -> Unit = { property()?.value = it },
+		val mutator: S.(T) -> S = { apply { setter(it) } },
+		val initialValue: T,
+		val isEditable: Boolean = false,
+		val title: T.() -> String = { toString() },
+		val options: ObservableList<T>? = null,
+		val icon: T.() -> Icon? = { null }
+	)
 
 	private var newItem: S = createItem()
 	private val changeListener: MutableCollection<() -> Unit> = mutableListOf()

@@ -47,7 +47,6 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
-import kotlin.reflect.KClass
 import kotlin.system.exitProcess
 
 /**
@@ -101,7 +100,7 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 		modules.add(module)
 		ModuleDeserializer.register(module.configClass)
 		when (module) {
-			is ServiceModule<out ServiceSubConfig, *, *> -> ServiceDeserializer.register(module.configClass as KClass<out ServiceConfig<out ServiceSubConfig>>)
+			is ServiceModule<*, ServiceConfig<out ServiceSubConfig>, *> -> ServiceDeserializer.register(module.configClass)
 			is NotifierModule<*, *> -> NotifierDeserializer.register(module.configClass)
 		}
 	}
@@ -114,7 +113,7 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 			module.loadControllers(this, applicationConfiguration).forEach { ctrl ->
 				when (ctrl) {
 					is Service<*, *> -> services.add(ctrl as Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>)
-					is Notifier<*> -> notifiers.add(ctrl as Notifier<NotifierConfig>)
+					is Notifier<NotifierConfig> -> notifiers.add(ctrl)
 				}
 			}
 		}
@@ -167,13 +166,13 @@ class ApplicationController(override val stage: Stage, vararg modules: Module<*,
 
 	override fun add(controller: ModuleInstanceInterface<*>): ModuleInstanceInterface<*>? {
 		when (controller) {
-			is Service<*, *> -> {
-				applicationConfiguration.serviceMap[controller.config.uuid] = controller.config as ServiceConfig<out ServiceSubConfig>?
+			is Service<*, ServiceConfig<out ServiceSubConfig>> -> {
+				applicationConfiguration.serviceMap[controller.config.uuid] = controller.config
 				services.add(controller as Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>)
 			}
-			is Notifier<*> -> {
+			is Notifier<NotifierConfig> -> {
 				applicationConfiguration.notifierMap[controller.config.uuid] = controller.config
-				notifiers.add(controller as Notifier<NotifierConfig>)
+				notifiers.add(controller)
 			}
 			else -> return null
 		}

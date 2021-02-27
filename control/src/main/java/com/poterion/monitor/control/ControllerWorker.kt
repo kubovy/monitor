@@ -42,9 +42,10 @@ class ControllerWorker private constructor(
 
 		fun start(config: ApplicationConfiguration, services: Collection<Service<ServiceSubConfig, ServiceConfig<out ServiceSubConfig>>>) {
 			if (instance == null || instance?.running == false) {
-				instance = instance ?: ControllerWorker(config, services)
-				instance?.running = true
-				executor.submit(instance!!)
+				instance = (instance ?: ControllerWorker(config, services)).also {
+					it.running = true
+					executor.submit(it)
+				}
 			}
 		}
 
@@ -60,8 +61,8 @@ class ControllerWorker private constructor(
 
 	override fun call(): Boolean {
 		Thread.currentThread().name = "Controller Worker"
+		val parallelism = max(3, Runtime.getRuntime().availableProcessors() / 2)
 		while (running) try {
-			val parallelism = max(3, Runtime.getRuntime().availableProcessors() / 2)
 			if (!config.paused) services.filter { it.shouldRun }
 				.parallelStreamIntermediate(parallelism) { service ->
 					try {

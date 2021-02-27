@@ -26,10 +26,11 @@ import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 
 /**
+ * New version update checker.
+ *
  * @author Jan Kubovy [jan@kubovy.eu]
  */
-class UpdateChecker private constructor(applicationConfiguration: ApplicationConfiguration) :
-		Callable<Boolean> {
+class UpdateChecker private constructor(applicationConfiguration: ApplicationConfiguration) : Callable<Boolean> {
 
 	companion object {
 		private val LOGGER = LoggerFactory.getLogger(UpdateChecker::class.java)
@@ -39,9 +40,10 @@ class UpdateChecker private constructor(applicationConfiguration: ApplicationCon
 
 		fun start(applicationConfiguration: ApplicationConfiguration) {
 			if (instance == null || instance?.running == false) {
-				instance = instance ?: UpdateChecker(applicationConfiguration)
-				instance?.running = true
-				executor.submit(instance!!)
+				instance = (instance ?: UpdateChecker(applicationConfiguration)).also {
+					it.running = true
+					executor.submit(it)
+				}
 			}
 		}
 
