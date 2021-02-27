@@ -1,0 +1,173 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+import java.time.LocalDate
+
+ext {
+    APP_NAME = 'Poterion Monitor'
+    VENDOR = 'Poterion'
+    EMAIL = 'apps@poterion.com'
+    ICON = 'api/src/main/resources/com/poterion/monitor/api/icons/application.icns'
+    CATEGORY = 'Utility'
+    PACKAGE = 'com.poterion.monitor'
+    JDK = 'zulu11.45.27-ca-fx-jdk11.0.10'
+
+    if (Os.isFamily(Os.FAMILY_MAC)) {
+        ARCHIVE = 'tar.gz'
+        JDK = "${JDK}-macosx_x64"
+        JRE_SUFFIX = ""
+        CONTAINERS = ['image', 'dmg', 'pkg']
+    } else if (Os.isFamily(Os.FAMILY_UNIX)) {
+        ARCHIVE = 'tar.gz'
+        JDK = "${JDK}-linux_x64"
+        JRE_SUFFIX = "/jre"
+        CONTAINERS = ['image', 'deb', 'rpm']
+    } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        ARCHIVE = 'zip'
+        JDK =  "${JDK}-win_x64"
+        JRE_SUFFIX = ""
+        CONTAINERS = ['image', 'exe', 'msi']
+    } else throw new GradleException("Must run on Linux, MacOS or Windows")
+    JDKS_ROOT = project.hasProperty('jdks')
+            ? project.jdks
+            : "${rootDir}/jdk"
+    JAVA_HOME = project.hasProperty('javahome')
+            ? project.javahome
+            : new File("${JDKS_ROOT}/${JDK}").absolutePath
+    JRE_HOME = "${JAVA_HOME}${JRE_SUFFIX}"
+    JPACKAGER = project.hasProperty('javapackager')
+            ? project.javapackager
+            : file("${JAVA_HOME}/bin/javapackager").absolutePath
+    println "JAVA_HOME=${JAVA_HOME}"
+    println "JPACKAGER=${JPACKAGER}"
+}
+
+task cleanOpenJDK(type: Delete, group: 'jdk') {
+    delete "${JDKS_ROOT}"
+}
+
+task downloadOpenJDK(type: Download, group: 'jdk') {
+    src "https://cdn.azul.com/zulu/bin/${JDK}.${ARCHIVE}"
+    dest file("${JDKS_ROOT}/${JDK}.${ARCHIVE}")
+    onlyIfNewer true
+    //overwrite false
+}
+
+task extractOpenJDK(type: Copy, group: 'jdk', dependsOn: downloadOpenJDK) {
+    //if (!file(downloadOpenJDK.dest).exists()) {
+    if (!file("${JDKS_ROOT}/${JDK}").exists()) {
+        println "Extracting: ${downloadOpenJDK.dest}..."
+        if (ARCHIVE == 'zip') {
+            from zipTree(downloadOpenJDK.dest)
+        } else {
+            from tarTree(downloadOpenJDK.dest)
+        }
+    } else {
+        println "JDK already extracted: ${JDKS_ROOT}/${JDK}"
+    }
+    into "${JDKS_ROOT}"
+}
+
+task downloadJPackager(type: Download, group: 'jdk') {
+    if (Os.isFamily(Os.FAMILY_MAC)) {
+        src 'http://download2.gluonhq.com/jpackager/11/jdk.packager-osx.zip'
+    } else if (Os.isFamily(Os.FAMILY_UNIX)) {
+        src 'http://download2.gluonhq.com/jpackager/11/jdk.packager-linux.zip'
+    } else if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+        src 'http://download2.gluonhq.com/jpackager/11/jdk.packager-windows.zip'
+    } else throw new GradleException("Must run on Linux, MacOS or Windows")
+    dest file("${JDKS_ROOT}/jdk.packager.zip")
+    onlyIfNewer true
+    //overwrite false
+}
+
+task extractJPackager(type: Copy, group: 'jdk', dependsOn: downloadJPackager) {
+    from(zipTree(downloadJPackager.dest)) {
+        include "jpackager*"
+        into "${JDKS_ROOT}"
+    }
+}
+
+allprojects {
+    compileJava {
+        options.fork = true
+        options.forkOptions.executable = "${JAVA_HOME}/bin/javac"
+        options.forkOptions.javaHome = file("${JAVA_HOME}")
+    }
+}
+
+//tasks.assemble.dependsOn(extractOpenJDK)
+
+task assembleSelfContained(group: 'build', dependsOn: assembleFatJar) {
+    doLast {
+        if (Os.isFamily(Os.FAMILY_MAC) // Fix Mac required directory structure
+                && !project.hasProperty('javahome')
+                && !file("${JAVA_HOME}/Contents/Home/jre").exists()) {
+            file("${JAVA_HOME}/Contents/Home").mkdirs()
+            exec {
+                commandLine "ln", "-nfs", "${JAVA_HOME}/jre", "${JAVA_HOME}/Contents/Home/jre"
+            }
+        }
+        logger.info("Building self contained images: ${CONTAINERS}")
+        logger.info("JAVA_HOME=${JAVA_HOME}")
+        logger.info("JPACKAGER=${JPACKAGER}")
+        logger.info("SRC=${file("${buildDir}/libs/${project.name}-all-${version}.jar").path}")
+        CONTAINERS.forEach { type ->
+            try {
+                logger.info("Packaging ${type} of ${APP_NAME} ${version.replace("-SNAPSHOT", "")}")
+                exec {
+                    commandLine("${JPACKAGER}",
+                            "-deploy",
+                            "-Bruntime=${JRE_HOME}",
+                            "-BappVersion=${version.replace("-SNAPSHOT", "")}",
+                            "-Bicon=${ICON}",
+                            "-Bcategory=${CATEGORY}",
+                            "-BlicenseFile=COPYING",
+                            "-Bcopyright=2018-${LocalDate.now().year} ${VENDOR}",
+                            "-Bemail=${EMAIL}",
+                            //"-Barguments=--config-dir=.", // Store config inside the app directory
+                            "-Bmac.category=Utility",
+                            "-Bmac.CFBundleIdentifier=${PACKAGE}",
+                            "-Bmac.CFBundleName=${APP_NAME}",
+                            "-Bmac.CFBundleVersion=${version.replace("-SNAPSHOT", "")}",
+                            "-native", type,
+                            "-srcdir", ".",
+                            "-srcfiles", "build/libs/${project.name}-all-${version}.jar",
+                            "-srcfiles", "COPYING",
+                            "-outdir", ".",
+                            "-outfile", project.name,
+                            "-appclass", "${PACKAGE}.Main",
+                            "-name", project.name,
+                            "-title", APP_NAME,
+                            "-vendor", VENDOR,
+                            "-nosign",
+                            "-v")
+                    standardOutput = new ByteArrayOutputStream()
+                    ext.output = {
+                        return standardOutput.toString()
+                    }
+                }
+                println ext.output()
+            } catch (e) {
+                logger.error("${type}: ${e.message}\n\n ${ext.output()}", e)
+            }
+        }
+    }
+}
+
+task archiveSelfContainedLinuxImage(type: Tar, group: 'build') {
+    archiveBaseName.set(project.name)
+    archiveVersion.set(project.version.replace("-SNAPSHOT", ""))
+    archiveExtension.set('tar.gz')
+    into ("/${project.name}/"){
+        from "${rootDir}/bundles/${project.name.replace(' ', '')}"
+    }
+    destinationDir  file("${rootDir}/bundles")
+    compression = Compression.GZIP
+}
+
+if (Os.isFamily(Os.FAMILY_UNIX) && !Os.isFamily(Os.FAMILY_MAC)) {
+    assembleSelfContained.finalizedBy archiveSelfContainedLinuxImage
+}
+
+//clean {
+//    delete 'bundles'
+//}
