@@ -33,15 +33,15 @@ object StatusCollector {
 	private val LOGGER: Logger = LoggerFactory.getLogger(StatusCollector::class.java)
 
 	private val itemMap = mutableMapOf<String, Collection<StatusItem>>()
-	var items: List<StatusItem> = emptyList<StatusItem>()
+	var items: List<StatusItem> = emptyList()
 		private set
 	val status: BehaviorSubject<StatusCollector> = BehaviorSubject.create()
 
 	init {
 		if (Shared.cacheFile.exists()) {
 			val statusItems = objectMapper
-					.readValue(Shared.cacheFile, object : TypeReference<List<StatusItem?>?>() {})
-					?.filterNotNull()
+				.readValue(Shared.cacheFile, object : TypeReference<List<StatusItem?>?>() {})
+				?.filterNotNull()
 			if (statusItems != null) update(statusItems, false)
 		}
 
@@ -73,8 +73,8 @@ object StatusCollector {
 	fun update(statusItems: Collection<StatusItem>, update: Boolean) {
 		if (!update) statusItems.map { it.serviceId }.distinct().forEach { itemMap.remove(it) }
 		val deduplicated = statusItems
-				.groupBy { it.id }
-				.mapNotNull { (_, duplicates) -> duplicates.maxBy { it.status.ordinal * 100 + it.priority.ordinal } }
+			.groupBy { it.id }
+			.mapNotNull { (_, duplicates) -> duplicates.maxByOrNull { it.status.ordinal * 100 + it.priority.ordinal } }
 				.groupBy { it.serviceId }
 		itemMap.putAll(deduplicated)
 

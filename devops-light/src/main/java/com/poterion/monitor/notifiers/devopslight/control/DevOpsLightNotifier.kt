@@ -378,4 +378,29 @@ class DevOpsLightNotifier(override val controller: ControllerInterface, config: 
 			else -> statusNone
 		}
 	}
+
+	private fun Logger.log(vararg items: StatusItem) {
+		val prefix = if (config.enabled) "Changing" else "Skipping"
+		if (isDebugEnabled) LOGGER.debug("${prefix} [${communicator?.connectionDescriptor}]: ${items}")
+		else if (isInfoEnabled) items
+			.joinToString("\n\t", "\n\t") { item ->
+				listOf(
+					//"id" to item.id,
+					"serviceId" to item.serviceId,
+					"priority" to item.priority,
+					"status" to item.status,
+					"title" to item.title,
+					"group" to item.group,
+					//"labels" to item.labels.takeUnless { it.isEmpty() },
+					"configIds" to item.configIds.takeUnless { it.isEmpty() },
+					"parentId" to item.parentId,
+					"parentRequired" to item.takeIf { it.parentId != null }?.parentRequired,
+					"children" to item.children.takeUnless { it.isEmpty() },
+					"isRepeatable" to item.isRepeatable.takeIf { it })
+					//"startedAt" to item.startedAt)
+					.mapNotNull { (key, value) -> value?.let { key to value } }
+					.joinToString(", ", "StatusItem(", ")") { (key, value) -> "${key}=${value}" }
+			}
+			.also { LOGGER.info("${prefix} [${communicator?.connectionDescriptor}]: ${it}") }
+	}
 }

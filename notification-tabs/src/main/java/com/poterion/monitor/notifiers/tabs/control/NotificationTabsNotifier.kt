@@ -31,17 +31,11 @@ import com.poterion.monitor.notifiers.tabs.ui.TabController
 import com.poterion.utils.javafx.toImageView
 import com.poterion.utils.kotlin.noop
 import javafx.scene.Parent
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
  */
 class NotificationTabsNotifier(override val controller: ControllerInterface, config: NotificationTabsConfig) : Notifier<NotificationTabsConfig>(config) {
-	companion object {
-		val LOGGER: Logger = LoggerFactory.getLogger(NotificationTabsNotifier::class.java)
-	}
-
 	override val definition: Module<NotificationTabsConfig, ModuleInstanceInterface<NotificationTabsConfig>> = NotificationTabsModule
 
 	private var tabController: TabController? = null
