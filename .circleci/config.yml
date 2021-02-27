@@ -1,0 +1,82 @@
+# Java Gradle CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-java/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version you desire here
+      - image: circleci/openjdk:11-jdk
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+
+    working_directory: ~/repo
+
+    environment:
+      # Customize the JVM maximum heap limit
+      JVM_OPTS: -Xmx3200m
+      TERM: dumb
+      ORG_GRADLE_PROJECT_jdk: "zulu11.45.27-ca-fx-jdk11.0.10"
+
+    steps:
+      - checkout
+
+      - run:
+          name: Install Submodules
+          command: git submodule sync && git submodule update --init
+
+      - run:
+          name: Determine version
+          command: ./gradlew determineVersion
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "build.gradle" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+
+      - run:
+          name: Download & Extract JDK
+          command: ./gradlew extractOpenJDK
+
+      - run:
+          name: Dependencies
+          command: ./gradlew dependencies
+
+      - save_cache:
+          paths:
+            - ~/.gradle
+          key: v1-dependencies-{{ checksum "build.gradle" }}
+
+      - run:
+          name: Build
+          command: ./gradlew assemble
+          environment:
+            JAVA_HOME: ./jdk/zulu11.45.27-ca-fx-jdk11.0.10-linux_x64
+
+      - run:
+          name: Test
+          command: ./gradlew test
+          environment:
+            JAVA_HOME: ./jdk/zulu11.45.27-ca-fx-jdk11.0.10-linux_x64
+
+      - run:
+          name: Build Fat JAR
+          command: ./gradlew assembleFatJar
+          environment:
+            JAVA_HOME: ./jdk/zulu11.45.27-ca-fx-jdk11.0.10-linux_x64
+
+      - run:
+          name: Show results
+          command: |
+            cat src/main/resources/application.properties
+            ls -la jdk
+            ls -la build/libs
+
+      - store_artifacts:
+          path: build/libs

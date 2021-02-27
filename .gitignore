@@ -5,7 +5,6 @@ out/
 build/
 /bundles/
 /jdk/
-/gradle/wrapper/gradle-wrapper.jar
 *.bak
 *.iml
 *.log
@@ -21,3 +20,4 @@ build/
 /.gitconfig
 .directory
 /src/main/resources/application.properties
+/version
