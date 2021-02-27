@@ -8,7 +8,7 @@ ext {
     ICON = 'api/src/main/resources/com/poterion/monitor/api/icons/application.icns'
     CATEGORY = 'Utility'
     PACKAGE = 'com.poterion.monitor'
-    JDK = 'zulu11.45.27-ca-fx-jdk11.0.10'
+    JDK = project.hasProperty('jdk') ? project.jdk : 'zulu11.45.27-ca-fx-jdk11.0.10'
 
     if (Os.isFamily(Os.FAMILY_MAC)) {
         ARCHIVE = 'tar.gz'
