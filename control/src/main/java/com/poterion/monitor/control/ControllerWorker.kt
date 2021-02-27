@@ -20,11 +20,9 @@ import com.poterion.monitor.api.controllers.Service
 import com.poterion.monitor.data.data.ApplicationConfiguration
 import com.poterion.monitor.data.services.ServiceConfig
 import com.poterion.monitor.data.services.ServiceSubConfig
-import com.poterion.utils.kotlin.parallelStreamIntermediate
 import org.slf4j.LoggerFactory
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
-import kotlin.math.max
 
 /**
  * @author Jan Kubovy [jan@kubovy.eu]
@@ -61,18 +59,18 @@ class ControllerWorker private constructor(
 
 	override fun call(): Boolean {
 		Thread.currentThread().name = "Controller Worker"
-		val parallelism = max(3, Runtime.getRuntime().availableProcessors() / 2)
+		//val parallelism = max(3, Runtime.getRuntime().availableProcessors() / 2)
 		while (running) try {
-			if (!config.paused) services.filter { it.shouldRun }
-				.parallelStreamIntermediate(parallelism) { service ->
-					try {
-						service.check()
-					} catch (t: Throwable) {
-						LOGGER.error(t.message, t)
-					} finally {
-						serviceLastChecked[service.config.uuid] = System.currentTimeMillis()
-					}
+			if (!config.paused) services.filter { it.shouldRun }.forEach { service ->
+				//.parallelStreamIntermediate(parallelism) { service ->
+				try {
+					service.check()
+				} catch (t: Throwable) {
+					LOGGER.error(t.message, t)
+				} finally {
+					serviceLastChecked[service.config.uuid] = System.currentTimeMillis()
 				}
+			}
 			Thread.sleep(1_000L)
 		} catch (e: InterruptedException) {
 			running = false
